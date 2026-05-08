@@ -1,7 +1,6 @@
-
 "use client"
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Building2, 
@@ -15,14 +14,19 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { useFirestore, useCollection } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 
 export default function Home() {
   const db = useFirestore();
+  const [mounted, setMounted] = useState(false);
 
-  // Fetch all tenants to calculate stats
-  const tenantsQuery = useMemo(() => {
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Use useMemoFirebase to stabilize the query reference
+  const tenantsQuery = useMemoFirebase(() => {
     if (!db) return null;
     return query(collection(db, 'tenants'));
   }, [db]);
@@ -156,7 +160,7 @@ export default function Home() {
       <footer className="mt-auto py-6 text-center text-sm text-muted-foreground border-t bg-white">
         <div className="flex justify-center items-center gap-2">
           <Building2 className="h-4 w-4 text-primary/50" /> 
-          <span className="font-medium">Villa 5604</span> Admin Portal &copy; {new Date().getFullYear()}
+          <span className="font-medium">Villa 5604</span> Admin Portal &copy; {mounted ? new Date().getFullYear() : ''}
         </div>
       </footer>
     </div>

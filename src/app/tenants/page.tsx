@@ -1,7 +1,8 @@
+
 "use client"
 
 import React, { useState, useMemo } from 'react';
-import { useFirestore, useCollection } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, deleteDoc, doc, serverTimestamp, query, orderBy, updateDoc } from 'firebase/firestore';
 import { Plus, Trash2, User, Home, DollarSign, Loader2, ArrowLeft, Edit, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,9 +25,10 @@ export default function TenantsPage() {
   const [editingTenant, setEditingTenant] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Real-time tenants collection
-  const tenantsQuery = useMemo(() => {
+  // Use useMemoFirebase to stabilize the query reference and prevent infinite loops
+  const tenantsQuery = useMemoFirebase(() => {
     if (!db) return null;
+    // We order by createdAt to ensure the latest records appear first
     return query(collection(db, 'tenants'), orderBy('createdAt', 'desc'));
   }, [db]);
 
@@ -35,8 +37,8 @@ export default function TenantsPage() {
   const filteredTenants = useMemo(() => {
     if (!tenants) return [];
     return tenants.filter(t => 
-      t.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      t.propertyAddress.toLowerCase().includes(searchQuery.toLowerCase())
+      t.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      t.propertyAddress?.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [tenants, searchQuery]);
 
@@ -62,7 +64,6 @@ export default function TenantsPage() {
     };
 
     if (editingTenant) {
-      // Update existing tenant
       updateDoc(doc(db, 'tenants', editingTenant.id), tenantData)
         .then(() => {
           setIsDialogOpen(false);
@@ -81,7 +82,6 @@ export default function TenantsPage() {
         })
         .finally(() => setIsSubmitting(false));
     } else {
-      // Add new tenant
       const newTenant = { ...tenantData, createdAt: serverTimestamp() };
       addDoc(collection(db, 'tenants'), newTenant)
         .then(() => {
@@ -216,7 +216,7 @@ export default function TenantsPage() {
           {tenantsLoading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               <Loader2 className="h-10 w-10 animate-spin text-primary/40" />
-              <p className="text-sm text-muted-foreground">Fetching records from Firestore...</p>
+              <p className="text-sm text-muted-foreground">Connecting to Firestore...</p>
             </div>
           ) : filteredTenants.length > 0 ? (
             <div className="overflow-x-auto">
