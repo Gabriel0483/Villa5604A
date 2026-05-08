@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   User as UserIcon, 
@@ -21,7 +21,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
@@ -40,6 +40,12 @@ export default function ProfilePage() {
   }, [db, user]);
 
   const { data: profile, loading: profileLoading } = useDoc(profileRef);
+
+  // Unified SuperAdmin check
+  const isSuperAdmin = useMemo(() => {
+    if (user?.email === 'rielmagpantay@gmail.com') return true;
+    return profile?.role === 'SuperAdmin';
+  }, [user, profile]);
 
   // If user is a Resident, they might have a linked Tenant record
   const tenantRef = useMemoFirebase(() => {
@@ -84,58 +90,50 @@ export default function ProfilePage() {
 
     const userUpdates = {
       name: formData.name,
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
+      // Ensure role is preserved if document is created for the first time
+      role: isSuperAdmin ? 'SuperAdmin' : 'Resident'
     };
 
-    // Update User Profile
-    const updatePromises = [];
-    
-    updatePromises.push(
-      updateDoc(doc(db, 'users', user.uid), userUpdates)
-        .catch(async (err) => {
-          const permissionError = new FirestorePermissionError({
-            path: `users/${user.uid}`,
-            operation: 'update',
-            requestResourceData: userUpdates
-          });
-          errorEmitter.emit('permission-error', permissionError);
-          throw err;
-        })
-    );
-
-    // If Resident, update linked Tenant record
-    if (profile?.tenantId) {
-      const tenantUpdates = {
-        name: formData.name,
-        phone: formData.phone,
-        propertyAddress: formData.propertyAddress,
-        updatedAt: serverTimestamp()
-      };
-      updatePromises.push(
-        updateDoc(doc(db, 'tenants', profile.tenantId), tenantUpdates)
-          .catch(async (err) => {
-            const permissionError = new FirestorePermissionError({
-              path: `tenants/${profile.tenantId}`,
-              operation: 'update',
-              requestResourceData: tenantUpdates
+    // Use setDoc with merge: true to handle cases where doc might not exist yet
+    const userDocRef = doc(db, 'users', user.uid);
+    setDoc(userDocRef, userUpdates, { merge: true })
+      .then(() => {
+        // If Resident, update linked Tenant record
+        if (profile?.tenantId) {
+          const tenantUpdates = {
+            name: formData.name,
+            phone: formData.phone,
+            propertyAddress: formData.propertyAddress,
+            updatedAt: serverTimestamp()
+          };
+          setDoc(doc(db, 'tenants', profile.tenantId), tenantUpdates, { merge: true })
+            .catch(async (err) => {
+              const permissionError = new FirestorePermissionError({
+                path: `tenants/${profile.tenantId}`,
+                operation: 'update',
+                requestResourceData: tenantUpdates
+              });
+              errorEmitter.emit('permission-error', permissionError);
             });
-            errorEmitter.emit('permission-error', permissionError);
-            throw err;
-          })
-      );
-    }
+        }
 
-    try {
-      await Promise.all(updatePromises);
-      toast({
-        title: "Profile updated",
-        description: "Your profile information has been successfully saved.",
+        toast({
+          title: "Profile updated",
+          description: "Your profile information has been successfully saved.",
+        });
+      })
+      .catch(async (err) => {
+        const permissionError = new FirestorePermissionError({
+          path: `users/${user.uid}`,
+          operation: 'write',
+          requestResourceData: userUpdates
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      })
+      .finally(() => {
+        setIsSaving(false);
       });
-    } catch (err) {
-      // Errors handled by emitter/listener
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   if (userLoading || profileLoading) {
@@ -152,8 +150,6 @@ export default function ProfilePage() {
     return null;
   }
 
-  const isSuperAdmin = profile?.role === 'SuperAdmin';
-
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4">
       <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -163,7 +159,7 @@ export default function ProfilePage() {
           </Link>
           <Badge variant={isSuperAdmin ? "default" : "secondary"} className="gap-1.5 px-3 py-1">
             {isSuperAdmin ? <ShieldCheck className="h-3.5 w-3.5" /> : <UserIcon className="h-3.5 w-3.5" />}
-            {profile?.role || 'Resident'}
+            {isSuperAdmin ? 'SuperAdmin' : (profile?.role || 'Resident')}
           </Badge>
         </div>
 
