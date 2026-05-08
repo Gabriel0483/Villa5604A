@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -15,13 +16,22 @@ import {
   LogOut,
   LogIn,
   User as UserIcon,
-  ShieldCheck
+  ShieldCheck,
+  Settings
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useAuth, useDoc } from '@/firebase';
 import { collection, query, doc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
 
 export default function Home() {
   const db = useFirestore();
@@ -79,25 +89,47 @@ export default function Home() {
       <header className="bg-white border-b sticky top-0 z-10">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-primary/10 rounded-lg">
-              <Building2 className="h-5 w-5 text-primary" />
-            </div>
-            <span className="font-bold text-xl text-primary tracking-tight">Villa 5604</span>
+            <Link href="/" className="flex items-center gap-2">
+              <div className="p-1.5 bg-primary/10 rounded-lg">
+                <Building2 className="h-5 w-5 text-primary" />
+              </div>
+              <span className="font-bold text-xl text-primary tracking-tight">Villa 5604</span>
+            </Link>
           </div>
 
           <div className="flex items-center gap-4">
             {user ? (
               <div className="flex items-center gap-3">
                 <div className="hidden md:flex flex-col items-end mr-1">
-                  <span className="text-sm font-medium text-slate-900">{user.email}</span>
+                  <span className="text-sm font-medium text-slate-900">{profile?.name || user.email}</span>
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     {isSuperAdmin && <ShieldCheck className="h-3 w-3 text-primary" />}
                     {isSuperAdmin ? 'SuperAdmin' : 'Resident'}
                   </span>
                 </div>
-                <Button variant="ghost" size="icon" onClick={handleLogout} title="Sign Out">
-                  <LogOut className="h-5 w-5 text-muted-foreground hover:text-destructive transition-colors" />
-                </Button>
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="rounded-full ring-primary/20 hover:ring-2 transition-all">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <UserIcon className="h-4 w-4 text-primary" />
+                      </div>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <Link href="/profile">
+                      <DropdownMenuItem className="cursor-pointer gap-2">
+                        <Settings className="h-4 w-4" /> Profile Settings
+                      </DropdownMenuItem>
+                    </Link>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive gap-2" onClick={handleLogout}>
+                      <LogOut className="h-4 w-4" /> Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             ) : (
               <Link href="/login">
@@ -176,19 +208,21 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-md transition-all border-primary/10 group cursor-default opacity-80 grayscale-[0.5]">
+            <Card className="hover:shadow-md transition-all border-primary/10 group cursor-default">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <Receipt className="h-5 w-5 text-primary" /> Financial Reports
+                  <UserIcon className="h-5 w-5 text-primary" /> Profile Settings
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Coming Soon: Integrated billing, expense tracking, and automated receipts.
+                  Update your contact information, display name, and manage your account preferences.
                 </p>
-                <Button variant="outline" className="w-full" disabled>
-                  Coming Soon
-                </Button>
+                <Link href="/profile">
+                  <Button variant="outline" className="w-full">
+                    View Profile <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
 
