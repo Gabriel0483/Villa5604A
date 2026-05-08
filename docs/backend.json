@@ -11,8 +11,6 @@
         "phone": { "type": "string", "description": "Phone number" },
         "propertyAddress": { "type": "string", "description": "The address of the rented property" },
         "rentAmount": { "type": "number", "description": "Monthly rent amount" },
-        "leaseStart": { "type": "string", "format": "date", "description": "Start date of the lease" },
-        "leaseEnd": { "type": "string", "format": "date", "description": "End date of the lease" },
         "status": { "type": "string", "enum": ["active", "past", "pending"], "description": "Current status of the tenant" },
         "createdAt": { "type": "string", "format": "date-time", "description": "When the record was created" }
       },

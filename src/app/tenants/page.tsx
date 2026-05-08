@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection, addDoc, deleteDoc, doc, serverTimestamp, query, orderBy } from 'firebase/firestore';
-import { Plus, Trash2, User, Home, Mail, Phone, Calendar, DollarSign, Loader2 } from 'lucide-react';
+import { Plus, Trash2, User, Home, Mail, Phone, DollarSign, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,7 +28,7 @@ export default function TenantsPage() {
     return query(collection(db, 'tenants'), orderBy('createdAt', 'desc'));
   }, [db]);
 
-  const { data: tenants, loading, error } = useCollection(tenantsQuery);
+  const { data: tenants, loading } = useCollection(tenantsQuery);
 
   const handleAddTenant = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -42,8 +42,6 @@ export default function TenantsPage() {
       phone: formData.get('phone') as string,
       propertyAddress: formData.get('propertyAddress') as string,
       rentAmount: parseFloat(formData.get('rentAmount') as string),
-      leaseStart: formData.get('leaseStart') as string,
-      leaseEnd: formData.get('leaseEnd') as string,
       status: 'active',
       createdAt: serverTimestamp(),
     };
@@ -93,7 +91,7 @@ export default function TenantsPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-primary">Tenant Management</h1>
-          <p className="text-muted-foreground">Add and manage your tenant records and lease agreements.</p>
+          <p className="text-muted-foreground">Add and manage your tenant records.</p>
         </div>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -107,7 +105,7 @@ export default function TenantsPage() {
               <DialogHeader>
                 <DialogTitle>Add Tenant</DialogTitle>
                 <DialogDescription>
-                  Enter the details of the new tenant and their lease agreement.
+                  Enter the details of the new tenant.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -134,16 +132,6 @@ export default function TenantsPage() {
                 <div className="space-y-2">
                   <Label htmlFor="propertyAddress">Property Address</Label>
                   <Input id="propertyAddress" name="propertyAddress" placeholder="123 Main St, Suite 4B" required />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="leaseStart">Lease Start</Label>
-                    <Input id="leaseStart" name="leaseStart" type="date" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="leaseEnd">Lease End</Label>
-                    <Input id="leaseEnd" name="leaseEnd" type="date" required />
-                  </div>
                 </div>
               </div>
               <DialogFooter>
@@ -180,13 +168,12 @@ export default function TenantsPage() {
                     <TableHead>Tenant</TableHead>
                     <TableHead>Property</TableHead>
                     <TableHead>Rent</TableHead>
-                    <TableHead>Lease Period</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {tenants.map((tenant) => (
+                  {tenants.map((tenant: any) => (
                     <TableRow key={tenant.id} className="hover:bg-muted/50 transition-colors">
                       <TableCell>
                         <div className="flex flex-col">
@@ -204,12 +191,6 @@ export default function TenantsPage() {
                         <div className="flex items-center gap-1 font-semibold text-primary">
                           <DollarSign className="h-3 w-3" />
                           {tenant.rentAmount?.toLocaleString()}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col text-xs text-muted-foreground">
-                          <span>Start: {tenant.leaseStart}</span>
-                          <span>End: {tenant.leaseEnd}</span>
                         </div>
                       </TableCell>
                       <TableCell>
