@@ -233,7 +233,8 @@ export default function ProfilePage() {
                       <p className="text-[10px] text-muted-foreground mt-1 px-1">
                         Note: Address changes may be subject to verification by management.
                       </p>
-                    </>
+                    </div>
+                  </>
                 )}
               </div>
             </CardContent>
