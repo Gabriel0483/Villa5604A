@@ -15,15 +15,31 @@
         "createdAt": { "type": "string", "format": "date-time", "description": "When the record was created" }
       },
       "required": ["name", "email", "propertyAddress", "rentAmount"]
+    },
+    "User": {
+      "title": "User",
+      "description": "User profile with role-based access",
+      "type": "object",
+      "properties": {
+        "userCode": { "type": "string", "description": "Unique login code" },
+        "name": { "type": "string", "description": "Full name" },
+        "role": { "type": "string", "enum": ["SuperAdmin", "Resident"], "description": "Access level" },
+        "tenantId": { "type": "string", "description": "Reference to tenant record if role is Resident" }
+      },
+      "required": ["userCode", "role", "name"]
     }
   },
   "auth": {
-    "providers": ["google.com"]
+    "providers": ["password"]
   },
   "firestore": {
     "/tenants/{tenantId}": {
       "schema": "#/entities/Tenant",
       "description": "Collection of tenant records"
+    },
+    "/users/{userId}": {
+      "schema": "#/entities/User",
+      "description": "Collection of user profiles"
     }
   }
 }

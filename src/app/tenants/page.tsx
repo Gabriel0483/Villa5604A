@@ -1,10 +1,11 @@
 
 "use client"
 
-import React, { useState } from 'react';
-import { useFirestore, useCollection } from '@/firebase';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useFirestore, useCollection, useUser, useDoc } from '@/firebase';
 import { collection, addDoc, deleteDoc, doc, serverTimestamp, query, orderBy } from 'firebase/firestore';
-import { Plus, Trash2, User, Home, Mail, Phone, DollarSign, Loader2 } from 'lucide-react';
+import { Plus, Trash2, User, Home, Mail, Phone, DollarSign, Loader2, ArrowLeft, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,20 +16,38 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import Link from 'next/link';
 
 export default function TenantsPage() {
   const db = useFirestore();
+  const { user, loading: authLoading } = useUser();
+  const router = useRouter();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Fetch profile to check role
+  const userDocRef = React.useMemo(() => {
+    if (!db || !user) return null;
+    return doc(db, 'users', user.uid);
+  }, [db, user]);
+
+  const { data: profile, loading: profileLoading } = useDoc(userDocRef);
+
+  // Protect route
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, authLoading, router]);
+
   // Real-time tenants collection
   const tenantsQuery = React.useMemo(() => {
-    if (!db) return null;
+    if (!db || profile?.role !== 'SuperAdmin') return null;
     return query(collection(db, 'tenants'), orderBy('createdAt', 'desc'));
-  }, [db]);
+  }, [db, profile]);
 
-  const { data: tenants, loading } = useCollection(tenantsQuery);
+  const { data: tenants, loading: tenantsLoading } = useCollection(tenantsQuery);
 
   const handleAddTenant = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -86,12 +105,36 @@ export default function TenantsPage() {
       });
   };
 
+  if (authLoading || profileLoading) {
+    return <div className="p-8 flex justify-center"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
+  }
+
+  if (profile?.role !== 'SuperAdmin') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-8 text-center space-y-4">
+        <div className="p-4 bg-destructive/10 rounded-full">
+          <ShieldAlert className="h-12 w-12 text-destructive" />
+        </div>
+        <h1 className="text-2xl font-bold text-destructive">Access Denied</h1>
+        <p className="text-muted-foreground max-w-md">
+          You do not have the required permissions to access the Tenant Management module. This area is reserved for SuperAdmin users.
+        </p>
+        <Link href="/">
+          <Button variant="outline">Return to Dashboard</Button>
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto py-10 px-4 space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
+        <div className="space-y-1">
+          <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors mb-2">
+            <ArrowLeft className="h-3 w-3 mr-1" /> Back to Dashboard
+          </Link>
           <h1 className="text-3xl font-bold tracking-tight text-primary">Tenant Management</h1>
-          <p className="text-muted-foreground">Add and manage your tenant records.</p>
+          <p className="text-muted-foreground">View and manage global resident profiles.</p>
         </div>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -150,13 +193,13 @@ export default function TenantsPage() {
 
       <Card className="shadow-md">
         <CardHeader>
-          <CardTitle>Current Tenants</CardTitle>
+          <CardTitle>Current Residents</CardTitle>
           <CardDescription>
-            A list of all tenants currently in your property portfolio.
+            A consolidated list of all tenants across the portfolio.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {tenantsLoading ? (
             <div className="flex justify-center py-10">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
