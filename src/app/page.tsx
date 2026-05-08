@@ -11,13 +11,13 @@ import {
   Receipt, 
   LayoutDashboard, 
   TrendingUp,
-  DollarSign,
   Loader2,
   LogOut,
   LogIn,
   User as UserIcon,
   ShieldCheck,
-  Settings
+  Settings,
+  Banknote
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -178,8 +178,8 @@ export default function Home() {
               <CardHeader className="pb-2">
                 <CardDescription className="text-accent-foreground/70">Monthly Revenue</CardDescription>
                 <CardTitle className="text-3xl font-bold flex items-center">
-                  <DollarSign className="h-6 w-6 mr-1" />
-                  {tenantsLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats.totalRent.toLocaleString()}
+                  <span className="text-lg font-medium mr-1.5 opacity-80">OMR</span>
+                  {tenantsLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats.totalRent.toLocaleString(undefined, { minimumFractionDigits: 3 })}
                 </CardTitle>
               </CardHeader>
               <CardContent>

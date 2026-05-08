@@ -4,7 +4,7 @@
 import React, { useState, useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, deleteDoc, doc, serverTimestamp, query, orderBy, updateDoc } from 'firebase/firestore';
-import { Plus, Trash2, User, Home, DollarSign, Loader2, ArrowLeft, Edit, Search } from 'lucide-react';
+import { Plus, Trash2, User, Home, Loader2, ArrowLeft, Edit, Search, Banknote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -198,16 +198,16 @@ export default function TenantsPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="phone">Phone Number</Label>
-                      <Input id="phone" name="phone" defaultValue={editingTenant?.phone} placeholder="+1 (555) 000-0000" />
+                      <Input id="phone" name="phone" defaultValue={editingTenant?.phone} placeholder="+968 0000 0000" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="rentAmount">Monthly Rent ($)</Label>
-                      <Input id="rentAmount" name="rentAmount" type="number" step="0.01" defaultValue={editingTenant?.rentAmount} placeholder="1200" required />
+                      <Label htmlFor="rentAmount">Monthly Rent (OMR)</Label>
+                      <Input id="rentAmount" name="rentAmount" type="number" step="0.001" defaultValue={editingTenant?.rentAmount} placeholder="450.000" required />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="propertyAddress">Property Address</Label>
-                    <Input id="propertyAddress" name="propertyAddress" defaultValue={editingTenant?.propertyAddress} placeholder="123 Main St, Suite 4B" required />
+                    <Input id="propertyAddress" name="propertyAddress" defaultValue={editingTenant?.propertyAddress} placeholder="Villa 5604, Al Mouj" required />
                   </div>
                 </div>
                 <DialogFooter>
@@ -273,8 +273,8 @@ export default function TenantsPage() {
                       </TableCell>
                       <TableCell>
                         <div className="inline-flex items-center px-2 py-1 rounded-md bg-accent/10 text-accent-foreground font-bold text-sm">
-                          <DollarSign className="h-3 w-3 mr-0.5" />
-                          {Number(tenant.rentAmount)?.toLocaleString()}
+                          <span className="text-[10px] opacity-70 mr-1">OMR</span>
+                          {Number(tenant.rentAmount)?.toLocaleString(undefined, { minimumFractionDigits: 3 })}
                         </div>
                       </TableCell>
                       <TableCell>
