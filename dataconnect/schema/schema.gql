@@ -1,0 +1,50 @@
+type User @table {
+  displayName: String!
+  email: String
+  photoUrl: String
+  createdAt: Timestamp!
+}
+
+type Household @table {
+  name: String!
+  description: String
+  createdAt: Timestamp!
+}
+
+type HouseholdMember @table(key: ["user", "household"]) {
+  user: User!
+  household: Household!
+  role: String!
+  joinedAt: Timestamp!
+}
+
+type Task @table {
+  household: Household!
+  title: String!
+  description: String
+  assignedTo: User
+  dueDate: Date!
+  status: String!
+  createdAt: Timestamp!
+}
+
+type Expense @table {
+  household: Household!
+  payer: User!
+  description: String!
+  amount: Float!
+  date: Date!
+  category: String!
+  createdAt: Timestamp!
+}
+
+type Event @table {
+  household: Household!
+  creator: User!
+  title: String!
+  description: String
+  location: String
+  startTime: Timestamp!
+  endTime: Timestamp!
+  createdAt: Timestamp!
+}

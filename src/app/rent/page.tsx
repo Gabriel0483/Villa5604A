@@ -20,6 +20,7 @@ import {
   SelectValue 
 } from "@/components/ui/select"
 import { CreditCard, CheckCircle2, Clock, AlertCircle, Filter, Download } from "lucide-react"
+import { cn } from "@/lib/utils"
 import type { RentPayment } from "@/lib/types"
 
 const mockPayments: RentPayment[] = [

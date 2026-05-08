@@ -1,0 +1,36 @@
+query ListAllHouseholds @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public as it lists public household information.") {
+  households {
+    id
+    name
+    description
+  }
+}
+
+query GetMyTasks @auth(level: USER, insecureReason: "This operation is safe to expose to all logged in users.") {
+  tasks(where: {assignedTo: {id_expr: "auth.uid"}}) {
+    id
+    title
+    dueDate
+    status
+    household {
+      name
+    }
+  }
+}
+
+mutation CreateExpense($householdId: UUID!, $description: String!, $amount: Float!, $date: Date!, $category: String!) @auth(level: USER) {
+  expense_insert(data: {
+    householdId: $householdId,
+    payerId_expr: "auth.uid",
+    description: $description,
+    amount: $amount,
+    date: $date,
+    category: $category
+  })
+}
+
+mutation UpdateMyDisplayName($newDisplayName: String!) @auth(level: USER) {
+  user_update(key: {id_expr: "auth.uid"}, data: {
+    displayName: $newDisplayName
+  })
+}

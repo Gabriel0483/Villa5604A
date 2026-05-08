@@ -1,0 +1,106 @@
+mutation SeedData @transaction @auth(level: PUBLIC, insecureReason: "This is seed data and does not require authentication.") {
+  user_insertMany(data: [
+    {
+      id: "b40d096c-b26a-4b0d-b4b7-d1a1b8c0c1b7",
+      displayName: "Alice Smith",
+      email: "alice.smith@example.com",
+      createdAt: "2024-01-01T00:00:00Z"
+    },
+    {
+      id: "a3f5c7e9-d1b3-4f0a-8c2e-5d4f6a7b8c9d",
+      displayName: "Bob Johnson",
+      email: "bob.johnson@example.com",
+      createdAt: "2024-01-02T00:00:00Z"
+    }
+  ])
+  household_insertMany(data: [
+    {
+      id: "e1f2g3h4-i5j6-k7l8-m9n0-o1p2q3r4s5t6",
+      name: "The Smith Household",
+      description: "Alice's family home.",
+      createdAt: "2024-01-01T00:00:00Z"
+    },
+    {
+      id: "f8e7d6c5-b4a3-2b1c-d0e9-f8a7b6c5d4e3",
+      name: "The Johnson Household",
+      description: "Bob's shared living space.",
+      createdAt: "2024-01-02T00:00:00Z"
+    }
+  ])
+  householdMember_insertMany(data: [
+    {
+      userId: "b40d096c-b26a-4b0d-b4b7-d1a1b8c0c1b7",
+      householdId: "e1f2g3h4-i5j6-k7l8-m9n0-o1p2q3r4s5t6",
+      role: "Owner",
+      joinedAt: "2024-01-01T00:00:00Z"
+    },
+    {
+      userId: "a3f5c7e9-d1b3-4f0a-8c2e-5d4f6a7b8c9d",
+      householdId: "f8e7d6c5-b4a3-2b1c-d0e9-f8a7b6c5d4e3",
+      role: "Member",
+      joinedAt: "2024-01-02T00:00:00Z"
+    }
+  ])
+  task_insertMany(data: [
+    {
+      householdId: "e1f2g3h4-i5j6-k7l8-m9n0-o1p2q3r4s5t6",
+      assignedToId: "b40d096c-b26a-4b0d-b4b7-d1a1b8c0c1b7",
+      title: "Clean Kitchen",
+      description: "Wash dishes, wipe counters.",
+      dueDate: "2024-01-05",
+      status: "Pending",
+      createdAt: "2024-01-03T00:00:00Z"
+    },
+    {
+      householdId: "f8e7d6c5-b4a3-2b1c-d0e9-f8a7b6c5d4e3",
+      assignedToId: "a3f5c7e9-d1b3-4f0a-8c2e-5d4f6a7b8c9d",
+      title: "Buy Groceries",
+      description: "Milk, eggs, bread.",
+      dueDate: "2024-01-06",
+      status: "Pending",
+      createdAt: "2024-01-04T00:00:00Z"
+    }
+  ])
+  expense_insertMany(data: [
+    {
+      householdId: "e1f2g3h4-i5j6-k7l8-m9n0-o1p2q3r4s5t6",
+      payerId: "b40d096c-b26a-4b0d-b4b7-d1a1b8c0c1b7",
+      description: "Groceries",
+      amount: 55.75,
+      date: "2024-01-03",
+      category: "Food",
+      createdAt: "2024-01-03T10:00:00Z"
+    },
+    {
+      householdId: "f8e7d6c5-b4a3-2b1c-d0e9-f8a7b6c5d4e3",
+      payerId: "a3f5c7e9-d1b3-4f0a-8c2e-5d4f6a7b8c9d",
+      description: "Electricity Bill",
+      amount: 80.00,
+      date: "2024-01-04",
+      category: "Utilities",
+      createdAt: "2024-01-04T11:00:00Z"
+    }
+  ])
+  event_insertMany(data: [
+    {
+      householdId: "e1f2g3h4-i5j6-k7l8-m9n0-o1p2q3r4s5t6",
+      creatorId: "b40d096c-b26a-4b0d-b4b7-d1a1b8c0c1b7",
+      title: "Family Dinner",
+      description: "Gathering for a meal.",
+      location: "Home",
+      startTime: "2024-01-07T18:00:00Z",
+      endTime: "2024-01-07T20:00:00Z",
+      createdAt: "2024-01-05T09:00:00Z"
+    },
+    {
+      householdId: "f8e7d6c5-b4a3-2b1c-d0e9-f8a7b6c5d4e3",
+      creatorId: "a3f5c7e9-d1b3-4f0a-8c2e-5d4f6a7b8c9d",
+      title: "Game Night",
+      description: "Board games and snacks.",
+      location: "Living Room",
+      startTime: "2024-01-08T19:00:00Z",
+      endTime: "2024-01-08T22:00:00Z",
+      createdAt: "2024-01-06T10:00:00Z"
+    }
+  ])
+}
