@@ -8,7 +8,6 @@ import {
   Building2, 
   ArrowRight, 
   Users, 
-  Receipt, 
   LayoutDashboard, 
   TrendingUp,
   Loader2,
@@ -17,7 +16,6 @@ import {
   User as UserIcon,
   ShieldCheck,
   Settings,
-  Banknote,
   Lock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -244,7 +242,7 @@ export default function Home() {
       <footer className="mt-auto py-6 text-center text-sm text-muted-foreground border-t bg-white">
         <div className="flex justify-center items-center gap-2">
           <Building2 className="h-4 w-4 text-primary/50" /> 
-          <span className="font-medium">Villa 5604</span> Admin Portal &copy; {mounted ? new Date().getFullYear() : ''}
+          <span className="font-medium">Villa 5604 Admin Portal 2026</span> powered by G-Matrix SDS
         </div>
       </footer>
     </div>
