@@ -150,9 +150,6 @@ export default function Home() {
             <h1 className="text-3xl font-bold tracking-tight text-primary">
               Villa 5604 Admin Portal
             </h1>
-            <p className="text-muted-foreground">
-              Real-time property and resident management powered by Firestore.
-            </p>
           </div>
 
           {/* Stats Overview */}
