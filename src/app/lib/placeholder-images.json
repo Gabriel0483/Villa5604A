@@ -1,22 +1,3 @@
 {
-  "placeholderImages": [
-    {
-      "id": "tenant-1",
-      "description": "Portrait of a young professional tenant",
-      "imageUrl": "https://picsum.photos/seed/tenant1/150/150",
-      "imageHint": "person portrait"
-    },
-    {
-      "id": "tenant-2",
-      "description": "Portrait of a student tenant",
-      "imageUrl": "https://picsum.photos/seed/tenant2/150/150",
-      "imageHint": "person smile"
-    },
-    {
-      "id": "property-hero",
-      "description": "Modern apartment interior",
-      "imageUrl": "https://picsum.photos/seed/house/1200/600",
-      "imageHint": "modern apartment"
-    }
-  ]
+  "placeholderImages": []
 }

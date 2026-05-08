@@ -4,11 +4,6 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { 
   LayoutDashboard, 
-  Users, 
-  CreditCard, 
-  Zap, 
-  Wrench, 
-  Settings,
   Building2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -27,10 +22,6 @@ import {
 
 const menuItems = [
   { title: "Dashboard", icon: LayoutDashboard, url: "/" },
-  { title: "Tenants", icon: Users, url: "/tenants" },
-  { title: "Rent Payments", icon: CreditCard, url: "/rent" },
-  { title: "Utility Allocation", icon: Zap, url: "/utilities" },
-  { title: "Repair Requests", icon: Wrench, url: "/repairs" },
 ]
 
 export function AppSidebar() {
