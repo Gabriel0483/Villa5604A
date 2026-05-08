@@ -18,15 +18,21 @@
     },
     "User": {
       "title": "User",
-      "description": "User profile with role-based access",
+      "description": "User profile with comprehensive personal details",
       "type": "object",
       "properties": {
         "userCode": { "type": "string", "description": "Unique login code" },
-        "name": { "type": "string", "description": "Full name" },
+        "firstName": { "type": "string", "description": "First name" },
+        "lastName": { "type": "string", "description": "Last name" },
+        "dob": { "type": "string", "format": "date", "description": "Date of Birth" },
+        "mobile": { "type": "string", "description": "Mobile contact number" },
+        "personalEmail": { "type": "string", "format": "email", "description": "Optional personal email" },
+        "bloodType": { "type": "string", "enum": ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"], "description": "Blood type for medical emergencies" },
+        "emergencyContact": { "type": "string", "description": "Emergency contact phone number" },
         "role": { "type": "string", "enum": ["SuperAdmin", "Resident"], "description": "Access level" },
         "tenantId": { "type": "string", "description": "Reference to tenant record if role is Resident" }
       },
-      "required": ["userCode", "role", "name"]
+      "required": ["userCode", "role", "firstName", "lastName"]
     }
   },
   "auth": {

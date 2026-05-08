@@ -7,7 +7,6 @@ import {
   User as UserIcon, 
   Mail, 
   Phone, 
-  MapPin, 
   ShieldCheck, 
   Save, 
   ArrowLeft,
@@ -15,7 +14,10 @@ import {
   CheckCircle2,
   Users as UsersIcon,
   ShieldAlert,
-  Search
+  Search,
+  Calendar,
+  Activity,
+  Heart
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +40,17 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [userSearch, setUserSearch] = useState('');
+
+  // Form State
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    dob: '',
+    mobile: '',
+    personalEmail: '',
+    bloodType: '',
+    emergencyContact: ''
+  });
 
   // Handle unauthorized access via useEffect to avoid rendering phase updates
   useEffect(() => {
@@ -71,43 +84,32 @@ export default function ProfilePage() {
   const filteredUsers = useMemo(() => {
     if (!allUsers) return [];
     return allUsers.filter(u => 
-      (u.name?.toLowerCase() || '').includes(userSearch.toLowerCase()) ||
+      (u.firstName?.toLowerCase() || '').includes(userSearch.toLowerCase()) ||
+      (u.lastName?.toLowerCase() || '').includes(userSearch.toLowerCase()) ||
       (u.id?.toLowerCase() || '').includes(userSearch.toLowerCase())
     );
   }, [allUsers, userSearch]);
 
-  // If user is a Resident, they might have a linked Tenant record
-  const tenantRef = useMemoFirebase(() => {
-    if (!db || !profile?.tenantId) return null;
-    return doc(db, 'tenants', profile.tenantId);
-  }, [db, profile]);
-
-  const { data: tenant, loading: tenantLoading } = useDoc(tenantRef);
-
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    propertyAddress: ''
-  });
-
   useEffect(() => {
     if (profile) {
-      setFormData(prev => ({
-        ...prev,
-        name: profile.name || '',
-      }));
+      setFormData({
+        firstName: profile.firstName || '',
+        lastName: profile.lastName || '',
+        dob: profile.dob || '',
+        mobile: profile.mobile || '',
+        personalEmail: profile.personalEmail || '',
+        bloodType: profile.bloodType || '',
+        emergencyContact: profile.emergencyContact || ''
+      });
     }
-    if (tenant) {
-      setFormData(prev => ({
-        ...prev,
-        phone: tenant.phone || '',
-        propertyAddress: tenant.propertyAddress || ''
-      }));
-    }
-  }, [profile, tenant]);
+  }, [profile]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -118,7 +120,8 @@ export default function ProfilePage() {
     setIsSaving(true);
 
     const userUpdates = {
-      name: formData.name,
+      ...formData,
+      name: `${formData.firstName} ${formData.lastName}`.trim(),
       updatedAt: serverTimestamp(),
       role: isSuperAdmin ? 'SuperAdmin' : 'Resident'
     };
@@ -126,27 +129,9 @@ export default function ProfilePage() {
     const userDocRef = doc(db, 'users', user.uid);
     setDoc(userDocRef, userUpdates, { merge: true })
       .then(() => {
-        if (profile?.tenantId) {
-          const tenantUpdates = {
-            name: formData.name,
-            phone: formData.phone,
-            propertyAddress: formData.propertyAddress,
-            updatedAt: serverTimestamp()
-          };
-          setDoc(doc(db, 'tenants', profile.tenantId), tenantUpdates, { merge: true })
-            .catch(async (err) => {
-              const permissionError = new FirestorePermissionError({
-                path: `tenants/${profile.tenantId}`,
-                operation: 'update',
-                requestResourceData: tenantUpdates
-              });
-              errorEmitter.emit('permission-error', permissionError);
-            });
-        }
-
         toast({
           title: "Profile updated",
-          description: "Your profile information has been successfully saved.",
+          description: "Your information has been successfully saved.",
         });
       })
       .catch(async (err) => {
@@ -192,13 +177,11 @@ export default function ProfilePage() {
     );
   }
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4">
-      <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex items-center justify-between">
           <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors group">
             <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Dashboard
@@ -211,111 +194,153 @@ export default function ProfilePage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* My Profile Section */}
-          <div className="lg:col-span-1">
-            <Card className="shadow-lg border-t-4 border-primary h-fit">
-              <CardHeader className="bg-white border-b pb-6 text-center">
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center ring-4 ring-white shadow-sm">
-                    <UserIcon className="h-10 w-10 text-primary" />
+          <div className="lg:col-span-2">
+            <Card className="shadow-lg border-t-4 border-primary">
+              <CardHeader className="bg-white border-b pb-6">
+                <div className="flex items-center space-x-4">
+                  <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center ring-4 ring-white shadow-sm">
+                    <UserIcon className="h-8 w-8 text-primary" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl font-bold">{formData.name || 'Your Profile'}</CardTitle>
-                    <CardDescription className="text-xs truncate max-w-[200px]">
-                      {user.email}
+                    <CardTitle className="text-2xl font-bold">Tenant Information</CardTitle>
+                    <CardDescription>
+                      Update your personal details for Villa 5604 registry.
                     </CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <form onSubmit={handleSubmit}>
-                <CardContent className="space-y-4 pt-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" name="name" value={formData.name} onChange={handleInputChange} required />
+                <CardContent className="space-y-6 pt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">First Name</Label>
+                      <div className="relative">
+                        <UserIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input id="firstName" name="firstName" value={formData.firstName} onChange={handleInputChange} className="pl-10" required />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <div className="relative">
+                        <UserIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input id="lastName" name="lastName" value={formData.lastName} onChange={handleInputChange} className="pl-10" required />
+                      </div>
+                    </div>
                   </div>
 
-                  {!isSuperAdmin && (
-                    <>
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">Phone Number</Label>
-                        <Input id="phone" name="phone" value={formData.phone} onChange={handleInputChange} />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="dob">Date of Birth</Label>
+                      <div className="relative">
+                        <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input id="dob" name="dob" type="date" value={formData.dob} onChange={handleInputChange} className="pl-10" required />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="propertyAddress">Property Address</Label>
-                        <Input id="propertyAddress" name="propertyAddress" value={formData.propertyAddress} onChange={handleInputChange} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="mobile">Mobile Number</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input id="mobile" name="mobile" type="tel" value={formData.mobile} onChange={handleInputChange} className="pl-10" placeholder="+968 0000 0000" required />
                       </div>
-                    </>
-                  )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="personalEmail">Personal Email (Optional)</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input id="personalEmail" name="personalEmail" type="email" value={formData.personalEmail} onChange={handleInputChange} className="pl-10" placeholder="your@email.com" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="bloodType">Blood Type</Label>
+                      <div className="relative">
+                        <Activity className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground z-10" />
+                        <Select value={formData.bloodType} onValueChange={(val) => handleSelectChange('bloodType', val)}>
+                          <SelectTrigger className="pl-10">
+                            <SelectValue placeholder="Select Blood Type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="A+">A+</SelectItem>
+                            <SelectItem value="A-">A-</SelectItem>
+                            <SelectItem value="B+">B+</SelectItem>
+                            <SelectItem value="B-">B-</SelectItem>
+                            <SelectItem value="AB+">AB+</SelectItem>
+                            <SelectItem value="AB-">AB-</SelectItem>
+                            <SelectItem value="O+">O+</SelectItem>
+                            <SelectItem value="O-">O-</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="emergencyContact">Emergency Contact Number</Label>
+                    <div className="relative">
+                      <Heart className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input id="emergencyContact" name="emergencyContact" type="tel" value={formData.emergencyContact} onChange={handleInputChange} className="pl-10" placeholder="Emergency contact phone" required />
+                    </div>
+                  </div>
                 </CardContent>
-                <CardFooter className="bg-slate-50/50 border-t flex flex-col gap-3 py-4">
-                  <Button type="submit" disabled={isSaving} className="w-full gap-2">
+                <CardFooter className="bg-slate-50/50 border-t py-4">
+                  <Button type="submit" disabled={isSaving} className="w-full md:w-auto min-w-[150px] gap-2">
                     {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    Save Changes
+                    Save Profile
                   </Button>
                 </CardFooter>
               </form>
             </Card>
           </div>
 
-          {/* Admin User Management Section */}
-          <div className="lg:col-span-2">
+          {/* Side Info / Admin Section */}
+          <div className="lg:col-span-1 space-y-6">
             {isSuperAdmin ? (
-              <Card className="shadow-lg h-full border-t-4 border-accent">
-                <CardHeader>
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="space-y-1">
-                      <CardTitle className="flex items-center gap-2">
-                        <ShieldAlert className="h-5 w-5 text-accent" />
-                        System User Management
-                      </CardTitle>
-                      <CardDescription>Define and update user access levels.</CardDescription>
-                    </div>
-                    <div className="relative w-full md:w-48">
-                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        placeholder="Search users..." 
-                        className="pl-9 h-9 text-xs"
-                        value={userSearch}
-                        onChange={(e) => setUserSearch(e.target.value)}
-                      />
-                    </div>
-                  </div>
+              <Card className="shadow-lg border-t-4 border-accent overflow-hidden">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <ShieldAlert className="h-5 w-5 text-accent" />
+                    Admin Controls
+                  </CardTitle>
+                  <CardDescription>Manage user roles across the system.</CardDescription>
                 </CardHeader>
-                <CardContent className="p-0">
-                  {usersLoading ? (
-                    <div className="flex flex-col items-center justify-center py-20 gap-3">
-                      <Loader2 className="h-8 w-8 animate-spin text-accent/40" />
-                      <p className="text-sm text-muted-foreground">Fetching users...</p>
-                    </div>
-                  ) : filteredUsers.length > 0 ? (
-                    <div className="overflow-x-auto">
+                <CardContent className="space-y-4">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      placeholder="Search users..." 
+                      className="pl-9 h-9 text-xs"
+                      value={userSearch}
+                      onChange={(e) => setUserSearch(e.target.value)}
+                    />
+                  </div>
+                  <div className="max-h-[400px] overflow-y-auto rounded-md border">
+                    {usersLoading ? (
+                      <div className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" /></div>
+                    ) : filteredUsers.length > 0 ? (
                       <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="text-xs">User Info</TableHead>
-                            <TableHead className="text-xs">Access Level</TableHead>
-                          </TableRow>
-                        </TableHeader>
                         <TableBody>
                           {filteredUsers.map((u: any) => (
-                            <TableRow key={u.id} className="hover:bg-slate-50">
-                              <TableCell>
+                            <TableRow key={u.id}>
+                              <TableCell className="py-2 px-3">
                                 <div className="flex flex-col">
-                                  <span className="text-sm font-semibold">{u.name || 'Anonymous'}</span>
-                                  <span className="text-[10px] text-muted-foreground font-mono">{u.id}</span>
+                                  <span className="text-xs font-semibold">{u.firstName} {u.lastName}</span>
+                                  <span className="text-[10px] text-muted-foreground">{u.id}</span>
                                 </div>
                               </TableCell>
-                              <TableCell>
+                              <TableCell className="py-2 px-3 text-right">
                                 <Select 
                                   defaultValue={u.role || 'Resident'} 
                                   onValueChange={(val) => handleUpdateUserRole(u.id, val)}
-                                  disabled={u.id === user.uid} // Can't change your own role
+                                  disabled={u.id === user.uid}
                                 >
-                                  <SelectTrigger className="h-8 w-32 text-xs">
+                                  <SelectTrigger className="h-7 w-24 text-[10px]">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="Resident" className="text-xs">Resident</SelectItem>
-                                    <SelectItem value="SuperAdmin" className="text-xs">SuperAdmin</SelectItem>
+                                    <SelectItem value="Resident" className="text-[10px]">Resident</SelectItem>
+                                    <SelectItem value="SuperAdmin" className="text-[10px]">SuperAdmin</SelectItem>
                                   </SelectContent>
                                 </Select>
                               </TableCell>
@@ -323,42 +348,39 @@ export default function ProfilePage() {
                           ))}
                         </TableBody>
                       </Table>
-                    </div>
-                  ) : (
-                    <div className="py-20 text-center">
-                      <UsersIcon className="h-12 w-12 text-slate-200 mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">No users found.</p>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="py-8 text-center text-xs text-muted-foreground">No users found</div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             ) : (
-              <div className="flex flex-col gap-4">
+              <>
                 <Card className="bg-primary/5 border-primary/20">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-bold flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-accent" /> Account Integrity
+                      <CheckCircle2 className="h-4 w-4 text-accent" /> Information Use
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-xs text-muted-foreground">
-                      Your profile is securely synced. Only SuperAdmins can modify account types or system configurations.
+                      Your personal details are used for property registry and emergency protocols. This information is securely stored and only accessible by authorized administrators.
                     </p>
                   </CardContent>
                 </Card>
                 <Card className="bg-accent/5 border-accent/20">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-bold flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-accent" /> Property Scope
+                      <ShieldCheck className="h-4 w-4 text-accent" /> Security First
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-xs text-muted-foreground">
-                      You are registered as a Resident of Villa 5604. Your portal access is restricted to your tenancy details.
+                      Villa 5604 uses industry-standard encryption to protect your data. Your blood type and emergency contact are vital for safety measures.
                     </p>
                   </CardContent>
                 </Card>
-              </div>
+              </>
             )}
           </div>
         </div>
