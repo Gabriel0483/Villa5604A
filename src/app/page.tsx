@@ -17,7 +17,8 @@ import {
   User as UserIcon,
   ShieldCheck,
   Settings,
-  Banknote
+  Banknote,
+  Lock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -226,9 +227,9 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-md transition-all border-primary/10 group cursor-default">
+            <Card className="opacity-60 border-dashed border-2 transition-all cursor-not-allowed grayscale">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg text-accent">
+                <CardTitle className="flex items-center gap-2 text-lg">
                   <LayoutDashboard className="h-5 w-5" /> Property Maintenance
                 </CardTitle>
               </CardHeader>
@@ -236,8 +237,8 @@ export default function Home() {
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   View property documents, common area schedules, and repair statuses.
                 </p>
-                <Button variant="secondary" className="w-full bg-accent/10 text-accent hover:bg-accent/20">
-                  View Details
+                <Button disabled variant="secondary" className="w-full gap-2">
+                  <Lock className="h-4 w-4" /> Coming Soon
                 </Button>
               </CardContent>
             </Card>
