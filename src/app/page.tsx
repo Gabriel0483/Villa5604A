@@ -104,7 +104,7 @@ export default function Home() {
                 <div className="hidden md:flex flex-col items-end mr-1">
                   <span className="text-sm font-medium text-slate-900">{profile?.name || user.email}</span>
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    {isSuperAdmin && <ShieldCheck className="h-3 w-3 text-primary" />}
+                    {isSuperAdmin && <ShieldCheck className="h-3.5 w-3.5 text-primary" />}
                     {isSuperAdmin ? 'SuperAdmin' : 'Resident'}
                   </span>
                 </div>
@@ -188,21 +188,19 @@ export default function Home() {
 
           {/* Navigation Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card className="hover:shadow-md transition-all border-primary/10 group cursor-default">
+            <Card className="opacity-60 border-dashed border-2 transition-all cursor-not-allowed grayscale">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <Users className="h-5 w-5 text-primary" /> Tenant Management
+                  <Users className="h-5 w-5" /> Tenant Management
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   Track active residents, update profile details, and manage monthly rent amounts.
                 </p>
-                <Link href="/tenants">
-                  <Button className="w-full group-hover:bg-primary/90 transition-colors">
-                    Manage Tenants <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </Link>
+                <Button disabled variant="secondary" className="w-full gap-2">
+                  <Lock className="h-4 w-4" /> Coming Soon
+                </Button>
               </CardContent>
             </Card>
 
