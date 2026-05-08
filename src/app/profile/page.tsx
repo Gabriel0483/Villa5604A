@@ -39,6 +39,13 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [userSearch, setUserSearch] = useState('');
 
+  // Handle unauthorized access via useEffect to avoid rendering phase updates
+  useEffect(() => {
+    if (!userLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, userLoading, router]);
+
   // Stabilize the user profile query
   const profileRef = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -186,7 +193,6 @@ export default function ProfilePage() {
   }
 
   if (!user) {
-    router.push('/login');
     return null;
   }
 
