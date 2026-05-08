@@ -17,7 +17,10 @@ import {
   Search,
   Calendar,
   Activity,
-  Heart
+  Heart,
+  KeyRound,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,8 +28,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, useAuth } from '@/firebase';
 import { doc, setDoc, serverTimestamp, collection, query, updateDoc } from 'firebase/firestore';
+import { updatePassword } from 'firebase/auth';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -35,13 +39,18 @@ import Link from 'next/link';
 
 export default function ProfilePage() {
   const router = useRouter();
+  const auth = useAuth();
   const { user, loading: userLoading } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
+  
+  // States
   const [isSaving, setIsSaving] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showPasswords, setShowPasswords] = useState(false);
   const [userSearch, setUserSearch] = useState('');
 
-  // Form State
+  // Profile Form State
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -52,7 +61,13 @@ export default function ProfilePage() {
     emergencyContact: ''
   });
 
-  // Handle unauthorized access via useEffect to avoid rendering phase updates
+  // Password State
+  const [passwordData, setPasswordData] = useState({
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+  // Handle unauthorized access
   useEffect(() => {
     if (!userLoading && !user) {
       router.push('/login');
@@ -109,6 +124,11 @@ export default function ProfilePage() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handlePasswordInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({ ...prev, [name]: value }));
+  };
+
   const handleSelectChange = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -145,6 +165,56 @@ export default function ProfilePage() {
       .finally(() => {
         setIsSaving(false);
       });
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "Passwords mismatch",
+        description: "The new password and confirmation password do not match.",
+      });
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      toast({
+        variant: "destructive",
+        title: "Weak password",
+        description: "Password should be at least 6 characters long.",
+      });
+      return;
+    }
+
+    setIsChangingPassword(true);
+
+    try {
+      await updatePassword(user, passwordData.newPassword);
+      toast({
+        title: "Password updated",
+        description: "Your password has been changed successfully.",
+      });
+      setPasswordData({ newPassword: '', confirmPassword: '' });
+    } catch (err: any) {
+      if (err.code === 'auth/requires-recent-login') {
+        toast({
+          variant: "destructive",
+          title: "Session Expired",
+          description: "Please sign out and sign back in to change your password.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: err.message || "Failed to update password.",
+        });
+      }
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   const handleUpdateUserRole = (userId: string, newRole: string) => {
@@ -194,7 +264,7 @@ export default function ProfilePage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* My Profile Section */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-8">
             <Card className="shadow-lg border-t-4 border-primary">
               <CardHeader className="bg-white border-b pb-6">
                 <div className="flex items-center space-x-4">
@@ -288,6 +358,75 @@ export default function ProfilePage() {
                   <Button type="submit" disabled={isSaving} className="w-full md:w-auto min-w-[150px] gap-2">
                     {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     Save Profile
+                  </Button>
+                </CardFooter>
+              </form>
+            </Card>
+
+            {/* Change Password Card */}
+            <Card className="shadow-lg border-t-4 border-slate-300">
+              <CardHeader>
+                <div className="flex items-center space-x-4">
+                  <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
+                    <KeyRound className="h-5 w-5 text-slate-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl font-bold">Security</CardTitle>
+                    <CardDescription>Update your portal access password.</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <form onSubmit={handlePasswordChange}>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="newPassword">New Password</Label>
+                      <div className="relative">
+                        <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          id="newPassword" 
+                          name="newPassword" 
+                          type={showPasswords ? "text" : "password"} 
+                          value={passwordData.newPassword} 
+                          onChange={handlePasswordInputChange} 
+                          className="pl-10" 
+                          required 
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Confirm Password</Label>
+                      <div className="relative">
+                        <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          id="confirmPassword" 
+                          name="confirmPassword" 
+                          type={showPasswords ? "text" : "password"} 
+                          value={passwordData.confirmPassword} 
+                          onChange={handlePasswordInputChange} 
+                          className="pl-10" 
+                          required 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-xs gap-1"
+                      onClick={() => setShowPasswords(!showPasswords)}
+                    >
+                      {showPasswords ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      {showPasswords ? "Hide" : "Show"} Passwords
+                    </Button>
+                  </div>
+                </CardContent>
+                <CardFooter className="bg-slate-50/50 border-t py-4">
+                  <Button type="submit" variant="secondary" disabled={isChangingPassword} className="w-full md:w-auto min-w-[150px] gap-2">
+                    {isChangingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    Update Password
                   </Button>
                 </CardFooter>
               </form>
