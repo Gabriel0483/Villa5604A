@@ -1,8 +1,8 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   Building2, 
   ArrowRight, 
@@ -11,20 +11,36 @@ import {
   LayoutDashboard, 
   TrendingUp,
   DollarSign,
-  Loader2
+  Loader2,
+  LogOut,
+  LogIn,
+  User as UserIcon,
+  ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useAuth, useDoc } from '@/firebase';
+import { collection, query, doc } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
 
 export default function Home() {
   const db = useFirestore();
+  const auth = useAuth();
+  const router = useRouter();
+  const { user, loading: userLoading } = useUser();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Stabilize the user profile query
+  const userProfileRef = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return doc(db, 'users', user.uid);
+  }, [db, user]);
+
+  const { data: profile } = useDoc(userProfileRef);
 
   // Use useMemoFirebase to stabilize the query reference and ensure data persistence in UI
   const tenantsQuery = useMemoFirebase(() => {
@@ -34,6 +50,11 @@ export default function Home() {
 
   const { data: tenants, loading: tenantsLoading } = useCollection(tenantsQuery);
 
+  const isSuperAdmin = useMemo(() => {
+    if (user?.email === 'rielmagpantay@gmail.com') return true;
+    return profile?.role === 'SuperAdmin';
+  }, [user, profile]);
+
   // Calculate statistics from persistent Firestore data
   const stats = useMemo(() => {
     if (!tenants) return { count: 0, totalRent: 0 };
@@ -42,6 +63,15 @@ export default function Home() {
       totalRent: tenants.reduce((acc, tenant: any) => acc + (Number(tenant.rentAmount) || 0), 0)
     };
   }, [tenants]);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.refresh();
+    } catch (error) {
+      // Handled silently
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -53,6 +83,29 @@ export default function Home() {
               <Building2 className="h-5 w-5 text-primary" />
             </div>
             <span className="font-bold text-xl text-primary tracking-tight">Villa 5604</span>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {user ? (
+              <div className="flex items-center gap-3">
+                <div className="hidden md:flex flex-col items-end mr-1">
+                  <span className="text-sm font-medium text-slate-900">{user.email}</span>
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    {isSuperAdmin && <ShieldCheck className="h-3 w-3 text-primary" />}
+                    {isSuperAdmin ? 'SuperAdmin' : 'Resident'}
+                  </span>
+                </div>
+                <Button variant="ghost" size="icon" onClick={handleLogout} title="Sign Out">
+                  <LogOut className="h-5 w-5 text-muted-foreground hover:text-destructive transition-colors" />
+                </Button>
+              </div>
+            ) : (
+              <Link href="/login">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <LogIn className="h-4 w-4" /> Sign In
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </header>
