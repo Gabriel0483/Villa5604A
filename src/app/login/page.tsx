@@ -34,8 +34,15 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, email, password);
       router.push('/');
     } catch (err: any) {
-      console.error(err);
-      setError("Invalid user code or password. Please try again.");
+      // Map Firebase error codes to user-friendly messages
+      // We avoid console.error() to prevent triggering the development error overlay
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+        setError("Invalid user code or password. Please check your credentials.");
+      } else if (err.code === 'auth/too-many-requests') {
+        setError("Too many failed login attempts. Please try again later.");
+      } else {
+        setError("An unexpected error occurred. Please ensure you have created the user in the Firebase Console.");
+      }
     } finally {
       setLoading(false);
     }
