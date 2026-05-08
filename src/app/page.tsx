@@ -1,28 +1,10 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-
-export default function Dashboard() {
+export default function Home() {
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight text-primary">Welcome</h2>
-        <p className="text-muted-foreground">Select a module from the sidebar to get started.</p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>Get Started</CardTitle>
-            <CardDescription>Your clean slate is ready.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              All previous mock data and modules have been removed. You can now start building your custom logic.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+    <div className="flex flex-col items-center justify-center min-h-screen p-8 text-center animate-in fade-in duration-500">
+      <h1 className="text-4xl font-bold text-primary mb-4">Empty Slate</h1>
+      <p className="text-muted-foreground">The dashboard and sidebar have been removed. Ready for your new implementation.</p>
     </div>
   )
 }
