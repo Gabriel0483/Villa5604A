@@ -1,0 +1,31 @@
+
+{
+  "entities": {
+    "Tenant": {
+      "title": "Tenant",
+      "description": "Information about a tenant and their lease agreement.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Full name of the tenant" },
+        "email": { "type": "string", "format": "email", "description": "Email address" },
+        "phone": { "type": "string", "description": "Phone number" },
+        "propertyAddress": { "type": "string", "description": "The address of the rented property" },
+        "rentAmount": { "type": "number", "description": "Monthly rent amount" },
+        "leaseStart": { "type": "string", "format": "date", "description": "Start date of the lease" },
+        "leaseEnd": { "type": "string", "format": "date", "description": "End date of the lease" },
+        "status": { "type": "string", "enum": ["active", "past", "pending"], "description": "Current status of the tenant" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the record was created" }
+      },
+      "required": ["name", "email", "propertyAddress", "rentAmount"]
+    }
+  },
+  "auth": {
+    "providers": ["google.com"]
+  },
+  "firestore": {
+    "/tenants/{tenantId}": {
+      "schema": "#/entities/Tenant",
+      "description": "Collection of tenant records"
+    }
+  }
+}
