@@ -16,9 +16,6 @@ export default function Home() {
         <h1 className="text-5xl font-extrabold tracking-tight text-primary sm:text-6xl">
           Property Management <span className="text-accent">Simplified</span>
         </h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Efficiently manage your property portfolio, track tenants, and monitor lease agreements all in one modern platform.
-        </p>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-12 text-left">
           <Card className="hover:shadow-lg transition-shadow border-primary/20">
