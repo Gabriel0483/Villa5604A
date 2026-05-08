@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -25,7 +26,7 @@ export default function Home() {
     setMounted(true);
   }, []);
 
-  // Use useMemoFirebase to stabilize the query reference
+  // Use useMemoFirebase to stabilize the query reference and ensure data persistence in UI
   const tenantsQuery = useMemoFirebase(() => {
     if (!db) return null;
     return query(collection(db, 'tenants'));
@@ -33,7 +34,7 @@ export default function Home() {
 
   const { data: tenants, loading: tenantsLoading } = useCollection(tenantsQuery);
 
-  // Calculate statistics
+  // Calculate statistics from persistent Firestore data
   const stats = useMemo(() => {
     if (!tenants) return { count: 0, totalRent: 0 };
     return {
@@ -64,7 +65,7 @@ export default function Home() {
               Villa 5604 Admin Portal
             </h1>
             <p className="text-muted-foreground">
-              Real-time property and resident management.
+              Real-time property and resident management powered by Firestore.
             </p>
           </div>
 

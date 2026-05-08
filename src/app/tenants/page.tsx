@@ -25,7 +25,7 @@ export default function TenantsPage() {
   const [editingTenant, setEditingTenant] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Use useMemoFirebase to stabilize the query reference and prevent infinite loops
+  // Use useMemoFirebase to stabilize the query reference and prevent infinite loops or slow fetching
   const tenantsQuery = useMemoFirebase(() => {
     if (!db) return null;
     // We order by createdAt to ensure the latest records appear first
@@ -37,8 +37,8 @@ export default function TenantsPage() {
   const filteredTenants = useMemo(() => {
     if (!tenants) return [];
     return tenants.filter(t => 
-      t.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      t.propertyAddress?.toLowerCase().includes(searchQuery.toLowerCase())
+      (t.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) || 
+      (t.propertyAddress?.toLowerCase() || '').includes(searchQuery.toLowerCase())
     );
   }, [tenants, searchQuery]);
 
@@ -51,25 +51,44 @@ export default function TenantsPage() {
     e.preventDefault();
     if (!db) return;
 
-    setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
+    const name = formData.get('name') as string;
+    const email = formData.get('email') as string;
+    const phone = formData.get('phone') as string;
+    const propertyAddress = formData.get('propertyAddress') as string;
+    const rentAmountStr = formData.get('rentAmount') as string;
+    const rentAmount = parseFloat(rentAmountStr);
+
+    // Basic validation to ensure data integrity before sending to Firestore
+    if (!name || !email || !propertyAddress || isNaN(rentAmount)) {
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Please fill in all required fields with valid data.",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    
     const tenantData = {
-      name: formData.get('name') as string,
-      email: formData.get('email') as string,
-      phone: formData.get('phone') as string,
-      propertyAddress: formData.get('propertyAddress') as string,
-      rentAmount: parseFloat(formData.get('rentAmount') as string),
+      name,
+      email,
+      phone: phone || '',
+      propertyAddress,
+      rentAmount,
       status: editingTenant?.status || 'active',
       updatedAt: serverTimestamp(),
     };
 
     if (editingTenant) {
+      // Non-blocking update mutation
       updateDoc(doc(db, 'tenants', editingTenant.id), tenantData)
         .then(() => {
           setIsDialogOpen(false);
           toast({
             title: "Tenant updated",
-            description: `${tenantData.name}'s records have been updated.`,
+            description: `${tenantData.name}'s records have been updated successfully.`,
           });
         })
         .catch(async (err) => {
@@ -82,13 +101,14 @@ export default function TenantsPage() {
         })
         .finally(() => setIsSubmitting(false));
     } else {
+      // Non-blocking create mutation
       const newTenant = { ...tenantData, createdAt: serverTimestamp() };
       addDoc(collection(db, 'tenants'), newTenant)
         .then(() => {
           setIsDialogOpen(false);
           toast({
             title: "Tenant added",
-            description: `${tenantData.name} has been successfully added.`,
+            description: `${tenantData.name} has been successfully added to the registry.`,
           });
         })
         .catch(async (err) => {
@@ -106,6 +126,7 @@ export default function TenantsPage() {
   const handleDeleteTenant = (tenantId: string, name: string) => {
     if (!db) return;
 
+    // Non-blocking delete mutation
     deleteDoc(doc(db, 'tenants', tenantId))
       .then(() => {
         toast({
@@ -130,7 +151,7 @@ export default function TenantsPage() {
             <ArrowLeft className="h-3 w-3 mr-1 group-hover:-translate-x-1 transition-transform" /> Back to Dashboard
           </Link>
           <h1 className="text-3xl font-bold tracking-tight text-primary">Tenant Management</h1>
-          <p className="text-muted-foreground">View, add, and update global resident profiles.</p>
+          <p className="text-muted-foreground">View, add, and update resident profiles securely stored in Firestore.</p>
         </div>
 
         <div className="flex items-center gap-3 w-full md:w-auto">
