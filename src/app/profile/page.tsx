@@ -234,7 +234,6 @@ export default function ProfilePage() {
                         Note: Address changes may be subject to verification by management.
                       </p>
                     </>
-                  )}
                 )}
               </div>
             </CardContent>
