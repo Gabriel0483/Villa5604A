@@ -14,7 +14,7 @@ export default function Home() {
           <Zap className="h-3 w-3 mr-1" /> New Feature: Tenant Management
         </div>
         <h1 className="text-5xl font-extrabold tracking-tight text-primary sm:text-6xl">
-          Property Management <span className="text-accent">Simplified</span>
+          Villa 5604 <span className="text-accent">Admin Portal</span>
         </h1>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-12 text-left">
