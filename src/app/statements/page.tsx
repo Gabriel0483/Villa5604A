@@ -14,7 +14,8 @@ import {
   Send,
   Clock,
   CheckCircle2,
-  Circle
+  Circle,
+  RotateCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,7 +53,7 @@ export default function StatementsPage() {
   const [selectedBillId, setSelectedBillId] = useState<string>('');
   const [selectedResidentId, setSelectedResidentId] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'general' | 'individual'>('general');
-  const [isReleasing, setIsReleasing] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isUpdatingPayment, setIsUpdatingPayment] = useState<string | null>(null);
 
   const userProfileRef = useMemoFirebase(() => {
@@ -104,32 +105,34 @@ export default function StatementsPage() {
     return bills?.find(b => b.id === selectedBillId);
   }, [bills, selectedBillId]);
 
-  const handleReleaseBill = async () => {
-    if (!db || !selectedBill || isReleasing) return;
+  const handleUpdateBillStatus = async (newStatus: 'Released' | 'Draft') => {
+    if (!db || !selectedBill || isUpdatingStatus) return;
     
-    setIsReleasing(true);
+    setIsUpdatingStatus(true);
     const billRef = doc(db, 'utility_bills', selectedBill.id);
     
     updateDoc(billRef, {
-      status: 'Released',
+      status: newStatus,
       updatedAt: serverTimestamp()
     })
     .then(() => {
       toast({
-        title: "Bill Released",
-        description: `Utility statement for ${selectedBill.monthYear} is now visible to all residents.`,
+        title: newStatus === 'Released' ? "Bill Released" : "Status Reverted",
+        description: newStatus === 'Released' 
+          ? `Utility statement for ${selectedBill.monthYear} is now visible to all residents.`
+          : `Utility statement for ${selectedBill.monthYear} has been set back to Draft.`,
       });
     })
     .catch((err) => {
       const permissionError = new FirestorePermissionError({
         path: billRef.path,
         operation: 'update',
-        requestResourceData: { status: 'Released' }
+        requestResourceData: { status: newStatus }
       });
       errorEmitter.emit('permission-error', permissionError);
     })
     .finally(() => {
-      setIsReleasing(false);
+      setIsUpdatingStatus(false);
     });
   };
 
@@ -239,11 +242,18 @@ export default function StatementsPage() {
             <Button variant="outline" className="gap-2" onClick={() => window.print()} disabled={!selectedBill}>
               <Printer className="h-4 w-4" /> Print
             </Button>
-            {selectedBill && selectedBill.status !== 'Released' && (
-              <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleReleaseBill} disabled={isReleasing}>
-                {isReleasing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                Release Bill
-              </Button>
+            {selectedBill && (
+              selectedBill.status !== 'Released' ? (
+                <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => handleUpdateBillStatus('Released')} disabled={isUpdatingStatus}>
+                  {isUpdatingStatus ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  Release Bill
+                </Button>
+              ) : (
+                <Button variant="outline" className="gap-2 text-destructive border-destructive/20 hover:bg-destructive/5" onClick={() => handleUpdateBillStatus('Draft')} disabled={isUpdatingStatus}>
+                  {isUpdatingStatus ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+                  Undo Release
+                </Button>
+              )
             )}
           </div>
         </div>
