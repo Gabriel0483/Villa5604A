@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState } from 'react';
@@ -236,6 +237,10 @@ export default function BirthdaysPage() {
           }
         }}>
           <DialogContent className="sm:max-w-[500px] overflow-hidden p-0 border-none shadow-2xl">
+            <DialogHeader className="sr-only">
+              <DialogTitle>Birthday Card Generation for {selectedResident?.firstName || 'Resident'}</DialogTitle>
+              <DialogDescription>AI-powered celebration card generation.</DialogDescription>
+            </DialogHeader>
             {isGenerating ? (
               <div className="p-12 flex flex-col items-center justify-center gap-6 text-center">
                 <div className="relative">
