@@ -7,25 +7,30 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Helper function to get the current user's role from Firestore
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
     // Helper function to check if the user is a SuperAdmin
-    // Grants access if the email matches the specific admin email or if the role is 'SuperAdmin' in Firestore
     function isSuperAdmin() {
       return isSignedIn() && (
         request.auth.token.email == 'rielmagpantay@gmail.com' ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'SuperAdmin'
+        getUserData().role == 'SuperAdmin'
       );
     }
 
-    // Tenant records
+    // Tenant records - Only SuperAdmins can manage tenant lease records
     match /tenants/{tenantId} {
-      // Explicitly allow SuperAdmins full access
-      // Maintaining temporary open access for development as per previous instructions
-      allow read, write: if isSuperAdmin() || request.time < timestamp.date(2026, 6, 7);
+      allow read, write: if isSuperAdmin();
     }
 
     // User profiles
     match /users/{userId} {
-      allow read, write: if isSuperAdmin() || (isSignedIn() && request.auth.uid == userId) || request.time < timestamp.date(2026, 6, 7);
+      // Users can read and write their own profile
+      // SuperAdmins can read and write all profiles (for role management)
+      allow read: if isSuperAdmin() || (isSignedIn() && request.auth.uid == userId);
+      allow write: if isSuperAdmin() || (isSignedIn() && request.auth.uid == userId);
     }
   }
 }
