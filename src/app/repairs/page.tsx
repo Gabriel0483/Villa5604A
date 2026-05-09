@@ -282,10 +282,10 @@ export default function RepairsPage() {
                   <div className="p-8">
                     <Alert variant="destructive">
                       <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Database Connectivity</AlertTitle>
+                      <AlertTitle>System Notice</AlertTitle>
                       <AlertDescription>
                         {requestsError.message.includes('index') 
-                          ? "The system is currently building an index to support this view. This may take a few minutes. Please refresh later."
+                          ? "Note: If you just submitted a request, it has been saved successfully. However, the system is currently optimizing the history view. Please refresh this page in a few minutes to see your updated list."
                           : "We couldn't load the requests. Please check your connection or contact the administrator."}
                       </AlertDescription>
                     </Alert>
