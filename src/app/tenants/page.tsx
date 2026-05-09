@@ -1,10 +1,11 @@
+
 "use client"
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, addDoc, deleteDoc, doc, serverTimestamp, query, orderBy, updateDoc } from 'firebase/firestore';
-import { Plus, Trash2, User, Home, Loader2, ArrowLeft, Edit, Search } from 'lucide-react';
+import { Plus, Trash2, Home, Loader2, ArrowLeft, Edit, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,8 +40,9 @@ export default function TenantsPage() {
   // Unified SuperAdmin check matching security rules
   const isSuperAdmin = useMemo(() => {
     if (!user) return false;
+    const email = user.email?.toLowerCase() || '';
     const adminEmails = ['rielmagpantay@gmail.com', 'rielmagpantay@gmail.com@villa5604.app'];
-    if (adminEmails.includes(user.email || '')) return true;
+    if (adminEmails.includes(email)) return true;
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
@@ -173,7 +175,15 @@ export default function TenantsPage() {
     );
   }
 
-  if (!isSuperAdmin) return null;
+  // If not admin after loading, show access denied briefly before redirect
+  if (!isSuperAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 p-4 text-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-muted-foreground">Redirecting to Dashboard...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-10 px-4 space-y-8 animate-in fade-in duration-500 max-w-7xl">

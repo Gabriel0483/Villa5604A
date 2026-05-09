@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -31,6 +32,7 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const db = useFirestore();
@@ -54,13 +56,13 @@ export default function Home() {
   // Unified SuperAdmin check matching security rules
   const isSuperAdmin = useMemo(() => {
     if (!user) return false;
+    const email = user.email?.toLowerCase() || '';
     const adminEmails = ['rielmagpantay@gmail.com', 'rielmagpantay@gmail.com@villa5604.app'];
-    if (adminEmails.includes(user.email || '')) return true;
+    if (adminEmails.includes(email)) return true;
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
   // Use useMemoFirebase to stabilize the query reference
-  // We only initialize the query if we are sure the user is an admin
   const tenantsQuery = useMemoFirebase(() => {
     if (!db || !isSuperAdmin) return null;
     return query(collection(db, 'tenants'));
@@ -208,7 +210,7 @@ export default function Home() {
           {/* Feature Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Profile Management - Available to All */}
-            <Card className="hover:shadow-md transition-all border-primary/10 group">
+            <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/profile')}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <UserIcon className="h-5 w-5 text-primary" /> Profile Settings
@@ -218,16 +220,17 @@ export default function Home() {
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   Update your personal details, contact information, and manage security preferences.
                 </p>
-                <Link href="/profile">
-                  <Button variant="outline" className="w-full">
-                    Manage Profile <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
+                <Button variant="outline" className="w-full">
+                  Manage Profile <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
               </CardContent>
             </Card>
 
-            {/* Tenant Registry - Restricted UI for Residents */}
-            <Card className={!isSuperAdmin ? "opacity-60 border-dashed grayscale" : "hover:shadow-md transition-all border-primary/10"}>
+            {/* Tenant Registry */}
+            <Card className={cn(
+              "transition-all border-primary/10",
+              !isSuperAdmin ? "opacity-60 border-dashed grayscale" : "hover:shadow-md cursor-pointer"
+            )} onClick={() => isSuperAdmin && router.push('/tenants')}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <ClipboardList className="h-5 w-5 text-primary" /> Tenant Registry
@@ -241,11 +244,9 @@ export default function Home() {
                   }
                 </p>
                 {isSuperAdmin ? (
-                   <Link href="/tenants">
-                     <Button variant="secondary" className="w-full gap-2">
-                       Enter Registry <ArrowRight className="ml-2 h-4 w-4" />
-                     </Button>
-                   </Link>
+                   <Button variant="secondary" className="w-full gap-2">
+                     Enter Registry <ArrowRight className="ml-2 h-4 w-4" />
+                   </Button>
                 ) : (
                   <Button disabled variant="secondary" className="w-full gap-2">
                     <Lock className="h-4 w-4" /> Restricted
