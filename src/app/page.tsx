@@ -25,7 +25,8 @@ import {
   Cake,
   Wrench,
   History,
-  Calculator
+  Calculator,
+  BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -302,10 +303,26 @@ export default function Home() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      Record and update monthly bills for Wifi, Water, Electricity, and more.
+                      Record the current monthly bill for the dashboard snapshot.
                     </p>
                     <Button variant="outline" className="w-full">
-                      Manage Utilities <ArrowRight className="ml-2 h-4 w-4" />
+                      Manage Current Bill <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/shared-expenses')}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <BarChart3 className="h-5 w-5 text-primary" /> Shared Expenses
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Record past and current expenses for historical consumption trends.
+                    </p>
+                    <Button variant="outline" className="w-full">
+                      Expense Ledger <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </CardContent>
                 </Card>

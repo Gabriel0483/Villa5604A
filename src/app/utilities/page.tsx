@@ -12,47 +12,30 @@ import {
   ArrowLeft, 
   Loader2, 
   Save, 
-  History,
   Calendar,
-  Edit2,
-  Trash2,
-  CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  History,
+  Send
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, query, doc, setDoc, deleteDoc, serverTimestamp, orderBy } from 'firebase/firestore';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { collection, query, doc, setDoc, serverTimestamp, orderBy, limit } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
 
-export default function UtilitiesPage() {
+export default function CurrentUtilityPage() {
   const router = useRouter();
   const { user, loading: userLoading } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
 
   const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isAddingNew, setIsAddingNew] = useState(false);
-  const [billToDelete, setBillToDelete] = useState<string | null>(null);
-
   const [formData, setFormData] = useState({
     monthYear: '',
     wifi: '',
@@ -80,6 +63,33 @@ export default function UtilitiesPage() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
+  // Load the current/latest bill into form
+  const latestBillQuery = useMemoFirebase(() => {
+    if (!db || !isSuperAdmin) return null;
+    return query(collection(db, 'utility_bills'), orderBy('monthYear', 'desc'), limit(1));
+  }, [db, isSuperAdmin]);
+
+  const { data: latestBills, loading: billsLoading } = useCollection(latestBillQuery);
+
+  useEffect(() => {
+    if (latestBills && latestBills.length > 0) {
+      const bill = latestBills[0] as any;
+      setFormData({
+        monthYear: bill.monthYear || '',
+        wifi: bill.wifi?.toString() || '',
+        water: bill.water?.toString() || '',
+        electricity: bill.electricity?.toString() || '',
+        miscellaneous: bill.miscellaneous?.toString() || '0'
+      });
+    } else {
+      const now = new Date();
+      setFormData(prev => ({
+        ...prev,
+        monthYear: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+      }));
+    }
+  }, [latestBills]);
+
   useEffect(() => {
     if (!userLoading && !profileLoading) {
       if (!user) router.push('/login');
@@ -94,19 +104,12 @@ export default function UtilitiesPage() {
     }
   }, [user, userLoading, profileLoading, isSuperAdmin, router, toast]);
 
-  const billsQuery = useMemoFirebase(() => {
-    if (!db || !isSuperAdmin) return null;
-    return query(collection(db, 'utility_bills'), orderBy('monthYear', 'desc'));
-  }, [db, isSuperAdmin]);
-
-  const { data: bills, loading: billsLoading } = useCollection(billsQuery);
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSaveBill = async (e: React.FormEvent) => {
+  const handleSaveBill = async (e: React.FormEvent, status: 'Draft' | 'Released' = 'Draft') => {
     e.preventDefault();
     if (!db || !isSuperAdmin) return;
 
@@ -117,11 +120,6 @@ export default function UtilitiesPage() {
     const electricity = parseFloat(formData.electricity) || 0;
     const misc = parseFloat(formData.miscellaneous) || 0;
     const total = wifi + water + electricity + misc;
-
-    // Auto-release logic for historical trends (past months)
-    const now = new Date();
-    const currentMonthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const status = formData.monthYear < currentMonthYear ? 'Released' : 'Draft';
 
     const billData = {
       monthYear: formData.monthYear,
@@ -139,11 +137,9 @@ export default function UtilitiesPage() {
     setDoc(billRef, billData, { merge: true })
       .then(() => {
         toast({
-          title: status === 'Released' ? "Historical Data Recorded" : "Bill Drafted",
-          description: `Statement for ${formData.monthYear} has been saved.`,
+          title: status === 'Released' ? "Bill Released" : "Draft Saved",
+          description: `Snapshot for ${formData.monthYear} has been updated.`,
         });
-        setIsAddingNew(false);
-        setFormData({ monthYear: '', wifi: '', water: '', electricity: '', miscellaneous: '' });
       })
       .catch(async (err) => {
         const permissionError = new FirestorePermissionError({
@@ -155,43 +151,6 @@ export default function UtilitiesPage() {
       })
       .finally(() => {
         setIsSaving(false);
-      });
-  };
-
-  const handleEditBill = (bill: any) => {
-    setFormData({
-      monthYear: bill.monthYear,
-      wifi: bill.wifi.toString(),
-      water: bill.water.toString(),
-      electricity: bill.electricity.toString(),
-      miscellaneous: bill.miscellaneous?.toString() || '0'
-    });
-    setIsAddingNew(true);
-  };
-
-  const confirmDeleteBill = async () => {
-    if (!db || !isSuperAdmin || !billToDelete) return;
-    
-    const id = billToDelete;
-    setBillToDelete(null);
-    setIsDeleting(true);
-
-    deleteDoc(doc(db, 'utility_bills', id))
-      .then(() => {
-        toast({
-          title: "Record Deleted",
-          description: "The utility bill has been permanently removed.",
-        });
-      })
-      .catch(async (err) => {
-        const permissionError = new FirestorePermissionError({
-          path: `utility_bills/${id}`,
-          operation: 'delete'
-        });
-        errorEmitter.emit('permission-error', permissionError);
-      })
-      .finally(() => {
-        setIsDeleting(false);
       });
   };
 
@@ -207,236 +166,99 @@ export default function UtilitiesPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 py-8 px-4">
-      <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors group">
-              <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Dashboard
-            </Link>
-            <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
-              <Zap className="h-8 w-8 text-primary" /> Utility Management
-            </h1>
-            <p className="text-muted-foreground">Log and track shared expenses for Villa 5604.</p>
-          </div>
-          
-          <Button onClick={() => setIsAddingNew(!isAddingNew)} className="gap-2 shadow-sm">
-            {isAddingNew ? <History className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-            {isAddingNew ? "View History" : "Add New Bill"}
-          </Button>
+      <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="space-y-1">
+          <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors group">
+            <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Dashboard
+          </Link>
+          <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
+            <Zap className="h-8 w-8 text-primary" /> Current Bill Management
+          </h1>
+          <p className="text-muted-foreground">Manage the active billing month shown on the dashboard snapshot.</p>
         </div>
 
-        {isAddingNew ? (
-          <Card className="shadow-lg border-t-4 border-primary">
-            <CardHeader>
-              <CardTitle className="text-xl">Record Monthly Expenses</CardTitle>
-              <CardDescription>Records for past months are automatically released for trend analysis.</CardDescription>
-            </CardHeader>
-            <form onSubmit={handleSaveBill}>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="monthYear">Billing Month</Label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        id="monthYear" 
-                        name="monthYear" 
-                        type="month" 
-                        value={formData.monthYear} 
-                        onChange={handleInputChange} 
-                        className="pl-10" 
-                        required 
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="wifi">Wifi Bill (OMR)</Label>
-                    <div className="relative">
-                      <Wifi className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        id="wifi" 
-                        name="wifi" 
-                        type="number" 
-                        step="0.001" 
-                        value={formData.wifi} 
-                        onChange={handleInputChange} 
-                        className="pl-10" 
-                        placeholder="0.000" 
-                        required 
-                      />
-                    </div>
-                  </div>
+        <Card className="shadow-lg border-t-4 border-primary">
+          <CardHeader>
+            <CardTitle className="text-xl">Active Cycle Details</CardTitle>
+            <CardDescription>Update values for the current billing period.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="monthYear">Active Month</Label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    id="monthYear" 
+                    name="monthYear" 
+                    type="month" 
+                    value={formData.monthYear} 
+                    onChange={handleInputChange} 
+                    className="pl-10" 
+                    required 
+                  />
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="water">Water Bill (OMR)</Label>
-                    <div className="relative">
-                      <Droplets className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        id="water" 
-                        name="water" 
-                        type="number" 
-                        step="0.001" 
-                        value={formData.water} 
-                        onChange={handleInputChange} 
-                        className="pl-10" 
-                        placeholder="0.000" 
-                        required 
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="electricity">Electricity Bill (OMR)</Label>
-                    <div className="relative">
-                      <Lightbulb className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        id="electricity" 
-                        name="electricity" 
-                        type="number" 
-                        step="0.001" 
-                        value={formData.electricity} 
-                        onChange={handleInputChange} 
-                        className="pl-10" 
-                        placeholder="0.000" 
-                        required 
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="miscellaneous">Miscellaneous (OMR)</Label>
-                    <div className="relative">
-                      <Plus className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        id="miscellaneous" 
-                        name="miscellaneous" 
-                        type="number" 
-                        step="0.001" 
-                        value={formData.miscellaneous} 
-                        onChange={handleInputChange} 
-                        className="pl-10" 
-                        placeholder="0.000" 
-                      />
-                    </div>
-                  </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="wifi">Wifi Total (OMR)</Label>
+                <div className="relative">
+                  <Wifi className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input id="wifi" name="wifi" type="number" step="0.001" value={formData.wifi} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
                 </div>
+              </div>
+            </div>
 
-                {formData.wifi && formData.water && formData.electricity && (
-                  <div className="bg-primary/5 p-4 rounded-lg border border-primary/10 flex justify-between items-center">
-                    <span className="font-semibold text-primary">Calculated Total:</span>
-                    <span className="text-2xl font-bold text-primary">
-                      {(parseFloat(formData.wifi) + parseFloat(formData.water) + parseFloat(formData.electricity) + (parseFloat(formData.miscellaneous) || 0)).toFixed(3)} OMR
-                    </span>
-                  </div>
-                )}
-              </CardContent>
-              <CardFooter className="bg-slate-50 border-t py-4">
-                <div className="flex gap-3 w-full justify-end">
-                  <Button type="button" variant="outline" onClick={() => setIsAddingNew(false)}>Cancel</Button>
-                  <Button type="submit" disabled={isSaving} className="gap-2">
-                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    Save Record
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="water">Water (OMR)</Label>
+                <div className="relative">
+                  <Droplets className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input id="water" name="water" type="number" step="0.001" value={formData.water} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="electricity">Electricity (OMR)</Label>
+                <div className="relative">
+                  <Lightbulb className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input id="electricity" name="electricity" type="number" step="0.001" value={formData.electricity} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="miscellaneous">Misc (OMR)</Label>
+                <div className="relative">
+                  <Plus className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input id="miscellaneous" name="miscellaneous" type="number" step="0.001" value={formData.miscellaneous} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
+                </div>
+              </div>
+            </div>
+
+            {formData.monthYear && (
+              <div className="bg-primary/5 p-6 rounded-xl border border-primary/10 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="text-center md:text-left">
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Snapshot Total</p>
+                  <p className="text-3xl font-black text-primary">
+                    {(parseFloat(formData.wifi || '0') + parseFloat(formData.water || '0') + parseFloat(formData.electricity || '0') + parseFloat(formData.miscellaneous || '0')).toFixed(3)} OMR
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="gap-2" onClick={(e) => handleSaveBill(e, 'Draft')} disabled={isSaving}>
+                    Save as Draft
+                  </Button>
+                  <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90" onClick={(e) => handleSaveBill(e, 'Released')} disabled={isSaving}>
+                    <Send className="h-4 w-4" /> Release to Portal
                   </Button>
                 </div>
-              </CardFooter>
-            </form>
-          </Card>
-        ) : (
-          <Card className="shadow-lg border-none overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between pb-7">
-              <div>
-                <CardTitle>Billing History</CardTitle>
-                <CardDescription>Manage your recorded utility expenses.</CardDescription>
               </div>
-              <Badge variant="outline" className="text-primary font-semibold">
-                {bills?.length || 0} Total
-              </Badge>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border bg-white overflow-hidden">
-                <Table>
-                  <TableHeader className="bg-slate-50">
-                    <TableRow>
-                      <TableHead>Month</TableHead>
-                      <TableHead>Wifi</TableHead>
-                      <TableHead>Water</TableHead>
-                      <TableHead>Electricity</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="font-bold text-primary">Total</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {billsLoading ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="h-24 text-center">
-                          <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
-                        </TableCell>
-                      </TableRow>
-                    ) : bills && bills.length > 0 ? (
-                      bills.map((bill: any) => (
-                        <TableRow key={bill.id} className="hover:bg-slate-50/50 transition-colors group">
-                          <TableCell className="font-medium">
-                            {new Date(bill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                          </TableCell>
-                          <TableCell>{bill.wifi.toFixed(3)}</TableCell>
-                          <TableCell>{bill.water.toFixed(3)}</TableCell>
-                          <TableCell>{bill.electricity.toFixed(3)}</TableCell>
-                          <TableCell>
-                            <Badge variant={bill.status === 'Released' ? 'default' : 'secondary'} className="text-[10px]">
-                              {bill.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="font-bold text-primary">{bill.total.toFixed(3)} OMR</TableCell>
-                          <TableCell className="text-right space-x-2">
-                            <Button variant="ghost" size="icon" onClick={() => handleEditBill(bill)}>
-                              <Edit2 className="h-4 w-4 text-slate-500" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => setBillToDelete(bill.id)}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={7} className="h-24 text-center text-muted-foreground italic">
-                          No billing records found.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </CardContent>
+          <CardFooter className="bg-slate-50 border-t py-4 justify-between items-center">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <AlertCircle className="h-4 w-4" />
+              Use <strong>Shared Expenses</strong> module to record historical data for trends.
+            </div>
+          </CardFooter>
+        </Card>
       </div>
-
-      <AlertDialog open={!!billToDelete} onOpenChange={(open) => !open && !isDeleting && setBillToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Billing Record?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action is permanent and will remove the expenses for {billToDelete} from the system and all resident trends.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={(e) => {
-                e.preventDefault();
-                confirmDeleteBill();
-              }} 
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={isDeleting}
-            >
-              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
-              Delete Permanently
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
