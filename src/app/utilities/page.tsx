@@ -1,7 +1,8 @@
+
 "use client"
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'navigation';
 import { 
   Zap, 
   Wifi, 
@@ -116,6 +117,7 @@ export default function UtilitiesPage() {
       electricity,
       miscellaneous: misc,
       total,
+      status: 'Draft', // Default to draft, can be released in Statements
       updatedAt: serverTimestamp()
     };
 
@@ -125,8 +127,8 @@ export default function UtilitiesPage() {
     setDoc(billRef, billData, { merge: true })
       .then(() => {
         toast({
-          title: "Bill Updated",
-          description: `Expenses for ${formData.monthYear} have been saved successfully.`,
+          title: "Bill Recorded",
+          description: `Utility data for ${formData.monthYear} has been saved as a draft.`,
         });
         setIsAddingNew(false);
         setFormData({ monthYear: '', wifi: '', water: '', electricity: '', miscellaneous: '' });
@@ -188,7 +190,7 @@ export default function UtilitiesPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 py-8 px-4">
-      <div className="max-w-6xl auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors group">
@@ -197,7 +199,7 @@ export default function UtilitiesPage() {
             <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
               <Zap className="h-8 w-8 text-primary" /> Utility Management
             </h1>
-            <p className="text-muted-foreground">Log and track monthly shared expenses for Villa 5604.</p>
+            <p className="text-muted-foreground">Log and track monthly shared expenses. You can record both current and past months.</p>
           </div>
           
           <Button onClick={() => setIsAddingNew(!isAddingNew)} className="gap-2">
@@ -210,13 +212,13 @@ export default function UtilitiesPage() {
           <Card className="shadow-lg border-t-4 border-primary">
             <CardHeader>
               <CardTitle className="text-xl">Record Monthly Expenses</CardTitle>
-              <CardDescription>Enter the total amounts for each utility category in OMR.</CardDescription>
+              <CardDescription>Enter the total amounts for any billing period in OMR.</CardDescription>
             </CardHeader>
             <form onSubmit={handleSaveBill}>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="monthYear">Billing Month</Label>
+                    <Label htmlFor="monthYear">Billing Month (Past or Current)</Label>
                     <div className="relative">
                       <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input 
@@ -326,7 +328,7 @@ export default function UtilitiesPage() {
           <Card className="shadow-lg border-none">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
               <div>
-                <CardTitle>Billing History</CardTitle>
+                <CardTitle>Billing Records</CardTitle>
                 <CardDescription>Review and manage historical utility expenses.</CardDescription>
               </div>
               <Badge variant="outline" className="text-primary font-semibold">

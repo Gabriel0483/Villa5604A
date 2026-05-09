@@ -16,7 +16,8 @@ import {
   Wifi,
   Droplets,
   Lightbulb,
-  Plus
+  Plus,
+  TrendingUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,7 +30,33 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
+import { 
+  Line, 
+  LineChart, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  ResponsiveContainer,
+  Legend
+} from "recharts";
 import Link from 'next/link';
+
+const chartConfig = {
+  water: {
+    label: "Water",
+    color: "hsl(var(--primary))",
+  },
+  electricity: {
+    label: "Electricity",
+    color: "hsl(var(--accent))",
+  },
+} satisfies ChartConfig;
 
 export default function MyBillsPage() {
   const router = useRouter();
@@ -51,22 +78,26 @@ export default function MyBillsPage() {
     return query(
       collection(db, 'utility_bills'), 
       where('status', '==', 'Released'),
-      orderBy('monthYear', 'desc')
+      orderBy('monthYear', 'asc') // Ascending for chart timeline
     );
   }, [db, user]);
 
   const { data: bills, loading: billsLoading } = useCollection(billsQuery);
 
-  const calculateMyShare = (bill: any) => {
-    if (!profile || !bills) return null;
-    
-    // Simplistic calculation logic matching pro-rata rules
-    // In a production app, the specific allocation would be saved as a separate doc
-    // For this MVP, we re-calculate based on the known rules
-    const numResidents = bills.length > 0 ? 10 : 1; // Fallback or fetch actual resident count if needed
-    // For this view, we focus on the household totals as a history
-    return bill;
-  };
+  // For the list, we want descending order
+  const sortedBillsForList = useMemo(() => {
+    if (!bills) return [];
+    return [...bills].sort((a: any, b: any) => b.monthYear.localeCompare(a.monthYear));
+  }, [bills]);
+
+  const chartData = useMemo(() => {
+    if (!bills) return [];
+    return bills.map((bill: any) => ({
+      month: new Date(bill.monthYear + '-01').toLocaleDateString('en-US', { month: 'short' }),
+      water: bill.water,
+      electricity: bill.electricity,
+    }));
+  }, [bills]);
 
   if (userLoading || profileLoading) {
     return (
@@ -78,24 +109,81 @@ export default function MyBillsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 py-8 px-4">
-      <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="space-y-1">
           <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors group">
             <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Dashboard
           </Link>
           <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
-            <Receipt className="h-8 w-8 text-primary" /> My Billing History
+            <Receipt className="h-8 w-8 text-primary" /> Billing & Consumption
           </h1>
-          <p className="text-muted-foreground">Track all released utility statements for Villa 5604.</p>
+          <p className="text-muted-foreground">Track released utility statements and consumption trends for Villa 5604.</p>
         </div>
 
+        {/* Historical Trend Chart */}
+        {bills && bills.length > 0 && (
+          <Card className="shadow-lg border-none">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" /> Consumption Trends
+              </CardTitle>
+              <CardDescription>Visual comparison of Water and Electricity costs (OMR) over time.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px] w-full">
+                <ChartContainer config={chartConfig}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
+                      <XAxis 
+                        dataKey="month" 
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                      />
+                      <YAxis 
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                        tickFormatter={(value) => `${value} OMR`}
+                      />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Legend verticalAlign="top" height={36}/>
+                      <Line 
+                        type="monotone" 
+                        dataKey="water" 
+                        stroke="var(--color-water)" 
+                        strokeWidth={3} 
+                        dot={{ r: 4, fill: "var(--color-water)" }}
+                        activeDot={{ r: 6, strokeWidth: 0 }}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="electricity" 
+                        stroke="var(--color-electricity)" 
+                        strokeWidth={3} 
+                        dot={{ r: 4, fill: "var(--color-electricity)" }}
+                        activeDot={{ r: 6, strokeWidth: 0 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid grid-cols-1 gap-4">
+          <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 px-1 pt-4">
+            <ReceiptIcon className="h-5 w-5 text-slate-400" /> Statement History
+          </h2>
+          
           {billsLoading ? (
             Array(3).fill(0).map((_, i) => (
               <Card key={i} className="animate-pulse h-24" />
             ))
-          ) : bills && bills.length > 0 ? (
-            bills.map((bill: any) => (
+          ) : sortedBillsForList.length > 0 ? (
+            sortedBillsForList.map((bill: any) => (
               <Card key={bill.id} className="hover:shadow-md transition-all cursor-pointer group" onClick={() => setSelectedBill(bill)}>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
@@ -181,7 +269,7 @@ export default function MyBillsPage() {
                       <Printer className="h-4 w-4" /> Print Statement
                     </Button>
                     <p className="text-[10px] text-center text-muted-foreground uppercase tracking-wider">
-                      Please refer to the pro-rata module for individual share calculations.
+                      Please refer to the dashboard snapshot for current usage notes.
                     </p>
                   </div>
                 </div>
