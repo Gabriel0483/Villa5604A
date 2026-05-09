@@ -54,13 +54,11 @@ export default function Home() {
 
   const isSuperAdmin = useMemo(() => {
     if (user?.email === 'rielmagpantay@gmail.com') return true;
-    // Also check if the login email (which might be a dummy domain) matches
     if (user?.email === 'rielmagpantay@gmail.com@villa5604.app') return true;
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
   // Use useMemoFirebase to stabilize the query reference
-  // CRITICAL: Only define the query if the user is an admin to prevent Permission Denied errors for Residents
   const tenantsQuery = useMemoFirebase(() => {
     if (!db || !isSuperAdmin) return null;
     return query(collection(db, 'tenants'));

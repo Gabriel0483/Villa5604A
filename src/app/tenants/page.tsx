@@ -50,7 +50,7 @@ export default function TenantsPage() {
     }
   }, [userLoading, profileLoading, isSuperAdmin, router]);
 
-  // CRITICAL: Only define the query if the user is an admin to prevent Permission Denied errors
+  // Only define the query if the user is an admin
   const tenantsQuery = useMemoFirebase(() => {
     if (!db || !isSuperAdmin) return null;
     return query(collection(db, 'tenants'), orderBy('createdAt', 'desc'));
