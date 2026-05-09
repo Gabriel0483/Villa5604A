@@ -53,7 +53,6 @@ export default function Home() {
     setMounted(true);
   }, []);
 
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (mounted && !userLoading && !user) {
       router.push('/login');
@@ -80,7 +79,6 @@ export default function Home() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Dashboard Snapshot: Both roles see the absolute latest bill (Draft or Released)
   const latestBillQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(

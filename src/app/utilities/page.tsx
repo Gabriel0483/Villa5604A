@@ -51,7 +51,6 @@ export default function UtilitiesPage() {
     miscellaneous: ''
   });
 
-  // Access Control check
   const userProfileRef = useMemoFirebase(() => {
     if (!db || !user) return null;
     return doc(db, 'users', user.uid);
@@ -85,7 +84,6 @@ export default function UtilitiesPage() {
     }
   }, [user, userLoading, profileLoading, isSuperAdmin, router, toast]);
 
-  // Fetch Bills
   const billsQuery = useMemoFirebase(() => {
     if (!db || !isSuperAdmin) return null;
     return query(collection(db, 'utility_bills'), orderBy('monthYear', 'desc'));
@@ -110,6 +108,11 @@ export default function UtilitiesPage() {
     const misc = parseFloat(formData.miscellaneous) || 0;
     const total = wifi + water + electricity + misc;
 
+    // Logic: If the month being saved is in the past, it should be released automatically
+    const now = new Date();
+    const currentMonthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const status = formData.monthYear < currentMonthYear ? 'Released' : 'Draft';
+
     const billData = {
       monthYear: formData.monthYear,
       wifi,
@@ -118,7 +121,7 @@ export default function UtilitiesPage() {
       miscellaneous: misc,
       total,
       updatedAt: serverTimestamp(),
-      status: 'Draft' // Default status when created
+      status: status
     };
 
     const billRef = doc(db, 'utility_bills', formData.monthYear);
@@ -126,8 +129,10 @@ export default function UtilitiesPage() {
     setDoc(billRef, billData, { merge: true })
       .then(() => {
         toast({
-          title: "Bill Updated",
-          description: `Expenses for ${formData.monthYear} have been saved successfully.`,
+          title: status === 'Released' ? "Historical Bill Recorded" : "Bill Drafted",
+          description: status === 'Released' 
+            ? `Expenses for ${formData.monthYear} have been recorded and released for trend analysis.`
+            : `Draft for ${formData.monthYear} has been saved successfully.`,
         });
         setIsAddingNew(false);
         setFormData({ monthYear: '', wifi: '', water: '', electricity: '', miscellaneous: '' });
@@ -211,7 +216,7 @@ export default function UtilitiesPage() {
           <Card className="shadow-lg border-t-4 border-primary">
             <CardHeader>
               <CardTitle className="text-xl">Record Monthly Expenses</CardTitle>
-              <CardDescription>Enter the total amounts for each utility category in OMR.</CardDescription>
+              <CardDescription>Enter the total amounts for each utility category in OMR. Past months are automatically released.</CardDescription>
             </CardHeader>
             <form onSubmit={handleSaveBill}>
               <CardContent className="space-y-6">
@@ -344,6 +349,7 @@ export default function UtilitiesPage() {
                       <TableHead>Water</TableHead>
                       <TableHead>Electricity</TableHead>
                       <TableHead>Misc</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead className="font-bold text-primary">Total</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -351,7 +357,7 @@ export default function UtilitiesPage() {
                   <TableBody>
                     {billsLoading ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="h-24 text-center">
+                        <TableCell colSpan={8} className="h-24 text-center">
                           <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
                         </TableCell>
                       </TableRow>
@@ -365,6 +371,11 @@ export default function UtilitiesPage() {
                           <TableCell>{bill.water.toFixed(3)}</TableCell>
                           <TableCell>{bill.electricity.toFixed(3)}</TableCell>
                           <TableCell>{(bill.miscellaneous || 0).toFixed(3)}</TableCell>
+                          <TableCell>
+                            <Badge variant={bill.status === 'Released' ? 'default' : 'secondary'} className="text-[10px]">
+                              {bill.status}
+                            </Badge>
+                          </TableCell>
                           <TableCell className="font-bold text-primary">{bill.total.toFixed(3)} OMR</TableCell>
                           <TableCell className="text-right space-x-2">
                             <Button variant="ghost" size="icon" onClick={() => handleEditBill(bill)}>
@@ -378,7 +389,7 @@ export default function UtilitiesPage() {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                        <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                           No billing records found.
                         </TableCell>
                       </TableRow>
