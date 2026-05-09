@@ -22,7 +22,9 @@ import {
   Plus,
   Receipt,
   FileText,
-  Cake
+  Cake,
+  Wrench,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -281,26 +283,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* Stats Overview - Only visible to SuperAdmins */}
-          {isSuperAdmin && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="border-none shadow-sm bg-primary text-primary-foreground overflow-hidden relative">
-                <div className="absolute right-0 top-0 p-4 opacity-10">
-                  <Users className="h-16 w-16" />
-                </div>
-                <CardHeader className="pb-2">
-                  <CardDescription className="text-primary-foreground/70">Total Residents</CardDescription>
-                  <CardTitle className="text-3xl font-bold">
-                    {residentsLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats.count}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-primary-foreground/60">Registered occupants in portfolio</p>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
           {/* Feature Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Tenant Management - Available to SuperAdmin */}
@@ -360,20 +342,39 @@ export default function Home() {
               </Card>
             )}
 
-            {/* Billing Statements - Available to SuperAdmin */}
+            {/* Manage Issues - Available to SuperAdmin */}
             {isSuperAdmin && (
-              <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/statements')}>
+              <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/repairs')}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
-                    <FileText className="h-5 w-5 text-primary" /> Billing Statements
+                    <Wrench className="h-5 w-5 text-primary" /> Manage Issues
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground leading-relaxed">
-                    Generate individual and general billing reports for rent and shared utilities.
+                    Track and action maintenance requests raised by residents for plumbing, electrical, etc.
                   </p>
                   <Button variant="outline" className="w-full">
-                    Generate Statements <ArrowRight className="ml-2 h-4 w-4" />
+                    Manage Issues <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Report Issue - Available to Residents */}
+            {!isSuperAdmin && user && (
+              <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/repairs')}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <AlertCircle className="h-5 w-5 text-primary" /> Report Issue
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Found a problem? Report plumbing, electrical, or other issues for maintenance.
+                  </p>
+                  <Button variant="outline" className="w-full">
+                    Report Issue <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </CardContent>
               </Card>
@@ -393,6 +394,25 @@ export default function Home() {
                   </p>
                   <Button variant="outline" className="w-full">
                     View Birthdays <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Billing Statements - Available to SuperAdmin */}
+            {isSuperAdmin && (
+              <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/statements')}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <FileText className="h-5 w-5 text-primary" /> Billing Statements
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Generate individual and general billing reports for rent and shared utilities.
+                  </p>
+                  <Button variant="outline" className="w-full">
+                    Generate Statements <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </CardContent>
               </Card>

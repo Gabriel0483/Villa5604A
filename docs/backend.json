@@ -35,6 +35,22 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["monthYear", "wifi", "water", "electricity"]
+    },
+    "MaintenanceRequest": {
+      "title": "Maintenance Request",
+      "description": "A request for repair or maintenance work",
+      "type": "object",
+      "properties": {
+        "residentId": { "type": "string", "description": "ID of the resident who reported the issue" },
+        "residentName": { "type": "string", "description": "Full name of the resident" },
+        "category": { "type": "string", "enum": ["Plumbing", "Electrical", "Appliance", "Structural", "Other"], "description": "Type of maintenance issue" },
+        "description": { "type": "string", "description": "Detailed description of the problem" },
+        "urgency": { "type": "string", "enum": ["Low", "Medium", "High", "Emergency"], "description": "How critical the repair is" },
+        "status": { "type": "string", "enum": ["Pending", "Scheduled", "In Progress", "Resolved", "Cancelled"], "description": "Current status of the request" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["residentId", "category", "description", "urgency", "status"]
     }
   },
   "auth": {
@@ -48,6 +64,10 @@
     "/utility_bills/{billId}": {
       "schema": "#/entities/UtilityBill",
       "description": "Monthly utility bill records"
+    },
+    "/maintenance_requests/{requestId}": {
+      "schema": "#/entities/MaintenanceRequest",
+      "description": "Collection of maintenance and repair requests"
     }
   }
 }
