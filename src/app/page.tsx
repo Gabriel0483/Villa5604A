@@ -52,6 +52,13 @@ export default function Home() {
     setMounted(true);
   }, []);
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (mounted && !userLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, userLoading, router, mounted]);
+
   const userProfileRef = useMemoFirebase(() => {
     if (!db || !user) return null;
     return doc(db, 'users', user.uid);
@@ -82,12 +89,13 @@ export default function Home() {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      router.refresh();
+      router.push('/login');
     } catch (error) {
+      console.error("Logout error:", error);
     }
   };
 
-  if (userLoading || (user && profileLoading)) {
+  if (userLoading || (user && profileLoading) || !mounted || !user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -110,51 +118,43 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-4">
-            {user ? (
-              <div className="flex items-center gap-3">
-                <div className="hidden md:flex flex-col items-end mr-1">
-                  <span className="text-sm font-medium text-slate-900">
-                    {profile?.firstName ? `${profile.firstName} ${profile.lastName}` : (profile?.name || user.email?.split('@')[0])}
-                  </span>
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    {isSuperAdmin ? (
-                      <><ShieldCheck className="h-3.5 w-3.5 text-primary" /> SuperAdmin</>
-                    ) : (
-                      <><UserIcon className="h-3.5 w-3.5 text-slate-400" /> Resident</>
-                    )}
-                  </span>
-                </div>
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="rounded-full ring-primary/20 hover:ring-2 transition-all">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <UserIcon className="h-4 w-4 text-primary" />
-                      </div>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <Link href="/profile">
-                      <DropdownMenuItem className="cursor-pointer gap-2">
-                        <Settings className="h-4 w-4" /> Profile Settings
-                      </DropdownMenuItem>
-                    </Link>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive gap-2" onClick={handleLogout}>
-                      <LogOut className="h-4 w-4" /> Sign Out
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+            <div className="flex items-center gap-3">
+              <div className="hidden md:flex flex-col items-end mr-1">
+                <span className="text-sm font-medium text-slate-900">
+                  {profile?.firstName ? `${profile.firstName} ${profile.lastName}` : (profile?.name || user.email?.split('@')[0])}
+                </span>
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  {isSuperAdmin ? (
+                    <><ShieldCheck className="h-3.5 w-3.5 text-primary" /> SuperAdmin</>
+                  ) : (
+                    <><UserIcon className="h-3.5 w-3.5 text-slate-400" /> Resident</>
+                  )}
+                </span>
               </div>
-            ) : (
-              <Link href="/login">
-                <Button variant="outline" size="sm" className="gap-2">
-                  <LogIn className="h-4 w-4" /> Sign In
-                </Button>
-              </Link>
-            )}
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full ring-primary/20 hover:ring-2 transition-all">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <UserIcon className="h-4 w-4 text-primary" />
+                    </div>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <Link href="/profile">
+                    <DropdownMenuItem className="cursor-pointer gap-2">
+                      <Settings className="h-4 w-4" /> Profile Settings
+                    </DropdownMenuItem>
+                  </Link>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive gap-2" onClick={handleLogout}>
+                    <LogOut className="h-4 w-4" /> Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       </header>
@@ -168,7 +168,7 @@ export default function Home() {
             <p className="text-muted-foreground">Welcome to the central management hub.</p>
           </div>
 
-          {!isSuperAdmin && user && (
+          {!isSuperAdmin && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <Card className="lg:col-span-2 shadow-lg border-t-4 border-primary">
                 <CardHeader className="pb-4">
