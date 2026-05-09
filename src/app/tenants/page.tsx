@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -37,9 +36,11 @@ export default function TenantsPage() {
 
   const { data: profile, loading: profileLoading } = useDoc(userProfileRef);
 
+  // Unified SuperAdmin check matching security rules
   const isSuperAdmin = useMemo(() => {
-    if (user?.email === 'rielmagpantay@gmail.com') return true;
-    if (user?.email === 'rielmagpantay@gmail.com@villa5604.app') return true;
+    if (!user) return false;
+    const adminEmails = ['rielmagpantay@gmail.com', 'rielmagpantay@gmail.com@villa5604.app'];
+    if (adminEmails.includes(user.email || '')) return true;
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 

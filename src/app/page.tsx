@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -52,13 +51,16 @@ export default function Home() {
 
   const { data: profile, loading: profileLoading } = useDoc(userProfileRef);
 
+  // Unified SuperAdmin check matching security rules
   const isSuperAdmin = useMemo(() => {
-    if (user?.email === 'rielmagpantay@gmail.com') return true;
-    if (user?.email === 'rielmagpantay@gmail.com@villa5604.app') return true;
+    if (!user) return false;
+    const adminEmails = ['rielmagpantay@gmail.com', 'rielmagpantay@gmail.com@villa5604.app'];
+    if (adminEmails.includes(user.email || '')) return true;
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
   // Use useMemoFirebase to stabilize the query reference
+  // We only initialize the query if we are sure the user is an admin
   const tenantsQuery = useMemoFirebase(() => {
     if (!db || !isSuperAdmin) return null;
     return query(collection(db, 'tenants'));
@@ -111,7 +113,9 @@ export default function Home() {
             {user ? (
               <div className="flex items-center gap-3">
                 <div className="hidden md:flex flex-col items-end mr-1">
-                  <span className="text-sm font-medium text-slate-900">{profile?.firstName ? `${profile.firstName} ${profile.lastName}` : (profile?.name || user.email)}</span>
+                  <span className="text-sm font-medium text-slate-900">
+                    {profile?.firstName ? `${profile.firstName} ${profile.lastName}` : (profile?.name || user.email?.split('@')[0])}
+                  </span>
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     {isSuperAdmin ? (
                       <><ShieldCheck className="h-3.5 w-3.5 text-primary" /> SuperAdmin</>
