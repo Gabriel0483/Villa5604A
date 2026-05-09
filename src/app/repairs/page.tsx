@@ -17,7 +17,8 @@ import {
   Check,
   XCircle,
   Construction,
-  Trash2
+  Trash2,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,6 +36,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
@@ -88,7 +90,7 @@ export default function RepairsPage() {
     );
   }, [db, user, isSuperAdmin, profileLoading]);
 
-  const { data: requests, loading: requestsLoading } = useCollection(requestsQuery);
+  const { data: requests, loading: requestsLoading, error: requestsError } = useCollection(requestsQuery);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -261,6 +263,18 @@ export default function RepairsPage() {
               <CardContent className="p-0">
                 {requestsLoading ? (
                   <div className="p-12 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /></div>
+                ) : requestsError ? (
+                  <div className="p-8">
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Data Load Error</AlertTitle>
+                      <AlertDescription>
+                        {requestsError.message.includes('index') 
+                          ? "The database is currently building an index for this view. This may take a few minutes. Please try again later."
+                          : "We couldn't load the requests. Please check your connection or contact the administrator."}
+                      </AlertDescription>
+                    </Alert>
+                  </div>
                 ) : requests && requests.length > 0 ? (
                   <div className="divide-y">
                     {requests.map((req: any) => (
