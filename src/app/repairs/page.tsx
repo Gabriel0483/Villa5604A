@@ -63,8 +63,14 @@ export default function RepairsPage() {
 
   const isSuperAdmin = useMemo(() => {
     if (!user) return false;
-    const adminEmails = ['rielmagpantay@gmail.com', 'rielmagpantay@gmail.com@villa5604.app', 'room101@villa5604.app', 'admin001@villa5604.app'];
-    if (adminEmails.includes(user.email?.toLowerCase() || '')) return true;
+    const email = user.email?.toLowerCase() || '';
+    const adminEmails = [
+      'rielmagpantay@gmail.com', 
+      'rielmagpantay@gmail.com@villa5604.app', 
+      'room101@villa5604.app', 
+      'admin001@villa5604.app'
+    ];
+    if (adminEmails.includes(email)) return true;
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
@@ -154,7 +160,14 @@ export default function RepairsPage() {
   };
 
   const handleDeleteRequest = async (requestId: string) => {
-    if (!db || !isSuperAdmin) return;
+    if (!db || !isSuperAdmin) {
+      toast({
+        variant: "destructive",
+        title: "Action Denied",
+        description: "Only administrators can delete requests.",
+      });
+      return;
+    }
     
     if (confirm('Are you sure you want to permanently delete this maintenance request?')) {
       const docRef = doc(db, 'maintenance_requests', requestId);
@@ -304,7 +317,10 @@ export default function RepairsPage() {
                                       <DropdownMenuSeparator />
                                     </>
                                   )}
-                                  <DropdownMenuItem className="gap-2 text-destructive font-medium" onSelect={() => handleDeleteRequest(req.id)}>
+                                  <DropdownMenuItem 
+                                    className="gap-2 text-destructive font-medium" 
+                                    onSelect={() => handleDeleteRequest(req.id)}
+                                  >
                                     <Trash2 className="h-4 w-4" /> Delete Request
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>

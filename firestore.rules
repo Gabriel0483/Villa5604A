@@ -16,7 +16,7 @@ service cloud.firestore {
       ];
       let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
       return isSignedIn() && (
-        request.auth.token.email in adminEmails ||
+        request.auth.token.email.lower() in adminEmails ||
         (exists(userPath) && get(userPath).data.role == 'SuperAdmin')
       );
     }
