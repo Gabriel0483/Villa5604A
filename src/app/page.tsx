@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -22,7 +23,8 @@ import {
   Plus,
   Receipt,
   FileText,
-  Cake
+  Cake,
+  Wrench
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -397,6 +399,23 @@ export default function Home() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Maintenance & Repairs - Available to All */}
+            <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/repairs')}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Wrench className="h-5 w-5 text-primary" /> Maintenance & Repairs
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {isSuperAdmin ? "Oversee and update the status of repair requests from residents." : "Report household issues and track the status of your repair requests."}
+                </p>
+                <Button variant="outline" className="w-full">
+                  {isSuperAdmin ? "Manage Repairs" : "Report Issue"} <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
 
             {/* Profile Management - Available to All */}
             <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/profile')}>

@@ -34,10 +34,17 @@ service cloud.firestore {
       allow write: if isSuperAdmin() || (isSignedIn() && request.auth.uid == userId);
     }
 
-    // Utility bills - Only SuperAdmins can manage utility bills
+    // Utility bills
     match /utility_bills/{billId} {
-      allow read: if isSignedIn(); // Residents can read to see their share later
+      allow read: if isSignedIn();
       allow write: if isSuperAdmin();
+    }
+
+    // Maintenance requests
+    match /maintenance_requests/{requestId} {
+      allow create: if isSignedIn();
+      allow read: if isSuperAdmin() || (isSignedIn() && request.resource.data.residentId == request.auth.uid || resource.data.residentId == request.auth.uid);
+      allow update, delete: if isSuperAdmin();
     }
   }
 }

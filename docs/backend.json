@@ -52,6 +52,23 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["monthYear", "wifi", "water", "electricity"]
+    },
+    "MaintenanceRequest": {
+      "title": "Maintenance Request",
+      "description": "A request for repairs or maintenance in the villa",
+      "type": "object",
+      "properties": {
+        "residentId": { "type": "string" },
+        "residentName": { "type": "string" },
+        "roomUnit": { "type": "string" },
+        "category": { "type": "string", "enum": ["Plumbing", "Electrical", "Appliance", "Furniture", "Other"] },
+        "urgency": { "type": "string", "enum": ["Low", "Medium", "High", "Emergency"] },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pending", "In Progress", "Completed", "Cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["residentId", "category", "urgency", "description", "status"]
     }
   },
   "auth": {
@@ -69,6 +86,10 @@
     "/utility_bills/{billId}": {
       "schema": "#/entities/UtilityBill",
       "description": "Monthly utility bill records"
+    },
+    "/maintenance_requests/{requestId}": {
+      "schema": "#/entities/MaintenanceRequest",
+      "description": "Collection of maintenance and repair requests"
     }
   }
 }
