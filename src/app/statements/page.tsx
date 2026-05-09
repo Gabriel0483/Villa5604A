@@ -15,7 +15,10 @@ import {
   Clock,
   CheckCircle2,
   Circle,
-  RotateCcw
+  RotateCcw,
+  TrendingUp,
+  Wallet,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +27,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, query, doc, orderBy, where, updateDoc, serverTimestamp, arrayUnion, arrayRemove } from 'firebase/firestore';
@@ -210,6 +214,26 @@ export default function StatementsPage() {
     return allocations;
   }, [selectedBill, residents]);
 
+  const collectionStats = useMemo(() => {
+    if (!statementResults) return null;
+
+    const totalTarget = statementResults.reduce((acc, s) => acc + s.totalDue, 0);
+    const totalCollected = statementResults.filter(s => s.isPaid).reduce((acc, s) => acc + s.totalDue, 0);
+    const totalPending = totalTarget - totalCollected;
+    const percentCollected = totalTarget > 0 ? (totalCollected / totalTarget) * 100 : 0;
+    const paidCount = statementResults.filter(s => s.isPaid).length;
+    const totalCount = statementResults.length;
+
+    return {
+      totalTarget,
+      totalCollected,
+      totalPending,
+      percentCollected,
+      paidCount,
+      totalCount
+    };
+  }, [statementResults]);
+
   const individualStatement = useMemo(() => {
     if (!statementResults || selectedResidentId === 'all') return null;
     return statementResults.find(s => s.residentId === selectedResidentId);
@@ -329,7 +353,48 @@ export default function StatementsPage() {
             )}
           </div>
 
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-3 space-y-6">
+            {selectedBill && collectionStats && (
+              <Card className="shadow-md border-none bg-white print:hidden">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-primary" /> Collection Overview
+                  </CardTitle>
+                  <CardDescription>Visual summary of funds collected for {new Date(selectedBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="font-medium text-slate-600">Progress: {collectionStats.percentCollected.toFixed(1)}%</span>
+                      <span className="font-bold text-primary">{collectionStats.paidCount} of {collectionStats.totalCount} Residents Paid</span>
+                    </div>
+                    <Progress value={collectionStats.percentCollected} className="h-3 bg-slate-100" />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 rounded-lg bg-accent/5 border border-accent/10">
+                      <div className="flex items-center gap-2 text-xs font-bold text-accent uppercase mb-1">
+                        <Wallet className="h-3 w-3" /> Collected
+                      </div>
+                      <p className="text-2xl font-black text-slate-900">{collectionStats.totalCollected.toFixed(3)} OMR</p>
+                    </div>
+                    <div className="p-4 rounded-lg bg-orange-50 border border-orange-100">
+                      <div className="flex items-center gap-2 text-xs font-bold text-orange-600 uppercase mb-1">
+                        <Clock className="h-3 w-3" /> Outstanding
+                      </div>
+                      <p className="text-2xl font-black text-slate-900">{collectionStats.totalPending.toFixed(3)} OMR</p>
+                    </div>
+                    <div className="p-4 rounded-lg bg-slate-50 border border-slate-100">
+                      <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-1">
+                        <Receipt className="h-3 w-3" /> Total Target
+                      </div>
+                      <p className="text-2xl font-black text-slate-900">{collectionStats.totalTarget.toFixed(3)} OMR</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {!selectedBill ? (
               <Card className="h-full min-h-[400px] border-dashed flex flex-col items-center justify-center text-center p-8 text-muted-foreground bg-slate-50/50">
                 <FileText className="h-16 w-16 mb-4 opacity-10" />
