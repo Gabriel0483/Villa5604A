@@ -31,12 +31,5 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isSuperAdmin();
     }
-
-    // Maintenance requests: Residents can create and read their own. Admins can do everything.
-    match /maintenance_requests/{requestId} {
-      allow create: if isSignedIn();
-      allow read: if isSignedIn() && (resource == null || resource.data.residentId == request.auth.uid || isSuperAdmin());
-      allow update, delete: if isSuperAdmin();
-    }
   }
 }
