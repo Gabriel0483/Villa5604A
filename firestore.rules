@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -30,15 +31,6 @@ service cloud.firestore {
     match /utility_bills/{billId} {
       allow read: if isSignedIn();
       allow write: if isSuperAdmin();
-    }
-
-    // Maintenance requests
-    match /maintenance_requests/{requestId} {
-      // Residents can read their own requests and create new ones
-      // Admins can read all and write all
-      allow read: if isSignedIn() && (isSuperAdmin() || resource.data.residentId == request.auth.uid);
-      allow create: if isSignedIn() && (isSuperAdmin() || request.resource.data.residentId == request.auth.uid);
-      allow update, delete: if isSignedIn() && (isSuperAdmin() || (resource.data.residentId == request.auth.uid && request.resource.data.status == resource.data.status));
     }
   }
 }

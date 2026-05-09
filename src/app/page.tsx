@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -22,9 +23,7 @@ import {
   Plus,
   Receipt,
   FileText,
-  Cake,
-  Wrench,
-  AlertCircle
+  Cake
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -73,14 +72,6 @@ export default function Home() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Query all residents for stats if SuperAdmin
-  const residentsQuery = useMemoFirebase(() => {
-    if (!db || !isSuperAdmin) return null;
-    return query(collection(db, 'users'), where('role', '==', 'Resident'));
-  }, [db, isSuperAdmin]);
-
-  const { data: residents, loading: residentsLoading } = useCollection(residentsQuery);
-
   // Query latest bill for Residents to see snapshot
   const latestBillQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -89,14 +80,6 @@ export default function Home() {
 
   const { data: latestBills, loading: billsLoading } = useCollection(latestBillQuery);
   const latestBill = latestBills?.[0] as any;
-
-  // Calculate statistics
-  const stats = useMemo(() => {
-    if (!residents) return { count: 0 };
-    return {
-      count: residents.length
-    };
-  }, [residents]);
 
   const handleLogout = async () => {
     try {
@@ -337,44 +320,6 @@ export default function Home() {
                   </p>
                   <Button variant="outline" className="w-full group-hover:bg-primary group-hover:text-white transition-colors">
                     Calculate Split <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Manage Issues - Available to SuperAdmin */}
-            {isSuperAdmin && (
-              <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/repairs')}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Wrench className="h-5 w-5 text-primary" /> Manage Issues
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Track and action maintenance requests raised by residents for plumbing, electrical, etc.
-                  </p>
-                  <Button variant="outline" className="w-full">
-                    Manage Issues <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Report Issue - Available to Residents */}
-            {!isSuperAdmin && user && (
-              <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/repairs')}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <AlertCircle className="h-5 w-5 text-primary" /> Report Issue
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Found a problem? Report plumbing, electrical, or other issues for maintenance.
-                  </p>
-                  <Button variant="outline" className="w-full">
-                    Report Issue <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </CardContent>
               </Card>
