@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -250,22 +249,24 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            {/* Pro-Rata Calculator - Placeholder */}
-            <Card className="opacity-60 border-dashed border-2 grayscale">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Calculator className="h-5 w-5" /> Pro-Rata Allocation
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Automatically distribute utility costs among residents based on occupancy periods.
-                </p>
-                <Button disabled variant="secondary" className="w-full gap-2">
-                  Coming Soon
-                </Button>
-              </CardContent>
-            </Card>
+            {/* Pro-Rata Calculator - Placeholder - Only visible to SuperAdmin */}
+            {isSuperAdmin && (
+              <Card className="opacity-60 border-dashed border-2 grayscale">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Calculator className="h-5 w-5" /> Pro-Rata Allocation
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Automatically distribute utility costs among residents based on occupancy periods.
+                  </p>
+                  <Button disabled variant="secondary" className="w-full gap-2">
+                    Coming Soon
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </main>
