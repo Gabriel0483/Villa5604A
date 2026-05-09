@@ -340,6 +340,25 @@ export default function Home() {
               </Card>
             )}
 
+            {/* Pro-Rata Calculator - Available to SuperAdmin */}
+            {isSuperAdmin && (
+              <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer border-accent/20" onClick={() => router.push('/pro-rata')}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Calculator className="h-5 w-5 text-primary" /> Pro-Rata Allocation
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Automatically distribute utility costs among residents based on current occupancy.
+                  </p>
+                  <Button variant="outline" className="w-full group-hover:bg-primary group-hover:text-white transition-colors">
+                    Calculate Split <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Profile Management - Available to All */}
             <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/profile')}>
               <CardHeader>
@@ -356,25 +375,6 @@ export default function Home() {
                 </Button>
               </CardContent>
             </Card>
-
-            {/* Pro-Rata Calculator - Placeholder - Only visible to SuperAdmin */}
-            {isSuperAdmin && (
-              <Card className="opacity-60 border-dashed border-2 grayscale">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Calculator className="h-5 w-5" /> Pro-Rata Allocation
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Automatically distribute utility costs among residents based on occupancy periods.
-                  </p>
-                  <Button disabled variant="secondary" className="w-full gap-2">
-                    Coming Soon
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
       </main>
