@@ -110,23 +110,38 @@ export default function ProRataPage() {
     setIsCalculating(true);
     setAllocationResults(null);
 
-    // Perform a standard equal split calculation
+    // Perform pro-rata calculation based on billing days
+    // Wifi is equal split. Water, Elec, Misc are by days.
     setTimeout(() => {
       try {
-        const totalAmount = selectedBill.total;
-        const count = residents.length;
-        const share = totalAmount / count;
+        const numResidents = residents.length;
+        const wifiTotal = selectedBill.wifi;
+        const usageTotal = (selectedBill.water || 0) + (selectedBill.electricity || 0) + (selectedBill.miscellaneous || 0);
+        
+        // Total man-days for the household
+        const totalManDays = residents.reduce((acc, r) => acc + (r.billingDays ?? 30), 0);
+        
+        const wifiSharePerPerson = wifiTotal / numResidents;
+        const usagePerDay = totalManDays > 0 ? usageTotal / totalManDays : 0;
 
-        const allocations = residents.map(r => ({
-          residentName: `${r.firstName} ${r.lastName}`,
-          amount: share,
-          explanation: `Equal split of ${totalAmount.toFixed(3)} OMR among ${count} active residents.`
-        }));
+        const allocations = residents.map(r => {
+          const resDays = r.billingDays ?? 30;
+          const resUsageShare = usagePerDay * resDays;
+          const resTotalShare = wifiSharePerPerson + resUsageShare;
+
+          return {
+            residentName: `${r.firstName} ${r.lastName}`,
+            amount: resTotalShare,
+            explanation: `Wifi: ${wifiSharePerPerson.toFixed(3)} OMR (Equal split). Usage: ${resUsageShare.toFixed(3)} OMR (${resDays} billing days pro-rata).`
+          };
+        });
+
+        const totalAllocated = allocations.reduce((acc, curr) => acc + curr.amount, 0);
 
         setAllocationResults({
-          methodology: "Standard equal distribution among all registered residents for the selected billing period.",
+          methodology: "Standard split: Wifi is divided equally. Water, Electricity, and Misc are distributed based on each resident's individual billing days.",
           allocations: allocations,
-          totalAllocated: totalAmount
+          totalAllocated: totalAllocated
         });
       } catch (error) {
         toast({
@@ -137,7 +152,7 @@ export default function ProRataPage() {
       } finally {
         setIsCalculating(false);
       }
-    }, 500); // Small delay for visual feedback
+    }, 500); 
   };
 
   if (userLoading || profileLoading) {
@@ -228,10 +243,10 @@ export default function ProRataPage() {
               </CardHeader>
               <CardContent className="space-y-2">
                 <p className="text-xs text-muted-foreground">
-                  The system calculates an equal split of the total bill among all active residents registered in the Tenant Registry.
+                  <strong>Wifi:</strong> Split equally among all registered residents.
                 </p>
-                <p className="text-xs text-muted-foreground font-semibold">
-                  Ensure the resident list is up-to-date before calculating.
+                <p className="text-xs text-muted-foreground">
+                  <strong>Utilities:</strong> Water, Electricity, and Misc are split proportionally based on each resident's <strong>Billing Days</strong> (default 30).
                 </p>
               </CardContent>
             </Card>
@@ -276,7 +291,7 @@ export default function ProRataPage() {
                           <TableRow>
                             <TableHead>Resident</TableHead>
                             <TableHead>Calculated Share</TableHead>
-                            <TableHead className="hidden md:table-cell">Notes</TableHead>
+                            <TableHead className="hidden md:table-cell">Breakdown</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -302,12 +317,12 @@ export default function ProRataPage() {
                   </CardFooter>
                 </Card>
 
-                {Math.abs(allocationResults.totalAllocated - selectedBill!.total) > 0.001 && (
+                {Math.abs(allocationResults.totalAllocated - selectedBill!.total) > 0.005 && (
                   <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg flex gap-3 text-amber-800 text-sm items-start">
                     <AlertCircle className="h-5 w-5 shrink-0" />
                     <div>
-                      <p className="font-bold">Rounding Variance Detected</p>
-                      <p className="opacity-80">The total allocated ({allocationResults.totalAllocated.toFixed(3)}) differs slightly from the bill total ({selectedBill!.total.toFixed(3)}). Please adjust the final OMR values manually before finalizing.</p>
+                      <p className="font-bold">Variance Detected</p>
+                      <p className="opacity-80">The total allocated ({allocationResults.totalAllocated.toFixed(3)}) differs from the bill total ({selectedBill!.total.toFixed(3)}). This usually happens due to rounding or missing billing day assignments.</p>
                     </div>
                   </div>
                 )}

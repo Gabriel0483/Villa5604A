@@ -20,7 +20,8 @@ import {
   Filter,
   MoreHorizontal,
   ChevronRight,
-  Home
+  Home,
+  Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -79,7 +80,8 @@ export default function TenantRegistryPage() {
     bloodType: '',
     emergencyContact: '',
     roomUnit: '',
-    monthlyRent: ''
+    monthlyRent: '',
+    billingDays: '30'
   });
 
   // Check if user is SuperAdmin
@@ -151,7 +153,8 @@ export default function TenantRegistryPage() {
       bloodType: resident.bloodType || '',
       emergencyContact: resident.emergencyContact || '',
       roomUnit: resident.roomUnit || '',
-      monthlyRent: resident.monthlyRent?.toString() || ''
+      monthlyRent: resident.monthlyRent?.toString() || '',
+      billingDays: (resident.billingDays ?? 30).toString()
     });
     setIsEditDialogOpen(true);
   };
@@ -173,6 +176,7 @@ export default function TenantRegistryPage() {
       ...editFormData,
       name: `${editFormData.firstName} ${editFormData.lastName}`.trim(),
       monthlyRent: editFormData.monthlyRent ? parseFloat(editFormData.monthlyRent) : 0,
+      billingDays: editFormData.billingDays ? parseInt(editFormData.billingDays) : 30,
       updatedAt: serverTimestamp()
     };
 
@@ -253,8 +257,8 @@ export default function TenantRegistryPage() {
                     <TableHead className="w-[200px]">Resident Name</TableHead>
                     <TableHead>Room Unit</TableHead>
                     <TableHead>Monthly Rent</TableHead>
+                    <TableHead>Billing Days</TableHead>
                     <TableHead>Contact Info</TableHead>
-                    <TableHead>Blood Type</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -298,22 +302,17 @@ export default function TenantRegistryPage() {
                           )}
                         </TableCell>
                         <TableCell>
+                          <Badge variant="outline" className="gap-1 font-mono">
+                            <Clock className="h-3 w-3" /> {resident.billingDays ?? 30} days
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
                           <div className="flex flex-col gap-1">
                             <div className="flex items-center gap-1.5 text-xs">
                               <Phone className="h-3 w-3 text-muted-foreground" />
                               {resident.mobile || 'No mobile'}
                             </div>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          {resident.bloodType ? (
-                            <Badge variant="outline" className={cn(
-                              "font-mono",
-                              resident.bloodType.includes('+') ? "text-primary border-primary/20 bg-primary/5" : "text-slate-600"
-                            )}>
-                              {resident.bloodType}
-                            </Badge>
-                          ) : '-'}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" onClick={() => handleEditClick(resident)} className="gap-2">
@@ -355,19 +354,26 @@ export default function TenantRegistryPage() {
           <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-primary uppercase tracking-wider">Lease Assignment</h3>
-              <div className="grid grid-cols-2 gap-4 bg-primary/5 p-4 rounded-lg border border-primary/10">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-primary/5 p-4 rounded-lg border border-primary/10">
                 <div className="space-y-2">
-                  <Label htmlFor="roomUnit" className="text-primary">Room / Unit Number</Label>
+                  <Label htmlFor="roomUnit" className="text-primary">Room / Unit</Label>
                   <div className="relative">
                     <Home className="absolute left-3 top-2.5 h-4 w-4 text-primary/60" />
                     <Input id="roomUnit" name="roomUnit" value={editFormData.roomUnit} onChange={handleEditFormChange} className="pl-10 border-primary/20" placeholder="e.g. 101" />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="monthlyRent" className="text-primary">Monthly Rent (OMR)</Label>
+                  <Label htmlFor="monthlyRent" className="text-primary">Rent (OMR)</Label>
                   <div className="relative">
                     <Activity className="absolute left-3 top-2.5 h-4 w-4 text-primary/60" />
                     <Input id="monthlyRent" name="monthlyRent" type="number" value={editFormData.monthlyRent} onChange={handleEditFormChange} className="pl-10 border-primary/20" placeholder="0.000" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="billingDays" className="text-primary">Billing Days</Label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-2.5 h-4 w-4 text-primary/60" />
+                    <Input id="billingDays" name="billingDays" type="number" value={editFormData.billingDays} onChange={handleEditFormChange} className="pl-10 border-primary/20" placeholder="30" />
                   </div>
                 </div>
               </div>

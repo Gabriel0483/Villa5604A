@@ -22,7 +22,8 @@ import {
   Eye,
   EyeOff,
   Home,
-  Info
+  Info,
+  Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -284,15 +285,21 @@ export default function ProfilePage() {
                   <CardDescription>Details of your assigned room and rent.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-1">
                       <span className="text-xs text-muted-foreground uppercase font-semibold">Assigned Unit</span>
-                      <p className="text-lg font-bold text-slate-900">{profile?.roomUnit || 'Pending Assignment'}</p>
+                      <p className="text-lg font-bold text-slate-900">{profile?.roomUnit || 'Pending'}</p>
                     </div>
                     <div className="space-y-1">
                       <span className="text-xs text-muted-foreground uppercase font-semibold">Monthly Rent</span>
                       <p className="text-lg font-bold text-primary">
                         {profile?.monthlyRent ? `${profile.monthlyRent.toLocaleString()} OMR` : 'Contact Admin'}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground uppercase font-semibold">Billing Days</span>
+                      <p className="text-lg font-bold text-slate-700 flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-slate-400" /> {profile?.billingDays ?? 30} days
                       </p>
                     </div>
                   </div>
@@ -534,7 +541,7 @@ export default function ProfilePage() {
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-bold flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-accent" /> Information Use
-                    </CardTitle>
+                    </CheckCircle2>
                   </CardHeader>
                   <CardContent>
                     <p className="text-xs text-muted-foreground">
