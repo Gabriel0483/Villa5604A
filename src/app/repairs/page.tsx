@@ -48,7 +48,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 import Link from 'next/link';
 
 export default function RepairsPage() {
@@ -58,6 +58,7 @@ export default function RepairsPage() {
   const { toast } = useToast();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState<'new' | 'history'>('new');
   const [requestToDelete, setRequestToDelete] = useState<string | null>(null);
 
@@ -139,12 +140,8 @@ export default function RepairsPage() {
         setFormData({ category: '', urgency: '', description: '' });
         setActiveTab('history');
       })
-      .catch(() => {
-        toast({
-          variant: "destructive",
-          title: "Submission Failed",
-          description: "Could not submit request. Please try again.",
-        });
+      .catch((err) => {
+        // Handled via global listener
       })
       .finally(() => {
         setIsSubmitting(false);
@@ -168,7 +165,7 @@ export default function RepairsPage() {
         path: docRef.path,
         operation: 'update',
         requestResourceData: { status: newStatus }
-      });
+      } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', permissionError);
     });
   };
@@ -176,7 +173,13 @@ export default function RepairsPage() {
   const confirmDeleteRequest = () => {
     if (!db || !isSuperAdmin || !requestToDelete) return;
     
-    const docRef = doc(db, 'maintenance_requests', requestToDelete);
+    const id = requestToDelete;
+    const docRef = doc(db, 'maintenance_requests', id);
+    
+    // Close dialog immediately to prevent "freeze" feeling during async cleanup
+    setRequestToDelete(null);
+    setIsDeleting(true);
+
     deleteDoc(docRef)
       .then(() => {
         toast({
@@ -188,11 +191,11 @@ export default function RepairsPage() {
         const permissionError = new FirestorePermissionError({
           path: docRef.path,
           operation: 'delete',
-        });
+        } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
       })
       .finally(() => {
-        setRequestToDelete(null);
+        setIsDeleting(false);
       });
   };
 
@@ -279,10 +282,10 @@ export default function RepairsPage() {
                   <div className="p-8">
                     <Alert variant="destructive">
                       <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Data Load Error</AlertTitle>
+                      <AlertTitle>Database Connectivity</AlertTitle>
                       <AlertDescription>
                         {requestsError.message.includes('index') 
-                          ? "The database is currently building an index for this view. This may take a few minutes. Please try again later."
+                          ? "The system is currently building an index to support this view. This may take a few minutes. Please refresh later."
                           : "We couldn't load the requests. Please check your connection or contact the administrator."}
                       </AlertDescription>
                     </Alert>
@@ -422,7 +425,7 @@ export default function RepairsPage() {
         </div>
       </div>
 
-      <AlertDialog open={!!requestToDelete} onOpenChange={(open) => !open && setRequestToDelete(null)}>
+      <AlertDialog open={!!requestToDelete} onOpenChange={(open) => !open && !isDeleting && setRequestToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
@@ -431,8 +434,16 @@ export default function RepairsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteRequest} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDeleteRequest();
+              }} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+            >
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
               Delete Request
             </AlertDialogAction>
           </AlertDialogFooter>
