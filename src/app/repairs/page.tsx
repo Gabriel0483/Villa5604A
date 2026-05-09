@@ -75,13 +75,8 @@ export default function RepairsPage() {
   }, [user, profile]);
 
   const requestsQuery = useMemoFirebase(() => {
-    // Critical: Only construct the query when the user is authenticated and the profile (role) is resolved.
-    // This prevents premature queries that might trigger 'Permission Denied' errors.
     if (!db || !user || profileLoading) return null;
     
-    // Additional safety: if the user is not an admin and doesn't have a profile yet, wait.
-    if (!isSuperAdmin && !profile) return null;
-
     if (isSuperAdmin) {
       return query(collection(db, 'maintenance_requests'), orderBy('createdAt', 'desc'));
     } else {
@@ -91,7 +86,7 @@ export default function RepairsPage() {
         orderBy('createdAt', 'desc')
       );
     }
-  }, [db, user, isSuperAdmin, profileLoading, profile]);
+  }, [db, user, isSuperAdmin, profileLoading]);
 
   const { data: requests, loading: requestsLoading } = useCollection(requestsQuery);
 
@@ -143,7 +138,7 @@ export default function RepairsPage() {
       });
   };
 
-  const handleUpdateStatus = async (requestId: string, newStatus: string) => {
+  const handleUpdateStatus = (requestId: string, newStatus: string) => {
     if (!db || !isSuperAdmin) return;
 
     const docRef = doc(db, 'maintenance_requests', requestId);
@@ -165,10 +160,10 @@ export default function RepairsPage() {
     });
   };
 
-  const handleDeleteRequest = async (requestId: string) => {
+  const handleDeleteRequest = (requestId: string) => {
     if (!db || !isSuperAdmin) return;
     
-    if (confirm('Are you sure you want to permanently delete this maintenance request?')) {
+    if (confirm('Are you sure you want to permanently delete this maintenance request? This action cannot be undone.')) {
       const docRef = doc(db, 'maintenance_requests', requestId);
       deleteDoc(docRef)
         .then(() => {
@@ -302,22 +297,18 @@ export default function RepairsPage() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  {req.status !== 'Resolved' && (
-                                    <>
-                                      <DropdownMenuItem className="gap-2 cursor-pointer" onSelect={() => handleUpdateStatus(req.id, 'In Progress')}>
-                                        <Construction className="h-4 w-4 text-blue-500" /> Mark In Progress
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem className="gap-2 cursor-pointer" onSelect={() => handleUpdateStatus(req.id, 'Resolved')}>
-                                        <Check className="h-4 w-4 text-accent" /> Mark Resolved
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem className="gap-2 text-destructive cursor-pointer" onSelect={() => handleUpdateStatus(req.id, 'Cancelled')}>
-                                        <XCircle className="h-4 w-4" /> Cancel Request
-                                      </DropdownMenuItem>
-                                      <DropdownMenuSeparator />
-                                    </>
-                                  )}
+                                  <DropdownMenuItem className="gap-2 cursor-pointer" onSelect={() => handleUpdateStatus(req.id, 'In Progress')}>
+                                    <Construction className="h-4 w-4 text-blue-500" /> Mark In Progress
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="gap-2 cursor-pointer" onSelect={() => handleUpdateStatus(req.id, 'Resolved')}>
+                                    <Check className="h-4 w-4 text-accent" /> Mark Resolved
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="gap-2 text-destructive cursor-pointer" onSelect={() => handleUpdateStatus(req.id, 'Cancelled')}>
+                                    <XCircle className="h-4 w-4" /> Cancel Request
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
                                   <DropdownMenuItem 
-                                    className="gap-2 text-destructive font-medium cursor-pointer" 
+                                    className="gap-2 text-destructive font-bold cursor-pointer bg-destructive/5 hover:bg-destructive hover:text-white transition-colors" 
                                     onSelect={() => handleDeleteRequest(req.id)}
                                   >
                                     <Trash2 className="h-4 w-4" /> Delete Request
@@ -332,7 +323,7 @@ export default function RepairsPage() {
                   </div>
                 ) : (
                   <div className="p-12 text-center text-muted-foreground italic">
-                    {requestsLoading ? <Loader2 className="h-6 w-6 animate-spin mx-auto" /> : "No maintenance requests found."}
+                    "No maintenance requests found."
                   </div>
                 )}
               </CardContent>
