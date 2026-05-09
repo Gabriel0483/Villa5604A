@@ -20,6 +20,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
   useEffect(() => {
     if (!query) {
       setLoading(false);
+      setData(null);
       return;
     }
 
@@ -33,14 +34,20 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
         }));
         setData(items);
         setLoading(false);
+        setError(null);
       },
-      async (serverError: FirestoreError) => {
-        const permissionError = new FirestorePermissionError({
-          path: (query as any)._query?.path?.toString() || 'unknown',
-          operation: 'list',
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        setError(permissionError);
+      (serverError: FirestoreError) => {
+        // Only report to the global listener if it's an actual permission error
+        if (serverError.code === 'permission-denied') {
+          const permissionError = new FirestorePermissionError({
+            path: (query as any)._query?.path?.toString() || 'unknown',
+            operation: 'list',
+          });
+          errorEmitter.emit('permission-error', permissionError);
+          setError(permissionError);
+        } else {
+          setError(serverError);
+        }
         setLoading(false);
       }
     );

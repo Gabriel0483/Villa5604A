@@ -20,6 +20,7 @@ export function useDoc<T = DocumentData>(docRef: DocumentReference<T> | null) {
   useEffect(() => {
     if (!docRef) {
       setLoading(false);
+      setData(null);
       return;
     }
 
@@ -29,14 +30,20 @@ export function useDoc<T = DocumentData>(docRef: DocumentReference<T> | null) {
       (snapshot: DocumentSnapshot<T>) => {
         setData(snapshot.exists() ? { ...snapshot.data(), id: snapshot.id } as T : null);
         setLoading(false);
+        setError(null);
       },
-      async (serverError: FirestoreError) => {
-        const permissionError = new FirestorePermissionError({
-          path: docRef.path,
-          operation: 'get',
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        setError(permissionError);
+      (serverError: FirestoreError) => {
+        // Only report to the global listener if it's an actual permission error
+        if (serverError.code === 'permission-denied') {
+          const permissionError = new FirestorePermissionError({
+            path: docRef.path,
+            operation: 'get',
+          });
+          errorEmitter.emit('permission-error', permissionError);
+          setError(permissionError);
+        } else {
+          setError(serverError);
+        }
         setLoading(false);
       }
     );

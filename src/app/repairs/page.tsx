@@ -75,7 +75,9 @@ export default function RepairsPage() {
   }, [user, profile]);
 
   const requestsQuery = useMemoFirebase(() => {
+    // Crucial: Wait for profile to load before constructing the query to avoid flickering and permission errors
     if (!db || !user || profileLoading) return null;
+    
     if (isSuperAdmin) {
       return query(collection(db, 'maintenance_requests'), orderBy('createdAt', 'desc'));
     } else {
@@ -106,7 +108,7 @@ export default function RepairsPage() {
 
     const requestData = {
       residentId: user.uid,
-      residentName: `${profile?.firstName} ${profile?.lastName}`,
+      residentName: profile?.firstName ? `${profile.firstName} ${profile.lastName}` : (user.displayName || 'Resident'),
       roomUnit: profile?.roomUnit || 'N/A',
       category: formData.category,
       urgency: formData.urgency,
@@ -149,7 +151,7 @@ export default function RepairsPage() {
         title: "Status Updated",
         description: `Request status changed to ${newStatus}.`,
       });
-    }).catch(async (serverError) => {
+    }).catch((serverError) => {
       const permissionError = new FirestorePermissionError({
         path: docRef.path,
         operation: 'update',
@@ -171,7 +173,7 @@ export default function RepairsPage() {
             description: "The maintenance record has been removed.",
           });
         })
-        .catch(async (serverError) => {
+        .catch((serverError) => {
           const permissionError = new FirestorePermissionError({
             path: docRef.path,
             operation: 'delete',
@@ -326,7 +328,7 @@ export default function RepairsPage() {
                   </div>
                 ) : (
                   <div className="p-12 text-center text-muted-foreground italic">
-                    No maintenance requests found.
+                    {requestsLoading ? <Loader2 className="h-6 w-6 animate-spin mx-auto" /> : "No maintenance requests found."}
                   </div>
                 )}
               </CardContent>
