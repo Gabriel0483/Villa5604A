@@ -353,7 +353,6 @@ export default function StatementsPage() {
                         <h2 className="text-2xl font-bold">{individualStatement.residentName}</h2>
                         <div className="text-sm opacity-70 print:opacity-100">
                           <p>Unit: {individualStatement.roomUnit}</p>
-                          <p>Billing Days: {individualStatement.billingDays} days</p>
                         </div>
                       </div>
                     </div>
@@ -383,7 +382,7 @@ export default function StatementsPage() {
                           <div className="flex justify-between items-center py-2">
                             <div>
                               <p className="font-semibold">Utilities Usage Share</p>
-                              <p className="text-xs text-muted-foreground">Water & Electricity split by billing days ({individualStatement.billingDays}d)</p>
+                              <p className="text-xs text-muted-foreground">Water & Electricity consumption share</p>
                             </div>
                             <p className="font-mono">{individualStatement.usageShare.toFixed(3)} OMR</p>
                           </div>
