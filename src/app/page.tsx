@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -57,7 +56,11 @@ export default function Home() {
   const isSuperAdmin = useMemo(() => {
     if (!user) return false;
     const email = user.email?.toLowerCase() || '';
-    const adminEmails = ['rielmagpantay@gmail.com', 'rielmagpantay@gmail.com@villa5604.app'];
+    const adminEmails = [
+      'rielmagpantay@gmail.com', 
+      'rielmagpantay@gmail.com@villa5604.app',
+      'room101@villa5604.app'
+    ];
     if (adminEmails.includes(email)) return true;
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);

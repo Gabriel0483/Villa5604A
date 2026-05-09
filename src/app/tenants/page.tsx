@@ -88,7 +88,11 @@ export default function TenantRegistryPage() {
 
   const isSuperAdmin = useMemo(() => {
     if (!user) return false;
-    const adminEmails = ['rielmagpantay@gmail.com', 'rielmagpantay@gmail.com@villa5604.app'];
+    const adminEmails = [
+      'rielmagpantay@gmail.com', 
+      'rielmagpantay@gmail.com@villa5604.app',
+      'room101@villa5604.app'
+    ];
     if (adminEmails.includes(user.email?.toLowerCase() || '')) return true;
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);

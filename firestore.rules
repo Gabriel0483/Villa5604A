@@ -13,11 +13,12 @@ service cloud.firestore {
     }
 
     // Helper function to check if the user is a SuperAdmin
-    // We check both the primary email and the portal-specific dummy email
+    // We check both the primary email and the portal-specific dummy emails
     function isSuperAdmin() {
       return isSignedIn() && (
         request.auth.token.email == 'rielmagpantay@gmail.com' ||
         request.auth.token.email == 'rielmagpantay@gmail.com@villa5604.app' ||
+        request.auth.token.email == 'room101@villa5604.app' ||
         getUserData().role == 'SuperAdmin'
       );
     }
