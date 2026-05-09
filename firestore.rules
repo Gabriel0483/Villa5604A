@@ -1,4 +1,3 @@
-
 rules_version = '2';
 
 service cloud.firestore {
@@ -40,12 +39,12 @@ service cloud.firestore {
       allow create: if isSignedIn();
       
       // Allow reading if admin or if the request belongs to the resident
-      // For listing (queries), Firestore rules check if the query filter matches
+      // Security rules automatically apply to queries when filters match
       allow read: if isSignedIn() && (
         isSuperAdmin() || 
         (resource != null && resource.data.residentId == request.auth.uid) ||
         // Allow the query to be evaluated against the potential results
-        (resource == null)
+        (resource == null && request.resource.data.residentId == request.auth.uid)
       );
       
       // Only admins can update or delete requests

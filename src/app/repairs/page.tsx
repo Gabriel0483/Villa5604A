@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -79,7 +78,12 @@ export default function RepairsPage() {
       return query(baseQuery, orderBy('createdAt', 'desc'));
     } else {
       // Residents can only query their own requests
-      return query(baseQuery, where('residentId', '==', user.uid), orderBy('createdAt', 'desc'));
+      // IMPORTANT: This query requires a composite index: residentId (ASC) + createdAt (DESC)
+      return query(
+        baseQuery, 
+        where('residentId', '==', user.uid), 
+        orderBy('createdAt', 'desc')
+      );
     }
   }, [db, user, isSuperAdmin, profileLoading]);
 
@@ -93,7 +97,14 @@ export default function RepairsPage() {
 
   const handleSubmitRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!db || !user || !profile) return;
+    if (!db || !user || !profile) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Your profile is still loading. Please try again in a moment."
+      });
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -160,7 +171,7 @@ export default function RepairsPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-muted-foreground animate-pulse">Authenticating...</p>
+        <p className="text-muted-foreground animate-pulse">Loading requests...</p>
       </div>
     );
   }
