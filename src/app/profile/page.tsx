@@ -153,7 +153,7 @@ export default function ProfilePage() {
       ...formData,
       name: `${formData.firstName} ${formData.lastName}`.trim(),
       updatedAt: serverTimestamp(),
-      role: isSuperAdmin ? 'SuperAdmin' : 'Resident'
+      role: isSuperAdmin ? 'SuperAdmin' : (profile?.role || 'Resident')
     };
 
     const userDocRef = doc(db, 'users', user.uid);
@@ -541,7 +541,7 @@ export default function ProfilePage() {
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-bold flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-accent" /> Information Use
-                    </CheckCircle2>
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-xs text-muted-foreground">
