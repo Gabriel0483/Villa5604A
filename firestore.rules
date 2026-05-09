@@ -32,12 +32,16 @@ service cloud.firestore {
       allow write: if isSuperAdmin();
     }
 
-    // Maintenance requests
+    // Maintenance requests: Residents can create and read their own. Admins manage everything.
     match /maintenance_requests/{requestId} {
-      allow read: if isSignedIn() && (resource.data.residentId == request.auth.uid || isSuperAdmin());
+      // Allow read if the document belongs to the user OR user is admin
+      allow read: if isSignedIn() && (isSuperAdmin() || resource.data.residentId == request.auth.uid);
+      
+      // Allow create if the user identifies themselves correctly
       allow create: if isSignedIn() && request.resource.data.residentId == request.auth.uid;
-      allow update: if isSuperAdmin();
-      allow delete: if isSuperAdmin();
+      
+      // Allow update/delete if owner or admin
+      allow update, delete: if isSignedIn() && (isSuperAdmin() || resource.data.residentId == request.auth.uid);
     }
   }
 }

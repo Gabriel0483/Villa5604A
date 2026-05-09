@@ -76,6 +76,8 @@ export default function RepairsPage() {
   // Fetch Requests
   const repairsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
+    // We wait for profile to potentially verify admin status
+    // but the resident query is safe regardless.
     if (isSuperAdmin) {
       return query(collection(db, 'maintenance_requests'), orderBy('createdAt', 'desc'));
     } else {
@@ -112,7 +114,7 @@ export default function RepairsPage() {
 
     const requestData = {
       residentId: user.uid,
-      residentName: `${profile.firstName} ${profile.lastName}`,
+      residentName: `${profile.firstName} ${profile.lastName}`.trim(),
       ...formData,
       status: 'Pending',
       createdAt: serverTimestamp(),
