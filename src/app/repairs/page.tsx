@@ -17,7 +17,8 @@ import {
   MoreVertical,
   Check,
   XCircle,
-  Construction
+  Construction,
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,13 +29,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, query, doc, addDoc, serverTimestamp, orderBy, where, updateDoc } from 'firebase/firestore';
+import { collection, query, doc, addDoc, serverTimestamp, orderBy, where, updateDoc, deleteDoc } from 'firebase/firestore';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
-  DropdownMenuTrigger 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
 
 export default function RepairsPage() {
@@ -130,21 +134,44 @@ export default function RepairsPage() {
   const handleUpdateStatus = async (requestId: string, newStatus: string) => {
     if (!db || !isSuperAdmin) return;
 
-    try {
-      await updateDoc(doc(db, 'maintenance_requests', requestId), {
-        status: newStatus,
-        updatedAt: serverTimestamp()
-      });
+    const docRef = doc(db, 'maintenance_requests', requestId);
+    updateDoc(docRef, {
+      status: newStatus,
+      updatedAt: serverTimestamp()
+    }).then(() => {
       toast({
         title: "Status Updated",
         description: `Request status changed to ${newStatus}.`,
       });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Update Failed",
-        description: "Could not update the request status.",
+    }).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'update',
+        requestResourceData: { status: newStatus }
       });
+      errorEmitter.emit('permission-error', permissionError);
+    });
+  };
+
+  const handleDeleteRequest = async (requestId: string) => {
+    if (!db || !isSuperAdmin) return;
+    
+    if (confirm('Are you sure you want to permanently delete this maintenance request?')) {
+      const docRef = doc(db, 'maintenance_requests', requestId);
+      deleteDoc(docRef)
+        .then(() => {
+          toast({
+            title: "Request Deleted",
+            description: "The maintenance record has been removed.",
+          });
+        })
+        .catch(async (serverError) => {
+          const permissionError = new FirestorePermissionError({
+            path: docRef.path,
+            operation: 'delete',
+          });
+          errorEmitter.emit('permission-error', permissionError);
+        });
     }
   };
 
@@ -213,7 +240,6 @@ export default function RepairsPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-8">
-          {/* Admin Management View OR Resident History View */}
           {(isSuperAdmin || activeTab === 'history') && (
             <Card className="shadow-lg border-none overflow-hidden">
               <CardHeader className="bg-white border-b flex flex-row items-center justify-between">
@@ -255,7 +281,7 @@ export default function RepairsPage() {
                             </div>
                           </div>
                           
-                          {isSuperAdmin && req.status !== 'Resolved' && (
+                          {isSuperAdmin && (
                             <div className="flex items-start gap-2">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -264,14 +290,22 @@ export default function RepairsPage() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem className="gap-2" onClick={() => handleUpdateStatus(req.id, 'In Progress')}>
-                                    <Construction className="h-4 w-4 text-blue-500" /> Mark In Progress
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem className="gap-2" onClick={() => handleUpdateStatus(req.id, 'Resolved')}>
-                                    <Check className="h-4 w-4 text-accent" /> Mark Resolved
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem className="gap-2 text-destructive" onClick={() => handleUpdateStatus(req.id, 'Cancelled')}>
-                                    <XCircle className="h-4 w-4" /> Cancel Request
+                                  {req.status !== 'Resolved' && (
+                                    <>
+                                      <DropdownMenuItem className="gap-2" onClick={() => handleUpdateStatus(req.id, 'In Progress')}>
+                                        <Construction className="h-4 w-4 text-blue-500" /> Mark In Progress
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem className="gap-2" onClick={() => handleUpdateStatus(req.id, 'Resolved')}>
+                                        <Check className="h-4 w-4 text-accent" /> Mark Resolved
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem className="gap-2 text-destructive" onClick={() => handleUpdateStatus(req.id, 'Cancelled')}>
+                                        <XCircle className="h-4 w-4" /> Cancel Request
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                    </>
+                                  )}
+                                  <DropdownMenuItem className="gap-2 text-destructive font-medium" onClick={() => handleDeleteRequest(req.id)}>
+                                    <Trash2 className="h-4 w-4" /> Delete Request
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
@@ -290,7 +324,6 @@ export default function RepairsPage() {
             </Card>
           )}
 
-          {/* New Request Form (Residents Only) */}
           {!isSuperAdmin && activeTab === 'new' && (
             <div className="max-w-2xl mx-auto w-full">
               <Card className="shadow-xl border-t-4 border-primary">
