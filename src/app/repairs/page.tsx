@@ -75,15 +75,12 @@ export default function RepairsPage() {
   }, [user, profile]);
 
   const requestsQuery = useMemoFirebase(() => {
-    // Guard against running queries before auth/profile state is ready
     if (!db || !user || profileLoading) return null;
     
-    // For SuperAdmins, fetch everything
     if (isSuperAdmin) {
       return query(collection(db, 'maintenance_requests'), orderBy('createdAt', 'desc'));
     } 
     
-    // For Residents, fetch only their own
     return query(
       collection(db, 'maintenance_requests'), 
       where('residentId', '==', user.uid),
@@ -91,14 +88,7 @@ export default function RepairsPage() {
     );
   }, [db, user, isSuperAdmin, profileLoading]);
 
-  const { data: requests, loading: requestsLoading, error: requestsError } = useCollection(requestsQuery);
-
-  // Handle unauthorized access or other errors
-  useEffect(() => {
-    if (requestsError) {
-      console.error('Data loading error:', requestsError);
-    }
-  }, [requestsError]);
+  const { data: requests, loading: requestsLoading } = useCollection(requestsQuery);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -136,7 +126,7 @@ export default function RepairsPage() {
         setFormData({ category: '', urgency: '', description: '' });
         setActiveTab('history');
       })
-      .catch((error) => {
+      .catch(() => {
         toast({
           variant: "destructive",
           title: "Submission Failed",
