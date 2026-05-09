@@ -16,7 +16,6 @@ import {
   Settings,
   UserCheck,
   Zap,
-  Calculator,
   Wifi,
   Droplets,
   Lightbulb,
@@ -308,22 +307,6 @@ export default function Home() {
                     </p>
                     <Button variant="outline" className="w-full">
                       Manage Utilities <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer border-accent/20" onClick={() => router.push('/pro-rata')}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <Calculator className="h-5 w-5 text-primary" /> Pro-Rata Allocation
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Automatically distribute utility costs among residents based on current occupancy.
-                    </p>
-                    <Button variant="outline" className="w-full group-hover:bg-primary group-hover:text-white transition-colors">
-                      Calculate Split <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </CardContent>
                 </Card>
