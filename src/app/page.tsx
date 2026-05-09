@@ -22,7 +22,8 @@ import {
   Plus,
   Receipt,
   FileText,
-  Cake
+  Cake,
+  Wrench
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -281,6 +282,27 @@ export default function Home() {
             </div>
           )}
 
+          {/* Resident Management - Maintenance Link for Residents */}
+          {!isSuperAdmin && user && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+              <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/repairs')}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Wrench className="h-5 w-5 text-primary" /> Repairs & Maintenance
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Report a problem in your room or common areas and track resolution progress.
+                  </p>
+                  <Button variant="outline" className="w-full">
+                    Report Issue <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           {/* Stats Overview - Only visible to SuperAdmins */}
           {isSuperAdmin && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -374,6 +396,25 @@ export default function Home() {
                   </p>
                   <Button variant="outline" className="w-full">
                     Generate Statements <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Maintenance Management - Available to SuperAdmin */}
+            {isSuperAdmin && (
+              <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/repairs')}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Wrench className="h-5 w-5 text-primary" /> Maintenance & Repairs
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Oversee resident repair requests, assign contractors, and track resolution status.
+                  </p>
+                  <Button variant="outline" className="w-full">
+                    Manage Repairs <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </CardContent>
               </Card>
