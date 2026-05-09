@@ -37,6 +37,16 @@ import {
   DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
@@ -49,6 +59,7 @@ export default function RepairsPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<'new' | 'history'>('new');
+  const [requestToDelete, setRequestToDelete] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     category: '',
@@ -162,26 +173,27 @@ export default function RepairsPage() {
     });
   };
 
-  const handleDeleteRequest = (requestId: string) => {
-    if (!db || !isSuperAdmin) return;
+  const confirmDeleteRequest = () => {
+    if (!db || !isSuperAdmin || !requestToDelete) return;
     
-    if (confirm('Are you sure you want to permanently delete this maintenance request? This action cannot be undone.')) {
-      const docRef = doc(db, 'maintenance_requests', requestId);
-      deleteDoc(docRef)
-        .then(() => {
-          toast({
-            title: "Request Deleted",
-            description: "The maintenance record has been removed.",
-          });
-        })
-        .catch(async (serverError) => {
-          const permissionError = new FirestorePermissionError({
-            path: docRef.path,
-            operation: 'delete',
-          });
-          errorEmitter.emit('permission-error', permissionError);
+    const docRef = doc(db, 'maintenance_requests', requestToDelete);
+    deleteDoc(docRef)
+      .then(() => {
+        toast({
+          title: "Request Deleted",
+          description: "The maintenance record has been removed.",
         });
-    }
+      })
+      .catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      })
+      .finally(() => {
+        setRequestToDelete(null);
+      });
   };
 
   if (userLoading || profileLoading) {
@@ -323,7 +335,7 @@ export default function RepairsPage() {
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem 
                                     className="gap-2 text-destructive font-bold cursor-pointer bg-destructive/5 hover:bg-destructive hover:text-white transition-colors" 
-                                    onSelect={() => handleDeleteRequest(req.id)}
+                                    onSelect={() => setRequestToDelete(req.id)}
                                   >
                                     <Trash2 className="h-4 w-4" /> Delete Request
                                   </DropdownMenuItem>
@@ -409,6 +421,23 @@ export default function RepairsPage() {
           )}
         </div>
       </div>
+
+      <AlertDialog open={!!requestToDelete} onOpenChange={(open) => !open && setRequestToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the maintenance request from the registry.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteRequest} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete Request
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
