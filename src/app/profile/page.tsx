@@ -22,7 +22,6 @@ import {
   Eye,
   EyeOff,
   Home,
-  DollarSign,
   Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -293,7 +292,7 @@ export default function ProfilePage() {
                     <div className="space-y-1">
                       <span className="text-xs text-muted-foreground uppercase font-semibold">Monthly Rent</span>
                       <p className="text-lg font-bold text-primary">
-                        {profile?.monthlyRent ? `$${profile.monthlyRent.toLocaleString()}` : 'Contact Admin'}
+                        {profile?.monthlyRent ? `${profile.monthlyRent.toLocaleString()} OMR` : 'Contact Admin'}
                       </p>
                     </div>
                   </div>

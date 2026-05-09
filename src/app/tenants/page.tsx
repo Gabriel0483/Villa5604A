@@ -20,8 +20,7 @@ import {
   Filter,
   MoreHorizontal,
   ChevronRight,
-  Home,
-  DollarSign
+  Home
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -292,8 +291,7 @@ export default function TenantRegistryPage() {
                         <TableCell className="font-semibold text-primary">
                           {resident.monthlyRent ? (
                             <div className="flex items-center gap-1">
-                              <DollarSign className="h-3.5 w-3.5" />
-                              {resident.monthlyRent.toLocaleString()}
+                              {resident.monthlyRent.toLocaleString()} OMR
                             </div>
                           ) : (
                             <span className="text-muted-foreground italic text-xs">Not set</span>
@@ -366,10 +364,10 @@ export default function TenantRegistryPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="monthlyRent" className="text-primary">Monthly Rent Amount</Label>
+                  <Label htmlFor="monthlyRent" className="text-primary">Monthly Rent (OMR)</Label>
                   <div className="relative">
-                    <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-primary/60" />
-                    <Input id="monthlyRent" name="monthlyRent" type="number" value={editFormData.monthlyRent} onChange={handleEditFormChange} className="pl-10 border-primary/20" placeholder="0.00" />
+                    <Activity className="absolute left-3 top-2.5 h-4 w-4 text-primary/60" />
+                    <Input id="monthlyRent" name="monthlyRent" type="number" value={editFormData.monthlyRent} onChange={handleEditFormChange} className="pl-10 border-primary/20" placeholder="0.000" />
                   </div>
                 </div>
               </div>
