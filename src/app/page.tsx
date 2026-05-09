@@ -86,12 +86,12 @@ export default function Home() {
 
   // Snapshot logic: Get the latest released bill that is marked as isSnapshot 
   // AND is not a pass month (must be current or future relative to today)
+  // We removed the status requirement to allow draft snapshots on dashboard.
   const latestBillQuery = useMemoFirebase(() => {
     if (!db || !user || !currentMonthYear) return null;
     return query(
       collection(db, 'utility_bills'), 
       where('isSnapshot', '==', true),
-      where('status', '==', 'Released'),
       where('monthYear', '>=', currentMonthYear), 
       orderBy('monthYear', 'desc'), 
       limit(1)

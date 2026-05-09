@@ -24,10 +24,6 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "monthYear",
           "order": "DESCENDING"
         }

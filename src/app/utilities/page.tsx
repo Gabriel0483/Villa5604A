@@ -109,7 +109,7 @@ export default function CurrentUtilityPage() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSaveBill = async (e: React.FormEvent, status: 'Draft' | 'Released' = 'Draft') => {
+  const handleSaveBill = async (e: React.FormEvent, showOnDashboard: boolean) => {
     e.preventDefault();
     if (!db || !isSuperAdmin) return;
 
@@ -121,6 +121,8 @@ export default function CurrentUtilityPage() {
     const misc = parseFloat(formData.miscellaneous) || 0;
     const total = wifi + water + electricity + misc;
 
+    // We maintain 'Draft' status for snapshot updates to avoid auto-releasing 
+    // the official billing statement in the history module.
     const billData = {
       monthYear: formData.monthYear,
       wifi,
@@ -129,8 +131,7 @@ export default function CurrentUtilityPage() {
       miscellaneous: misc,
       total,
       updatedAt: serverTimestamp(),
-      status: status,
-      isSnapshot: true // Dedicated to the snapshot
+      isSnapshot: showOnDashboard
     };
 
     const billRef = doc(db, 'utility_bills', formData.monthYear);
@@ -138,8 +139,10 @@ export default function CurrentUtilityPage() {
     setDoc(billRef, billData, { merge: true })
       .then(() => {
         toast({
-          title: status === 'Released' ? "Bill Released" : "Draft Saved",
-          description: `Snapshot for ${formData.monthYear} has been updated.`,
+          title: showOnDashboard ? "Snapshot Published" : "Draft Saved",
+          description: showOnDashboard 
+            ? `Household totals for ${formData.monthYear} are now visible on the dashboard.`
+            : `Snapshot for ${formData.monthYear} has been saved but is hidden from residents.`,
         });
       })
       .catch(async (err) => {
@@ -242,11 +245,11 @@ export default function CurrentUtilityPage() {
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" className="gap-2" onClick={(e) => handleSaveBill(e, 'Draft')} disabled={isSaving}>
-                    Save as Draft
+                  <Button variant="outline" className="gap-2" onClick={(e) => handleSaveBill(e, false)} disabled={isSaving}>
+                    Save (Hidden)
                   </Button>
-                  <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90" onClick={(e) => handleSaveBill(e, 'Released')} disabled={isSaving}>
-                    <Send className="h-4 w-4" /> Release to Portal
+                  <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90" onClick={(e) => handleSaveBill(e, true)} disabled={isSaving}>
+                    <Send className="h-4 w-4" /> Publish to Dashboard
                   </Button>
                 </div>
               </div>
@@ -255,7 +258,7 @@ export default function CurrentUtilityPage() {
           <CardFooter className="bg-slate-50 border-t py-4 justify-between items-center">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <AlertCircle className="h-4 w-4" />
-              Use <strong>Shared Expenses</strong> module to record historical data for trends.
+              This only updates the dashboard total. Official statements must be released in <strong>Billing & Payments</strong>.
             </div>
           </CardFooter>
         </Card>
