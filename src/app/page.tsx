@@ -7,7 +7,6 @@ import {
   Building2, 
   ArrowRight, 
   Users, 
-  LayoutDashboard, 
   Loader2,
   LogOut,
   LogIn,
@@ -16,12 +15,17 @@ import {
   Settings,
   UserCheck,
   Zap,
-  Calculator
+  Calculator,
+  Wifi,
+  Droplets,
+  Lightbulb,
+  Plus,
+  Receipt
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useAuth, useDoc } from '@/firebase';
-import { collection, query, doc, where } from 'firebase/firestore';
+import { collection, query, doc, where, orderBy, limit } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   DropdownMenu, 
@@ -31,6 +35,8 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
 export default function Home() {
   const db = useFirestore();
@@ -71,6 +77,15 @@ export default function Home() {
   }, [db, isSuperAdmin]);
 
   const { data: residents, loading: residentsLoading } = useCollection(residentsQuery);
+
+  // Query latest bill for Residents to see snapshot
+  const latestBillQuery = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return query(collection(db, 'utility_bills'), orderBy('monthYear', 'desc'), limit(1));
+  }, [db, user]);
+
+  const { data: latestBills, loading: billsLoading } = useCollection(latestBillQuery);
+  const latestBill = latestBills?.[0] as any;
 
   // Calculate statistics
   const stats = useMemo(() => {
@@ -167,10 +182,106 @@ export default function Home() {
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
           <div className="flex flex-col gap-1">
             <h1 className="text-3xl font-bold tracking-tight text-primary">
-              Villa 5604 Admin Portal
+              Villa 5604 Portal
             </h1>
             <p className="text-muted-foreground">Welcome to the central management hub.</p>
           </div>
+
+          {/* Resident Snapshot - Bill Awareness */}
+          {!isSuperAdmin && user && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <Card className="lg:col-span-2 shadow-lg border-t-4 border-primary">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-xl font-bold flex items-center gap-2">
+                        <Receipt className="h-5 w-5 text-primary" /> Current Bill Snapshot
+                      </CardTitle>
+                      <CardDescription>Latest household utility consumption details.</CardDescription>
+                    </div>
+                    {latestBill && (
+                      <Badge variant="secondary" className="text-xs">
+                        {new Date(latestBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {billsLoading ? (
+                    <div className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
+                  ) : latestBill ? (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 space-y-1">
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase">
+                            <Wifi className="h-3 w-3" /> Wifi
+                          </div>
+                          <p className="text-lg font-bold">{latestBill.wifi.toFixed(3)} OMR</p>
+                        </div>
+                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 space-y-1">
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase">
+                            <Droplets className="h-3 w-3" /> Water
+                          </div>
+                          <p className="text-lg font-bold">{latestBill.water.toFixed(3)} OMR</p>
+                        </div>
+                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 space-y-1">
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase">
+                            <Lightbulb className="h-3 w-3" /> Electricity
+                          </div>
+                          <p className="text-lg font-bold">{latestBill.electricity.toFixed(3)} OMR</p>
+                        </div>
+                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 space-y-1">
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase">
+                            <Plus className="h-3 w-3" /> Misc
+                          </div>
+                          <p className="text-lg font-bold">{(latestBill.miscellaneous || 0).toFixed(3)} OMR</p>
+                        </div>
+                      </div>
+
+                      <div className="pt-4 border-t flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="space-y-1">
+                          <span className="text-sm text-muted-foreground">Total Household Bill</span>
+                          <p className="text-3xl font-black text-primary">{latestBill.total.toFixed(3)} OMR</p>
+                        </div>
+                        <div className="text-xs text-muted-foreground bg-accent/5 p-2 rounded border border-accent/20 max-w-xs italic">
+                          This snapshot shows the total bill for the villa. Individual pro-rata shares will be communicated separately by management.
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-8 text-center text-muted-foreground italic">
+                      No billing records have been published yet.
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-lg border-t-4 border-accent">
+                <CardHeader>
+                  <CardTitle className="text-lg font-bold flex items-center gap-2">
+                    <UserIcon className="h-5 w-5 text-accent" /> Lease Quick View
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Assigned Room</span>
+                      <span className="font-bold">{profile?.roomUnit || 'Pending'}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Monthly Base Rent</span>
+                      <span className="font-bold text-primary">{profile?.monthlyRent ? `${profile.monthlyRent.toLocaleString()} OMR` : 'Not Set'}</span>
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t">
+                    <Button variant="outline" className="w-full text-xs h-8" onClick={() => router.push('/profile')}>
+                      View Full Lease Details
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* Stats Overview - Only visible to SuperAdmins */}
           {isSuperAdmin && (
@@ -236,12 +347,12 @@ export default function Home() {
             <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/profile')}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <UserIcon className="h-5 w-5 text-primary" /> Profile Settings
+                  <UserIcon className="h-5 w-5 text-primary" /> My Profile
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Update your personal details, contact information, and manage security preferences.
+                  Update your personal details, emergency contacts, and manage security preferences.
                 </p>
                 <Button variant="outline" className="w-full">
                   Manage Profile <ArrowRight className="ml-2 h-4 w-4" />
