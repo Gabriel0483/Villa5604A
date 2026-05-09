@@ -78,25 +78,22 @@ export default function MyBillsPage() {
     return query(
       collection(db, 'utility_bills'), 
       where('status', '==', 'Released'),
-      orderBy('monthYear', 'asc') // Ascending for chart timeline
+      orderBy('monthYear', 'desc')
     );
   }, [db, user]);
 
   const { data: bills, loading: billsLoading } = useCollection(billsQuery);
 
-  // For the list, we want descending order
-  const sortedBillsForList = useMemo(() => {
-    if (!bills) return [];
-    return [...bills].sort((a: any, b: any) => b.monthYear.localeCompare(a.monthYear));
-  }, [bills]);
-
+  // For the chart, we want chronological order
   const chartData = useMemo(() => {
     if (!bills) return [];
-    return bills.map((bill: any) => ({
-      month: new Date(bill.monthYear + '-01').toLocaleDateString('en-US', { month: 'short' }),
-      water: bill.water,
-      electricity: bill.electricity,
-    }));
+    return [...bills]
+      .sort((a: any, b: any) => a.monthYear.localeCompare(b.monthYear))
+      .map((bill: any) => ({
+        month: new Date(bill.monthYear + '-01').toLocaleDateString('en-US', { month: 'short' }),
+        water: bill.water,
+        electricity: bill.electricity,
+      }));
   }, [bills]);
 
   if (userLoading || profileLoading) {
@@ -182,8 +179,8 @@ export default function MyBillsPage() {
             Array(3).fill(0).map((_, i) => (
               <Card key={i} className="animate-pulse h-24" />
             ))
-          ) : sortedBillsForList.length > 0 ? (
-            sortedBillsForList.map((bill: any) => (
+          ) : bills && bills.length > 0 ? (
+            bills.map((bill: any) => (
               <Card key={bill.id} className="hover:shadow-md transition-all cursor-pointer group" onClick={() => setSelectedBill(bill)}>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">

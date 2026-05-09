@@ -24,7 +24,8 @@ import {
   FileText,
   Cake,
   Wrench,
-  History
+  History,
+  Calculator
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -72,14 +73,14 @@ export default function Home() {
     const adminEmails = [
       'rielmagpantay@gmail.com', 
       'rielmagpantay@gmail.com@villa5604.app',
-      'room101@villa5604.app'
+      'room101@villa5604.app',
+      'admin001@villa5604.app'
     ];
     if (adminEmails.includes(email)) return true;
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
   // Dashboard Snapshot: Both roles see the absolute latest bill (Draft or Released)
-  // this provides immediate transparency on household consumption.
   const latestBillQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
@@ -307,6 +308,22 @@ export default function Home() {
                     </p>
                     <Button variant="outline" className="w-full">
                       Manage Utilities <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/pro-rata')}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Calculator className="h-5 w-5 text-primary" /> Pro-Rata Allocation
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Calculate fair household utility splits based on resident billing days and occupancy.
+                    </p>
+                    <Button variant="outline" className="w-full">
+                      Configure Splits <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </CardContent>
                 </Card>

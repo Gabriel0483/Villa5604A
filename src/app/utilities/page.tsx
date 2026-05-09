@@ -42,7 +42,6 @@ export default function UtilitiesPage() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [isAddingNew, setIsAddingNew] = useState(false);
-  const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     monthYear: '',
@@ -65,7 +64,8 @@ export default function UtilitiesPage() {
     const adminEmails = [
       'rielmagpantay@gmail.com', 
       'rielmagpantay@gmail.com@villa5604.app',
-      'room101@villa5604.app'
+      'room101@villa5604.app',
+      'admin001@villa5604.app'
     ];
     if (adminEmails.includes(user.email?.toLowerCase() || '')) return true;
     return profile?.role === 'SuperAdmin';
@@ -117,10 +117,10 @@ export default function UtilitiesPage() {
       electricity,
       miscellaneous: misc,
       total,
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
+      status: 'Draft' // Default status when created
     };
 
-    // Use monthYear as document ID for easy updates/lookup
     const billRef = doc(db, 'utility_bills', formData.monthYear);
 
     setDoc(billRef, billData, { merge: true })
