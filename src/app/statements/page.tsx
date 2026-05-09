@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -240,20 +239,6 @@ export default function StatementsPage() {
                     </Select>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-
-            <Card className="bg-slate-100 border-slate-200">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-bold flex items-center gap-2">
-                  <Info className="h-4 w-4 text-slate-500" /> Notes
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  Individual statements combine base rent with utility shares. 
-                  Printing from this view will include the current active statement.
-                </p>
               </CardContent>
             </Card>
           </div>

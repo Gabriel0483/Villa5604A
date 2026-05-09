@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -249,25 +248,6 @@ export default function ProRataPage() {
                   {isCalculating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calculator className="h-4 w-4" />}
                   Calculate Allocation
                 </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-primary/5 border-primary/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-bold flex items-center gap-2">
-                  <Info className="h-4 w-4 text-primary" /> Calculation logic
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <p className="text-xs text-muted-foreground">
-                  <strong>Wifi:</strong> Split equally among all residents.
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  <strong>Water & Elec:</strong> Split proportionally by <strong>Billing Days</strong> across all residents.
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  <strong>Misc:</strong> Split proportionally ONLY among residents marked as <strong>Misc Applicable</strong>.
-                </p>
               </CardContent>
             </Card>
           </div>

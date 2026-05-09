@@ -297,9 +297,9 @@ export default function RepairsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
-            <div className="rounded-md border bg-white">
+            <div className="rounded-md border bg-white overflow-hidden">
               <Table>
-                <TableHeader className="bg-slate-50">
+                <TableHeader className="bg-slate-50/50">
                   <TableRow>
                     <TableHead>Issue / Subject</TableHead>
                     {isSuperAdmin && <TableHead>Resident</TableHead>}
@@ -374,46 +374,6 @@ export default function RepairsPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Informational Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="bg-primary/5 border-primary/20">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Clock className="h-4 w-4 text-primary" /> Response Times
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">
-                Emergency requests are typically addressed within 4 hours. Standard maintenance requests are reviewed within 24-48 business hours.
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="bg-accent/5 border-accent/20">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-accent" /> Urgency Definitions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">
-                <strong>Emergency:</strong> Total loss of power, water leaks causing damage, or fire hazards. Use this only for immediate threats to property or safety.
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="bg-slate-100 border-slate-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 text-slate-500" /> Need more info?
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">
-                If your request is "On Hold", check the details for administrative notes or contact the Villa 5604 manager directly.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </div>
   );

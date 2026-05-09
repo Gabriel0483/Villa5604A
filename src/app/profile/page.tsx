@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -477,7 +476,7 @@ export default function ProfilePage() {
 
           {/* Side Info / Admin Section */}
           <div className="lg:col-span-1 space-y-6">
-            {isSuperAdmin ? (
+            {isSuperAdmin && (
               <Card className="shadow-lg border-t-4 border-accent overflow-hidden">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-lg">
@@ -537,33 +536,6 @@ export default function ProfilePage() {
                   </div>
                 </CardContent>
               </Card>
-            ) : (
-              <>
-                <Card className="bg-primary/5 border-primary/20">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-bold flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-accent" /> Information Use
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-xs text-muted-foreground">
-                      Your personal details are used for property registry and emergency protocols. This information is securely stored and only accessible by authorized administrators.
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-accent/5 border-accent/20">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-bold flex items-center gap-2">
-                      <ShieldCheck className="h-4 w-4 text-accent" /> Security First
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-xs text-muted-foreground">
-                      Villa 5604 uses industry-standard encryption to protect your data. Your assigned Room Unit and Rent are set by the management team.
-                    </p>
-                  </CardContent>
-                </Card>
-              </>
             )}
           </div>
         </div>

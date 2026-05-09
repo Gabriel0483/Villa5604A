@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -389,45 +388,6 @@ export default function UtilitiesPage() {
             </CardContent>
           </Card>
         )}
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="bg-primary/5 border-primary/20">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-accent" /> Monthly Cap
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">
-                Ensure you have physical or digital copies of all receipts before finalizing the month. Total calculated here will be used for pro-rata sharing.
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="bg-accent/5 border-accent/20">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Info className="h-4 w-4 text-accent" /> Pro-Rata Ready
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">
-                Once saved, these amounts can be automatically distributed among residents based on their move-in and move-out dates in the next phase.
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="bg-slate-100 border-slate-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <History className="h-4 w-4 text-slate-500" /> Transparency
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">
-                Billing transparency helps maintain trust within the Villa 5604 community. Accurate logging is essential.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </div>
   );
