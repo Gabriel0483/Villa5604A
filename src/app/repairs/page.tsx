@@ -13,7 +13,6 @@ import {
   CheckCircle2, 
   Clock, 
   Send,
-  Filter,
   MoreVertical,
   Check,
   XCircle,
@@ -22,7 +21,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -65,13 +63,13 @@ export default function RepairsPage() {
 
   const isSuperAdmin = useMemo(() => {
     if (!user) return false;
-    const adminEmails = ['rielmagpantay@gmail.com', 'rielmagpantay@gmail.com@villa5604.app', 'room101@villa5604.app'];
+    const adminEmails = ['rielmagpantay@gmail.com', 'rielmagpantay@gmail.com@villa5604.app', 'room101@villa5604.app', 'admin001@villa5604.app'];
     if (adminEmails.includes(user.email?.toLowerCase() || '')) return true;
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
   const requestsQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
+    if (!db || !user || profileLoading) return null;
     if (isSuperAdmin) {
       return query(collection(db, 'maintenance_requests'), orderBy('createdAt', 'desc'));
     } else {
@@ -81,7 +79,7 @@ export default function RepairsPage() {
         orderBy('createdAt', 'desc')
       );
     }
-  }, [db, user, isSuperAdmin]);
+  }, [db, user, isSuperAdmin, profileLoading]);
 
   const { data: requests, loading: requestsLoading } = useCollection(requestsQuery);
 
@@ -112,23 +110,25 @@ export default function RepairsPage() {
       updatedAt: serverTimestamp()
     };
 
-    try {
-      await addDoc(collection(db, 'maintenance_requests'), requestData);
-      toast({
-        title: "Request Submitted",
-        description: "Your maintenance request has been logged successfully.",
+    addDoc(collection(db, 'maintenance_requests'), requestData)
+      .then(() => {
+        toast({
+          title: "Request Submitted",
+          description: "Your maintenance request has been logged successfully.",
+        });
+        setFormData({ category: '', urgency: '', description: '' });
+        setActiveTab('history');
+      })
+      .catch((error) => {
+        toast({
+          variant: "destructive",
+          title: "Submission Failed",
+          description: "Could not submit request. Please try again.",
+        });
+      })
+      .finally(() => {
+        setIsSubmitting(false);
       });
-      setFormData({ category: '', urgency: '', description: '' });
-      setActiveTab('history');
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Submission Failed",
-        description: "Could not submit request. Please try again.",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const handleUpdateStatus = async (requestId: string, newStatus: string) => {
@@ -292,19 +292,19 @@ export default function RepairsPage() {
                                 <DropdownMenuContent align="end">
                                   {req.status !== 'Resolved' && (
                                     <>
-                                      <DropdownMenuItem className="gap-2" onClick={() => handleUpdateStatus(req.id, 'In Progress')}>
+                                      <DropdownMenuItem className="gap-2" onSelect={() => handleUpdateStatus(req.id, 'In Progress')}>
                                         <Construction className="h-4 w-4 text-blue-500" /> Mark In Progress
                                       </DropdownMenuItem>
-                                      <DropdownMenuItem className="gap-2" onClick={() => handleUpdateStatus(req.id, 'Resolved')}>
+                                      <DropdownMenuItem className="gap-2" onSelect={() => handleUpdateStatus(req.id, 'Resolved')}>
                                         <Check className="h-4 w-4 text-accent" /> Mark Resolved
                                       </DropdownMenuItem>
-                                      <DropdownMenuItem className="gap-2 text-destructive" onClick={() => handleUpdateStatus(req.id, 'Cancelled')}>
+                                      <DropdownMenuItem className="gap-2 text-destructive" onSelect={() => handleUpdateStatus(req.id, 'Cancelled')}>
                                         <XCircle className="h-4 w-4" /> Cancel Request
                                       </DropdownMenuItem>
                                       <DropdownMenuSeparator />
                                     </>
                                   )}
-                                  <DropdownMenuItem className="gap-2 text-destructive font-medium" onClick={() => handleDeleteRequest(req.id)}>
+                                  <DropdownMenuItem className="gap-2 text-destructive font-medium" onSelect={() => handleDeleteRequest(req.id)}>
                                     <Trash2 className="h-4 w-4" /> Delete Request
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>

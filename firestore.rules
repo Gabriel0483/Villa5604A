@@ -11,7 +11,8 @@ service cloud.firestore {
       let adminEmails = [
         'rielmagpantay@gmail.com',
         'rielmagpantay@gmail.com@villa5604.app',
-        'room101@villa5604.app'
+        'room101@villa5604.app',
+        'admin001@villa5604.app'
       ];
       let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
       return isSignedIn() && (
@@ -32,7 +33,7 @@ service cloud.firestore {
     match /maintenance_requests/{requestId} {
       allow create: if isSignedIn();
       allow read: if isSignedIn() && (resource.data.residentId == request.auth.uid || isSuperAdmin());
-      allow write: if isSuperAdmin();
+      allow update, delete: if isSuperAdmin();
     }
   }
 }
