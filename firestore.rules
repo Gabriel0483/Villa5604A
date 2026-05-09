@@ -9,6 +9,7 @@ service cloud.firestore {
     }
 
     // Comprehensive SuperAdmin check
+    // Updated to ensure synchronization of composite indexes
     function isSuperAdmin() {
       let adminEmails = [
         'rielmagpantay@gmail.com',
@@ -37,12 +38,11 @@ service cloud.firestore {
       // Allow creation for any signed-in user
       allow create: if isSignedIn();
       // Allow reading if the user is the resident who created it or is an admin
-      // The resource check ensures the document data is available before testing residentId
       allow read: if isSignedIn() && (
         (resource != null && resource.data.residentId == request.auth.uid) || 
         isSuperAdmin()
       );
-      // Allow updates and deletion only for admins
+      // Allow updates and deletion for admins
       allow update, delete: if isSuperAdmin();
     }
   }
