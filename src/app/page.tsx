@@ -23,7 +23,8 @@ import {
   Plus,
   Receipt,
   FileText,
-  Cake
+  Cake,
+  Wrench
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -51,7 +52,6 @@ export default function Home() {
     setMounted(true);
   }, []);
 
-  // Stabilize the user profile query
   const userProfileRef = useMemoFirebase(() => {
     if (!db || !user) return null;
     return doc(db, 'users', user.uid);
@@ -59,7 +59,6 @@ export default function Home() {
 
   const { data: profile, loading: profileLoading } = useDoc(userProfileRef);
 
-  // Unified SuperAdmin check matching security rules
   const isSuperAdmin = useMemo(() => {
     if (!user) return false;
     const email = user.email?.toLowerCase() || '';
@@ -72,7 +71,6 @@ export default function Home() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Query latest bill for Residents to see snapshot
   const latestBillQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(collection(db, 'utility_bills'), orderBy('monthYear', 'desc'), limit(1));
@@ -86,7 +84,6 @@ export default function Home() {
       await signOut(auth);
       router.refresh();
     } catch (error) {
-      // Handled silently
     }
   };
 
@@ -101,7 +98,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Header */}
       <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -163,7 +159,6 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="flex-1 container mx-auto p-4 md:p-8 max-w-7xl">
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
           <div className="flex flex-col gap-1">
@@ -173,7 +168,6 @@ export default function Home() {
             <p className="text-muted-foreground">Welcome to the central management hub.</p>
           </div>
 
-          {/* Resident Snapshot - Bill Awareness */}
           {!isSuperAdmin && user && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <Card className="lg:col-span-2 shadow-lg border-t-4 border-primary">
@@ -266,119 +260,140 @@ export default function Home() {
             </div>
           )}
 
-          {/* Feature Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Tenant Management - Available to SuperAdmin */}
-            {isSuperAdmin && (
-              <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/tenants')}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <UserCheck className="h-5 w-5 text-primary" /> Tenant Registry
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Manage resident profiles, update contact information, and oversee occupancy details.
-                  </p>
-                  <Button variant="outline" className="w-full">
-                    Open Registry <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+            {isSuperAdmin ? (
+              <>
+                <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/tenants')}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <UserCheck className="h-5 w-5 text-primary" /> Tenant Registry
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Manage resident profiles, update contact information, and oversee occupancy details.
+                    </p>
+                    <Button variant="outline" className="w-full">
+                      Open Registry <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
 
-            {/* Utility Management - Available to SuperAdmin */}
-            {isSuperAdmin && (
-              <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/utilities')}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Zap className="h-5 w-5 text-primary" /> Utility Management
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Record and update monthly bills for Wifi, Water, Electricity, and more.
-                  </p>
-                  <Button variant="outline" className="w-full">
-                    Manage Utilities <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+                <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/utilities')}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Zap className="h-5 w-5 text-primary" /> Utility Management
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Record and update monthly bills for Wifi, Water, Electricity, and more.
+                    </p>
+                    <Button variant="outline" className="w-full">
+                      Manage Utilities <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
 
-            {/* Pro-Rata Calculator - Available to SuperAdmin */}
-            {isSuperAdmin && (
-              <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer border-accent/20" onClick={() => router.push('/pro-rata')}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Calculator className="h-5 w-5 text-primary" /> Pro-Rata Allocation
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Automatically distribute utility costs among residents based on current occupancy.
-                  </p>
-                  <Button variant="outline" className="w-full group-hover:bg-primary group-hover:text-white transition-colors">
-                    Calculate Split <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+                <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer border-accent/20" onClick={() => router.push('/pro-rata')}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Calculator className="h-5 w-5 text-primary" /> Pro-Rata Allocation
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Automatically distribute utility costs among residents based on current occupancy.
+                    </p>
+                    <Button variant="outline" className="w-full group-hover:bg-primary group-hover:text-white transition-colors">
+                      Calculate Split <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
 
-            {/* Birthday Greetings - Available to SuperAdmin */}
-            {isSuperAdmin && (
-              <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/birthdays')}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Cake className="h-5 w-5 text-primary" /> Birthday Greetings
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Track upcoming resident birthdays and send personalized AI-powered greetings.
-                  </p>
-                  <Button variant="outline" className="w-full">
-                    View Birthdays <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+                <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/birthdays')}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Cake className="h-5 w-5 text-primary" /> Birthday Greetings
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Track upcoming resident birthdays and send personalized AI-powered greetings.
+                    </p>
+                    <Button variant="outline" className="w-full">
+                      View Birthdays <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
 
-            {/* Billing Statements - Available to SuperAdmin */}
-            {isSuperAdmin && (
-              <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/statements')}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <FileText className="h-5 w-5 text-primary" /> Billing Statements
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Generate individual and general billing reports for rent and shared utilities.
-                  </p>
-                  <Button variant="outline" className="w-full">
-                    Generate Statements <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+                <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/statements')}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <FileText className="h-5 w-5 text-primary" /> Billing Statements
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Generate individual and general billing reports for rent and shared utilities.
+                    </p>
+                    <Button variant="outline" className="w-full">
+                      Generate Statements <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
 
-            {/* Profile Management - Available to All */}
-            <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/profile')}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <UserIcon className="h-5 w-5 text-primary" /> My Profile
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Update your personal details, emergency contacts, and manage security preferences.
-                </p>
-                <Button variant="outline" className="w-full">
-                  Manage Profile <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </CardContent>
-            </Card>
+                <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer border-destructive/10" onClick={() => router.push('/repairs')}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Wrench className="h-5 w-5 text-destructive" /> Manage Issues
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      View and resolve maintenance requests submitted by residents.
+                    </p>
+                    <Button variant="outline" className="w-full group-hover:bg-destructive group-hover:text-white transition-colors">
+                      View Issues <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              </>
+            ) : (
+              <>
+                <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/repairs')}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Wrench className="h-5 w-5 text-primary" /> Report Issue
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Need a repair? Report plumbing, electrical, or other maintenance issues here.
+                    </p>
+                    <Button variant="outline" className="w-full group-hover:bg-primary group-hover:text-white transition-colors">
+                      Report Problem <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
+                
+                <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/profile')}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <UserIcon className="h-5 w-5 text-primary" /> My Profile
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Update your personal details, emergency contacts, and manage security preferences.
+                    </p>
+                    <Button variant="outline" className="w-full">
+                      Manage Profile <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              </>
+            )}
           </div>
         </div>
       </main>

@@ -9,16 +9,16 @@
         "userCode": { "type": "string", "description": "Unique login code" },
         "firstName": { "type": "string", "description": "First name" },
         "lastName": { "type": "string", "description": "Last name" },
-        "dob": { "type": "string", "format": "date", "description": "Date of Birth" },
-        "mobile": { "type": "string", "description": "Mobile contact number" },
-        "personalEmail": { "type": "string", "format": "email", "description": "Optional personal email" },
-        "bloodType": { "type": "string", "enum": ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"], "description": "Blood type for medical emergencies" },
-        "emergencyContact": { "type": "string", "description": "Emergency contact phone number" },
-        "role": { "type": "string", "enum": ["SuperAdmin", "Resident"], "description": "Access level" },
-        "roomUnit": { "type": "string", "description": "Assigned room or unit number" },
-        "monthlyRent": { "type": "number", "description": "Monthly rent amount assigned to this resident in OMR" },
-        "billingDays": { "type": "number", "description": "Number of days the resident is billed for in the cycle (default 30)" },
-        "isMiscApplicable": { "type": "boolean", "description": "Whether miscellaneous expenses apply to this resident" }
+        "dob": { "type": "string", "format": "date" },
+        "mobile": { "type": "string" },
+        "personalEmail": { "type": "string", "format": "email" },
+        "bloodType": { "type": "string", "enum": ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] },
+        "emergencyContact": { "type": "string" },
+        "role": { "type": "string", "enum": ["SuperAdmin", "Resident"] },
+        "roomUnit": { "type": "string" },
+        "monthlyRent": { "type": "number" },
+        "billingDays": { "type": "number" },
+        "isMiscApplicable": { "type": "boolean" }
       },
       "required": ["userCode", "role", "firstName", "lastName"]
     },
@@ -27,15 +27,33 @@
       "description": "Monthly utility expenses for the shared household",
       "type": "object",
       "properties": {
-        "monthYear": { "type": "string", "description": "Month and Year of the bill (YYYY-MM)" },
-        "wifi": { "type": "number", "description": "Wifi bill amount in OMR" },
-        "water": { "type": "number", "description": "Water bill amount in OMR" },
-        "electricity": { "type": "number", "description": "Electricity bill amount in OMR" },
-        "miscellaneous": { "type": "number", "description": "Other shared expenses in OMR" },
-        "total": { "type": "number", "description": "Sum of all utilities in OMR" },
+        "monthYear": { "type": "string" },
+        "wifi": { "type": "number" },
+        "water": { "type": "number" },
+        "electricity": { "type": "number" },
+        "miscellaneous": { "type": "number" },
+        "total": { "type": "number" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["monthYear", "wifi", "water", "electricity"]
+    },
+    "MaintenanceRequest": {
+      "title": "Maintenance Request",
+      "description": "Request for repairs from residents",
+      "type": "object",
+      "properties": {
+        "residentId": { "type": "string" },
+        "residentName": { "type": "string" },
+        "roomUnit": { "type": "string" },
+        "category": { "type": "string", "enum": ["Plumbing", "Electrical", "Structural", "Other"] },
+        "urgency": { "type": "string", "enum": ["Low", "Medium", "High", "Emergency"] },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pending", "In Progress", "Resolved", "Cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "adminNotes": { "type": "string" }
+      },
+      "required": ["residentId", "category", "urgency", "description", "status"]
     }
   },
   "auth": {
@@ -44,11 +62,15 @@
   "firestore": {
     "/users/{userId}": {
       "schema": "#/entities/User",
-      "description": "Collection of user profiles"
+      "description": "User profiles"
     },
     "/utility_bills/{billId}": {
       "schema": "#/entities/UtilityBill",
-      "description": "Monthly utility bill records"
+      "description": "Utility records"
+    },
+    "/maintenance_requests/{requestId}": {
+      "schema": "#/entities/MaintenanceRequest",
+      "description": "Repairs and maintenance requests"
     }
   }
 }

@@ -3,12 +3,10 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper function to check if the user is signed in
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // Helper function to check if the user is a SuperAdmin
     function isSuperAdmin() {
       let adminEmails = [
         'rielmagpantay@gmail.com',
@@ -22,14 +20,18 @@ service cloud.firestore {
       );
     }
 
-    // User profiles: Users can read/write their own, admins can do everything
     match /users/{userId} {
       allow read, write: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
     }
 
-    // Utility bills: All signed-in users can read, only admins can write
     match /utility_bills/{billId} {
       allow read: if isSignedIn();
+      allow write: if isSuperAdmin();
+    }
+
+    match /maintenance_requests/{requestId} {
+      allow create: if isSignedIn();
+      allow read: if isSignedIn() && (resource.data.residentId == request.auth.uid || isSuperAdmin());
       allow write: if isSuperAdmin();
     }
   }
