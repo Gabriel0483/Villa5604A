@@ -79,19 +79,16 @@ export default function Home() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Residents only see released bills
+  // Dashboard Snapshot: Both roles see the absolute latest bill (Draft or Released)
+  // this provides immediate transparency on household consumption.
   const latestBillQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
-    if (isSuperAdmin) {
-       return query(collection(db, 'utility_bills'), orderBy('monthYear', 'desc'), limit(1));
-    }
     return query(
       collection(db, 'utility_bills'), 
-      where('status', '==', 'Released'),
       orderBy('monthYear', 'desc'), 
       limit(1)
     );
-  }, [db, user, isSuperAdmin]);
+  }, [db, user]);
 
   const { data: latestBills, loading: billsLoading } = useCollection(latestBillQuery);
   const latestBill = latestBills?.[0] as any;
@@ -190,9 +187,16 @@ export default function Home() {
                       <CardDescription>Latest household utility consumption details.</CardDescription>
                     </div>
                     {latestBill && (
-                      <Badge variant="secondary" className="text-xs">
-                        {new Date(latestBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs">
+                          {new Date(latestBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                        </Badge>
+                        {latestBill.status === 'Draft' && (
+                          <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-600 border-amber-200">
+                            Draft
+                          </Badge>
+                        )}
+                      </div>
                     )}
                   </div>
                 </CardHeader>

@@ -29,8 +29,9 @@ service cloud.firestore {
     }
 
     match /utility_bills/{billId} {
-      // Residents can only read bills if they are released
-      allow read: if isSignedIn() && (isSuperAdmin() || resource.data.status == 'Released');
+      // Residents can view household utility totals as a dashboard snapshot even before release.
+      // Official payment release status is handled at the UI layer for the billing history.
+      allow read: if isSignedIn();
       allow write: if isSuperAdmin();
     }
 
