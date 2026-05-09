@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState } from 'react';
@@ -117,12 +116,15 @@ export default function BirthdaysPage() {
         age: resident.turningAge
       });
       setGeneratedCard(result);
-    } catch (error) {
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Generation Failed",
-        description: "Could not generate the birthday card. Please try again."
+        description: error.message || "Could not generate the birthday card. Please try again."
       });
+      // Ensure dialog closes on error
+      setIsGenerating(false);
+      setSelectedResident(null);
     } finally {
       setIsGenerating(false);
     }

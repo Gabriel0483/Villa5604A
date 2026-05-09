@@ -42,23 +42,47 @@ const generateBirthdayCardFlow = ai.defineFlow(
     outputSchema: BirthdayCardOutputSchema,
   },
   async (input) => {
-    // 1. Generate the text greeting
-    const { output } = await birthdayPrompt(input);
-    const greeting = output?.greeting || `Happy Birthday, ${input.residentName}! Wishing you a wonderful day at Villa 5604.`;
+    try {
+      // 1. Generate the text greeting
+      const { output } = await birthdayPrompt(input);
+      const greeting = output?.greeting || `Happy Birthday, ${input.residentName}! Wishing you a wonderful day at Villa 5604.`;
 
-    // 2. Generate a festive image
-    const { media } = await ai.generate({
-      model: 'googleai/imagen-4.0-fast-generate-001',
-      prompt: `A beautiful, festive birthday card background for a resident named ${input.residentName}. Include elegant decorations, a cake, and a warm Omani villa aesthetic. High quality, celebratory, and welcoming.`,
-    });
+      // 2. Generate a festive image with adjusted safety settings
+      const { media } = await ai.generate({
+        model: 'googleai/imagen-4.0-fast-generate-001',
+        prompt: `A beautiful, festive birthday card background for a resident named ${input.residentName}. Include elegant decorations, a cake, and a warm Omani villa aesthetic. High quality, celebratory, and welcoming.`,
+        config: {
+          safetySettings: [
+            {
+              category: 'HARM_CATEGORY_HATE_SPEECH',
+              threshold: 'BLOCK_NONE',
+            },
+            {
+              category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+              threshold: 'BLOCK_NONE',
+            },
+            {
+              category: 'HARM_CATEGORY_HARASSMENT',
+              threshold: 'BLOCK_NONE',
+            },
+            {
+              category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+              threshold: 'BLOCK_NONE',
+            },
+          ],
+        },
+      });
 
-    if (!media) {
-      throw new Error('Failed to generate birthday image');
+      if (!media) {
+        throw new Error('Image generation returned no media. The request may have been blocked or the model is currently unavailable.');
+      }
+
+      return {
+        greeting,
+        imageUrl: media.url,
+      };
+    } catch (error: any) {
+      throw new Error(error.message || 'An unexpected error occurred during card generation.');
     }
-
-    return {
-      greeting,
-      imageUrl: media.url,
-    };
   }
 );
