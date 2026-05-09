@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -54,6 +53,7 @@ import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@
 import { collection, query, doc, updateDoc, serverTimestamp, where } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
 export default function TenantRegistryPage() {
@@ -93,6 +93,11 @@ export default function TenantRegistryPage() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Access control redirect
   useEffect(() => {
     if (!userLoading && !profileLoading && mounted) {
@@ -107,12 +112,7 @@ export default function TenantRegistryPage() {
         router.push('/');
       }
     }
-  }, [user, userLoading, profileLoading, isSuperAdmin, router]);
-
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  }, [user, userLoading, profileLoading, isSuperAdmin, router, mounted, toast]);
 
   // Fetch all residents
   const residentsQuery = useMemoFirebase(() => {
