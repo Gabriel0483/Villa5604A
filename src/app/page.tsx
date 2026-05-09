@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -16,8 +15,7 @@ import {
   User as UserIcon,
   ShieldCheck,
   Settings,
-  Lock,
-  ClipboardList
+  Lock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -223,35 +221,6 @@ export default function Home() {
                 <Button variant="outline" className="w-full">
                   Manage Profile <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              </CardContent>
-            </Card>
-
-            {/* Tenant Registry */}
-            <Card className={cn(
-              "transition-all border-primary/10",
-              !isSuperAdmin ? "opacity-60 border-dashed grayscale" : "hover:shadow-md cursor-pointer"
-            )} onClick={() => isSuperAdmin && router.push('/tenants')}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <ClipboardList className="h-5 w-5 text-primary" /> Tenant Registry
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {isSuperAdmin 
-                    ? "Manage resident details, lease agreements, and monthly rent allocations."
-                    : "Tenant management and registry access is restricted to administrators."
-                  }
-                </p>
-                {isSuperAdmin ? (
-                   <Button variant="secondary" className="w-full gap-2">
-                     Enter Registry <ArrowRight className="ml-2 h-4 w-4" />
-                   </Button>
-                ) : (
-                  <Button disabled variant="secondary" className="w-full gap-2">
-                    <Lock className="h-4 w-4" /> Restricted
-                  </Button>
-                )}
               </CardContent>
             </Card>
 
