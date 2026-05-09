@@ -24,7 +24,8 @@ import {
   Receipt,
   FileText,
   Cake,
-  Wrench
+  Wrench,
+  History
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -78,10 +79,19 @@ export default function Home() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
+  // Residents only see released bills
   const latestBillQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
-    return query(collection(db, 'utility_bills'), orderBy('monthYear', 'desc'), limit(1));
-  }, [db, user]);
+    if (isSuperAdmin) {
+       return query(collection(db, 'utility_bills'), orderBy('monthYear', 'desc'), limit(1));
+    }
+    return query(
+      collection(db, 'utility_bills'), 
+      where('status', '==', 'Released'),
+      orderBy('monthYear', 'desc'), 
+      limit(1)
+    );
+  }, [db, user, isSuperAdmin]);
 
   const { data: latestBills, loading: billsLoading } = useCollection(latestBillQuery);
   const latestBill = latestBills?.[0] as any;
@@ -223,6 +233,9 @@ export default function Home() {
                           <span className="text-sm text-muted-foreground">Total Household Bill</span>
                           <p className="text-3xl font-black text-primary">{latestBill.total.toFixed(3)} OMR</p>
                         </div>
+                        <Button className="gap-2" onClick={() => router.push('/bills')}>
+                          <History className="h-4 w-4" /> View My Bills
+                        </Button>
                       </div>
                     </div>
                   ) : (
@@ -361,6 +374,22 @@ export default function Home() {
               </>
             ) : (
               <>
+                <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/bills')}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Receipt className="h-5 w-5 text-primary" /> My Bills
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      View your historical billing statements for rent and utilities.
+                    </p>
+                    <Button variant="outline" className="w-full group-hover:bg-primary group-hover:text-white transition-colors">
+                      View History <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
+
                 <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/repairs')}>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-lg">

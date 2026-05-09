@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -15,7 +16,9 @@ import {
   CheckCircle2,
   Info,
   ChevronRight,
-  Receipt
+  Receipt,
+  Send,
+  Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,7 +29,9 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, query, doc, orderBy, where } from 'firebase/firestore';
+import { collection, query, doc, orderBy, where, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
 
 interface StatementAllocation {
@@ -50,6 +55,7 @@ export default function StatementsPage() {
   const [selectedBillId, setSelectedBillId] = useState<string>('');
   const [selectedResidentId, setSelectedResidentId] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'general' | 'individual'>('general');
+  const [isReleasing, setIsReleasing] = useState(false);
 
   // Access Control check
   const userProfileRef = useMemoFirebase(() => {
@@ -102,7 +108,36 @@ export default function StatementsPage() {
     return bills?.find(b => b.id === selectedBillId);
   }, [bills, selectedBillId]);
 
-  // Calculation Logic (Unified with Pro-Rata)
+  const handleReleaseBill = async () => {
+    if (!db || !selectedBill || isReleasing) return;
+    
+    setIsReleasing(true);
+    const billRef = doc(db, 'utility_bills', selectedBill.id);
+    
+    updateDoc(billRef, {
+      status: 'Released',
+      updatedAt: serverTimestamp()
+    })
+    .then(() => {
+      toast({
+        title: "Bill Released",
+        description: `Utility statement for ${selectedBill.monthYear} is now visible to all residents.`,
+      });
+    })
+    .catch((err) => {
+      const permissionError = new FirestorePermissionError({
+        path: billRef.path,
+        operation: 'update',
+        requestResourceData: { status: 'Released' }
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    })
+    .finally(() => {
+      setIsReleasing(false);
+    });
+  };
+
+  // Calculation Logic
   const statementResults = useMemo(() => {
     if (!selectedBill || !residents || residents.length === 0) return null;
 
@@ -176,8 +211,14 @@ export default function StatementsPage() {
           </div>
           <div className="flex gap-2">
             <Button variant="outline" className="gap-2" onClick={() => window.print()} disabled={!selectedBill}>
-              <Printer className="h-4 w-4" /> Print Current View
+              <Printer className="h-4 w-4" /> Print
             </Button>
+            {selectedBill && selectedBill.status !== 'Released' && (
+              <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleReleaseBill} disabled={isReleasing}>
+                {isReleasing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                Release Bill to Residents
+              </Button>
+            )}
           </div>
         </div>
 
@@ -202,7 +243,14 @@ export default function StatementsPage() {
                       ) : bills && bills.length > 0 ? (
                         bills.map((bill: any) => (
                           <SelectItem key={bill.id} value={bill.id}>
-                            {new Date(bill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                            <div className="flex items-center gap-2">
+                              {new Date(bill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                              {bill.status === 'Released' ? (
+                                <Badge variant="outline" className="text-[10px] h-4 bg-accent/10 text-accent border-accent/20">Released</Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-[10px] h-4">Draft</Badge>
+                              )}
+                            </div>
                           </SelectItem>
                         ))
                       ) : (
@@ -241,6 +289,31 @@ export default function StatementsPage() {
                 )}
               </CardContent>
             </Card>
+
+            {selectedBill && (
+              <Card className="shadow-md bg-white">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                    <Clock className="h-4 w-4" /> Bill Status
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Status</span>
+                    {selectedBill.status === 'Released' ? (
+                      <Badge className="bg-accent text-accent-foreground font-bold">RELEASED</Badge>
+                    ) : (
+                      <Badge variant="secondary">DRAFT</Badge>
+                    )}
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {selectedBill.status === 'Released' 
+                      ? "This statement is currently visible to all residents in their portal."
+                      : "This statement is private. Residents cannot see it until it is released."}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Main Statement View */}
@@ -254,7 +327,6 @@ export default function StatementsPage() {
                 </p>
               </Card>
             ) : viewMode === 'general' ? (
-              /* General Statement Summary */
               <Card className="shadow-xl border-none print:shadow-none print:border">
                 <CardHeader className="bg-primary text-primary-foreground rounded-t-lg print:bg-white print:text-black print:border-b">
                   <div className="flex items-center justify-between">
@@ -302,12 +374,8 @@ export default function StatementsPage() {
                     </Table>
                   </div>
                 </CardContent>
-                <CardFooter className="bg-slate-50 border-t py-4 justify-between print:hidden">
-                  <p className="text-xs text-muted-foreground">Calculated on: {new Date().toLocaleDateString()}</p>
-                </CardFooter>
               </Card>
             ) : (
-              /* Individual Statement / Invoice */
               selectedResidentId === 'all' ? (
                 <Card className="h-full min-h-[400px] border-dashed flex flex-col items-center justify-center text-center p-8 text-muted-foreground bg-slate-50/50 print:hidden">
                   <UserIcon className="h-16 w-16 mb-4 opacity-10" />
@@ -319,7 +387,6 @@ export default function StatementsPage() {
               ) : individualStatement ? (
                 <div className="space-y-6">
                   <Card className="shadow-2xl border-none print:shadow-none print:border overflow-hidden">
-                    {/* Invoice Header */}
                     <div className="p-8 bg-slate-900 text-white flex flex-col md:flex-row justify-between gap-8 print:bg-white print:text-black print:border-b print:p-6">
                       <div className="space-y-4">
                         <div className="flex items-center gap-2">
@@ -394,11 +461,6 @@ export default function StatementsPage() {
                         </div>
                       </div>
                     </CardContent>
-
-                    <div className="p-8 border-t border-dashed text-xs text-muted-foreground text-center space-y-2 print:p-6">
-                      <p>This is a computer-generated statement for Villa 5604 Management.</p>
-                      <p>For any queries regarding this breakdown, please contact the Property Admin.</p>
-                    </div>
                   </Card>
                 </div>
               ) : null

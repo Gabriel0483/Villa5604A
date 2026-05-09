@@ -33,6 +33,7 @@
         "electricity": { "type": "number" },
         "miscellaneous": { "type": "number" },
         "total": { "type": "number" },
+        "status": { "type": "string", "enum": ["Draft", "Released"] },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["monthYear", "wifi", "water", "electricity"]

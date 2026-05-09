@@ -9,8 +9,6 @@ service cloud.firestore {
     }
 
     // Comprehensive SuperAdmin check
-    // Updated to ensure synchronization of composite indexes and security rules
-    // Deployment trigger: 2026-05-09-v2
     function isSuperAdmin() {
       let adminEmails = [
         'rielmagpantay@gmail.com',
@@ -31,19 +29,17 @@ service cloud.firestore {
     }
 
     match /utility_bills/{billId} {
-      allow read: if isSignedIn();
+      // Residents can only read bills if they are released
+      allow read: if isSignedIn() && (isSuperAdmin() || resource.data.status == 'Released');
       allow write: if isSuperAdmin();
     }
 
     match /maintenance_requests/{requestId} {
-      // Allow creation for any signed-in user
       allow create: if isSignedIn();
-      // Allow reading if the user is the resident who created it or is an admin
       allow read: if isSignedIn() && (
         (resource != null && resource.data.residentId == request.auth.uid) || 
         isSuperAdmin()
       );
-      // Allow updates and deletion for admins
       allow update, delete: if isSuperAdmin();
     }
   }
