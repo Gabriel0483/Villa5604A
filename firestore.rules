@@ -8,7 +8,7 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // sync-trigger: index-update-v2-2026-05-09-1318
+    // sync-trigger: index-update-v2-2026-05-09-1322
 
     // Comprehensive SuperAdmin check
     function isSuperAdmin() {
