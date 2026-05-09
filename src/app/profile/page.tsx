@@ -511,19 +511,21 @@ export default function ProfilePage() {
                                 </div>
                               </TableCell>
                               <TableCell className="py-2 px-3 text-right">
-                                <Select 
-                                  defaultValue={u.role || 'Resident'} 
-                                  onValueChange={(val) => handleUpdateUserRole(u.id, val)}
-                                  disabled={u.id === user.uid}
-                                >
-                                  <SelectTrigger className="h-7 w-24 text-[10px]">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="Resident" className="text-[10px]">Resident</SelectItem>
-                                    <SelectItem value="SuperAdmin" className="text-[10px]">SuperAdmin</SelectItem>
-                                  </SelectContent>
-                                </Select>
+                                <div className="flex items-center gap-2">
+                                  <Select 
+                                    defaultValue={u.role || 'Resident'} 
+                                    onValueChange={(val) => handleUpdateUserRole(u.id, val)}
+                                    disabled={u.id === user.uid}
+                                  >
+                                    <SelectTrigger className="h-7 w-24 text-[10px]">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="Resident" className="text-[10px]">Resident</SelectItem>
+                                      <SelectItem value="SuperAdmin" className="text-[10px]">SuperAdmin</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))}
