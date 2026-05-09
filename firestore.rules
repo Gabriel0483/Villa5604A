@@ -31,5 +31,13 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isSuperAdmin();
     }
+
+    // Maintenance requests
+    match /maintenance_requests/{requestId} {
+      allow read: if isSignedIn() && (resource.data.residentId == request.auth.uid || isSuperAdmin());
+      allow create: if isSignedIn() && request.resource.data.residentId == request.auth.uid;
+      allow update: if isSuperAdmin();
+      allow delete: if isSuperAdmin();
+    }
   }
 }
