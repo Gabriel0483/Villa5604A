@@ -21,7 +21,8 @@ import {
   MoreHorizontal,
   ChevronRight,
   Home,
-  Clock
+  Clock,
+  PlusCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,6 +52,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, query, doc, updateDoc, serverTimestamp, where } from 'firebase/firestore';
@@ -81,7 +83,8 @@ export default function TenantRegistryPage() {
     emergencyContact: '',
     roomUnit: '',
     monthlyRent: '',
-    billingDays: '30'
+    billingDays: '30',
+    isMiscApplicable: true
   });
 
   // Check if user is SuperAdmin
@@ -154,7 +157,8 @@ export default function TenantRegistryPage() {
       emergencyContact: resident.emergencyContact || '',
       roomUnit: resident.roomUnit || '',
       monthlyRent: resident.monthlyRent?.toString() || '',
-      billingDays: (resident.billingDays ?? 30).toString()
+      billingDays: (resident.billingDays ?? 30).toString(),
+      isMiscApplicable: resident.isMiscApplicable !== false
     });
     setIsEditDialogOpen(true);
   };
@@ -166,6 +170,10 @@ export default function TenantRegistryPage() {
 
   const handleSelectChange = (name: string, value: string) => {
     setEditFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleCheckboxChange = (name: string, checked: boolean) => {
+    setEditFormData(prev => ({ ...prev, [name]: checked }));
   };
 
   const handleSaveEdit = async () => {
@@ -258,7 +266,7 @@ export default function TenantRegistryPage() {
                     <TableHead>Room Unit</TableHead>
                     <TableHead>Monthly Rent</TableHead>
                     <TableHead>Billing Days</TableHead>
-                    <TableHead>Contact Info</TableHead>
+                    <TableHead>Options</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -307,12 +315,11 @@ export default function TenantRegistryPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-1.5 text-xs">
-                              <Phone className="h-3 w-3 text-muted-foreground" />
-                              {resident.mobile || 'No mobile'}
-                            </div>
-                          </div>
+                           {resident.isMiscApplicable !== false && (
+                             <Badge variant="outline" className="text-[10px] border-accent text-accent">
+                               Misc Applicable
+                             </Badge>
+                           )}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" onClick={() => handleEditClick(resident)} className="gap-2">
@@ -376,6 +383,17 @@ export default function TenantRegistryPage() {
                     <Input id="billingDays" name="billingDays" type="number" value={editFormData.billingDays} onChange={handleEditFormChange} className="pl-10 border-primary/20" placeholder="30" />
                   </div>
                 </div>
+              </div>
+              
+              <div className="flex items-center space-x-2 pt-2">
+                <Checkbox 
+                  id="isMiscApplicable" 
+                  checked={editFormData.isMiscApplicable} 
+                  onCheckedChange={(checked) => handleCheckboxChange('isMiscApplicable', checked as boolean)}
+                />
+                <Label htmlFor="isMiscApplicable" className="text-sm font-medium leading-none cursor-pointer">
+                  Miscellaneous expenses are applicable to this resident
+                </Label>
               </div>
             </div>
 

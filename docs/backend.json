@@ -33,7 +33,8 @@
         "tenantId": { "type": "string", "description": "Reference to tenant record if role is Resident" },
         "roomUnit": { "type": "string", "description": "Assigned room or unit number" },
         "monthlyRent": { "type": "number", "description": "Monthly rent amount assigned to this resident" },
-        "billingDays": { "type": "number", "description": "Number of days the resident is billed for in the cycle (default 30)" }
+        "billingDays": { "type": "number", "description": "Number of days the resident is billed for in the cycle (default 30)" },
+        "isMiscApplicable": { "type": "boolean", "description": "Whether miscellaneous expenses apply to this resident" }
       },
       "required": ["userCode", "role", "firstName", "lastName"]
     },

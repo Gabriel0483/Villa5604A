@@ -110,36 +110,53 @@ export default function ProRataPage() {
     setIsCalculating(true);
     setAllocationResults(null);
 
-    // Perform pro-rata calculation based on billing days
-    // Wifi is equal split. Water, Elec, Misc are by days.
+    // Perform pro-rata calculation
     setTimeout(() => {
       try {
         const numResidents = residents.length;
         const wifiTotal = selectedBill.wifi;
-        const usageTotal = (selectedBill.water || 0) + (selectedBill.electricity || 0) + (selectedBill.miscellaneous || 0);
+        const mainUsageTotal = (selectedBill.water || 0) + (selectedBill.electricity || 0);
+        const miscTotal = selectedBill.miscellaneous || 0;
         
-        // Total man-days for the household
+        // Total man-days for shared Water & Elec
         const totalManDays = residents.reduce((acc, r) => acc + (r.billingDays ?? 30), 0);
         
+        // Misc applicable residents
+        const miscApplicableResidents = residents.filter(r => r.isMiscApplicable !== false);
+        const totalMiscManDays = miscApplicableResidents.reduce((acc, r) => acc + (r.billingDays ?? 30), 0);
+
         const wifiSharePerPerson = wifiTotal / numResidents;
-        const usagePerDay = totalManDays > 0 ? usageTotal / totalManDays : 0;
+        const mainUsagePerDay = totalManDays > 0 ? mainUsageTotal / totalManDays : 0;
+        const miscUsagePerDay = totalMiscManDays > 0 ? miscTotal / totalMiscManDays : 0;
 
         const allocations = residents.map(r => {
           const resDays = r.billingDays ?? 30;
-          const resUsageShare = usagePerDay * resDays;
-          const resTotalShare = wifiSharePerPerson + resUsageShare;
+          const isMisc = r.isMiscApplicable !== false;
+          
+          const resWifiShare = wifiSharePerPerson;
+          const resMainUsageShare = mainUsagePerDay * resDays;
+          const resMiscShare = isMisc ? (miscUsagePerDay * resDays) : 0;
+          
+          const resTotalShare = resWifiShare + resMainUsageShare + resMiscShare;
+
+          let explanation = `Wifi: ${resWifiShare.toFixed(3)} OMR. Usage: ${resMainUsageShare.toFixed(3)} OMR (${resDays} days).`;
+          if (isMisc && miscTotal > 0) {
+            explanation += ` Misc: ${resMiscShare.toFixed(3)} OMR.`;
+          } else if (miscTotal > 0) {
+            explanation += ` Misc: 0.000 OMR (Exempt).`;
+          }
 
           return {
             residentName: `${r.firstName} ${r.lastName}`,
             amount: resTotalShare,
-            explanation: `Wifi: ${wifiSharePerPerson.toFixed(3)} OMR (Equal split). Usage: ${resUsageShare.toFixed(3)} OMR (${resDays} billing days pro-rata).`
+            explanation: explanation
           };
         });
 
         const totalAllocated = allocations.reduce((acc, curr) => acc + curr.amount, 0);
 
         setAllocationResults({
-          methodology: "Standard split: Wifi is divided equally. Water, Electricity, and Misc are distributed based on each resident's individual billing days.",
+          methodology: "Standard split: Wifi divided equally. Water & Electricity split by total household billing days. Miscellaneous split ONLY among applicable residents based on their billing days.",
           allocations: allocations,
           totalAllocated: totalAllocated
         });
@@ -147,7 +164,7 @@ export default function ProRataPage() {
         toast({
           variant: "destructive",
           title: "Calculation Error",
-          description: "An error occurred while processing the allocation. Please check your data."
+          description: "An error occurred while processing the allocation."
         });
       } finally {
         setIsCalculating(false);
@@ -243,10 +260,13 @@ export default function ProRataPage() {
               </CardHeader>
               <CardContent className="space-y-2">
                 <p className="text-xs text-muted-foreground">
-                  <strong>Wifi:</strong> Split equally among all registered residents.
+                  <strong>Wifi:</strong> Split equally among all residents.
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  <strong>Utilities:</strong> Water, Electricity, and Misc are split proportionally based on each resident's <strong>Billing Days</strong> (default 30).
+                  <strong>Water & Elec:</strong> Split proportionally by <strong>Billing Days</strong> across all residents.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  <strong>Misc:</strong> Split proportionally ONLY among residents marked as <strong>Misc Applicable</strong>.
                 </p>
               </CardContent>
             </Card>
@@ -322,7 +342,7 @@ export default function ProRataPage() {
                     <AlertCircle className="h-5 w-5 shrink-0" />
                     <div>
                       <p className="font-bold">Variance Detected</p>
-                      <p className="opacity-80">The total allocated ({allocationResults.totalAllocated.toFixed(3)}) differs from the bill total ({selectedBill!.total.toFixed(3)}). This usually happens due to rounding or missing billing day assignments.</p>
+                      <p className="opacity-80">The total allocated ({allocationResults.totalAllocated.toFixed(3)}) differs from the bill total ({selectedBill!.total.toFixed(3)}). This might occur due to rounding or exclusion of some residents from Miscellaneous charges.</p>
                     </div>
                   </div>
                 )}
