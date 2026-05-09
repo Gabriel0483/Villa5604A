@@ -243,9 +243,6 @@ export default function Home() {
                           <span className="text-sm text-muted-foreground">Total Household Bill</span>
                           <p className="text-3xl font-black text-primary">{latestBill.total.toFixed(3)} OMR</p>
                         </div>
-                        <div className="text-xs text-muted-foreground bg-accent/5 p-2 rounded border border-accent/20 max-w-xs italic">
-                          This snapshot shows the total bill for the villa. Individual pro-rata shares will be communicated separately by management.
-                        </div>
                       </div>
                     </div>
                   ) : (
