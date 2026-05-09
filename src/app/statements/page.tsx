@@ -461,21 +461,21 @@ export default function StatementsPage() {
               </Card>
             ) : individualStatement && (
               <Card className="shadow-2xl overflow-hidden print:border">
-                <div className="p-8 bg-slate-900 text-white flex justify-between print:text-black print:bg-white">
+                <div className="p-8 bg-slate-50 text-slate-900 flex justify-between border-b print:bg-white">
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <Building2 className="h-6 w-6 text-primary" />
-                      <span className="text-2xl font-black">VILLA 5604</span>
+                      <span className="text-2xl font-black tracking-tight text-primary">VILLA 5604</span>
                     </div>
-                    <p className="opacity-70">{new Date(selectedBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
+                    <p className="text-sm font-medium text-muted-foreground">{new Date(selectedBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs uppercase opacity-50">Bill To</p>
-                    <h2 className="text-2xl font-bold">{individualStatement.residentName}</h2>
-                    <p className="opacity-70">Unit {individualStatement.roomUnit}</p>
-                    <div className="mt-2">
+                    <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-1">Bill To</p>
+                    <h2 className="text-2xl font-bold text-slate-900">{individualStatement.residentName}</h2>
+                    <p className="text-sm font-medium text-muted-foreground">Unit {individualStatement.roomUnit}</p>
+                    <div className="mt-4">
                       {individualStatement.isPaid ? (
-                        <Badge className="bg-accent">PAID</Badge>
+                        <Badge className="bg-accent text-accent-foreground">PAID</Badge>
                       ) : (
                         <Badge variant="destructive">PENDING PAYMENT</Badge>
                       )}
@@ -492,14 +492,14 @@ export default function StatementsPage() {
                       { label: 'Misc Share', val: individualStatement.miscShare },
                     ].map(item => (
                       <div key={item.label} className="flex justify-between border-b pb-2">
-                        <span>{item.label}</span>
-                        <span className="font-mono">{item.val.toFixed(3)} OMR</span>
+                        <span className="text-slate-600">{item.label}</span>
+                        <span className="font-mono font-bold text-slate-900">{item.val.toFixed(3)} OMR</span>
                       </div>
                     ))}
                   </div>
 
                   <div className="bg-slate-50 p-6 rounded-xl flex justify-between items-center border">
-                    <span className="font-black text-slate-500 uppercase">Total Due</span>
+                    <span className="font-black text-slate-500 uppercase tracking-tighter">Total Due</span>
                     <span className="text-4xl font-black text-primary">{individualStatement.totalDue.toFixed(3)} OMR</span>
                   </div>
                 </CardContent>
