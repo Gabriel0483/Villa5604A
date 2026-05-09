@@ -23,8 +23,7 @@ service cloud.firestore {
 
     // User profiles: Users can read/write their own, admins can do everything
     match /users/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
-      allow write: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
+      allow read, write: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
     }
 
     // Utility bills: All signed-in users can read, only admins can write
@@ -39,17 +38,13 @@ service cloud.firestore {
       allow create: if isSignedIn();
       
       // Allow reading if admin or if the request belongs to the resident
-      // Security rules automatically apply to queries when filters match
       allow read: if isSignedIn() && (
         isSuperAdmin() || 
-        (resource != null && resource.data.residentId == request.auth.uid) ||
-        // Allow the query to be evaluated against the potential results
-        (resource == null && request.resource.data.residentId == request.auth.uid)
+        (resource != null && resource.data.residentId == request.auth.uid)
       );
       
-      // Only admins can update or delete requests
-      allow update: if isSuperAdmin();
-      allow delete: if isSuperAdmin();
+      // Only admins can update status or delete
+      allow update, delete: if isSuperAdmin();
     }
 
     // Legacy tenant records (Administrative only)
