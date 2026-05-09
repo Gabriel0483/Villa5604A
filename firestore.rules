@@ -9,7 +9,8 @@ service cloud.firestore {
     }
 
     // Comprehensive SuperAdmin check
-    // Updated to ensure synchronization of composite indexes
+    // Updated to ensure synchronization of composite indexes and security rules
+    // Deployment trigger: 2026-05-09-v2
     function isSuperAdmin() {
       let adminEmails = [
         'rielmagpantay@gmail.com',
