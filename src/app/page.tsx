@@ -10,7 +10,6 @@ import {
   Users, 
   Loader2,
   LogOut,
-  LogIn,
   User as UserIcon,
   ShieldCheck,
   Settings,
@@ -26,7 +25,9 @@ import {
   Wrench,
   History,
   Calculator,
-  BarChart3
+  BarChart3,
+  CheckCircle2,
+  Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -84,6 +85,7 @@ export default function Home() {
     if (!db || !user) return null;
     return query(
       collection(db, 'utility_bills'), 
+      where('status', '==', 'Released'),
       orderBy('monthYear', 'desc'), 
       limit(1)
     );
@@ -109,6 +111,8 @@ export default function Home() {
       </div>
     );
   }
+
+  const isCurrentPaid = latestBill?.paidResidents?.includes(user.uid);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -183,17 +187,17 @@ export default function Home() {
                       <CardTitle className="text-xl font-bold flex items-center gap-2">
                         <Receipt className="h-5 w-5 text-primary" /> Current Bill Snapshot
                       </CardTitle>
-                      <CardDescription>Latest household utility consumption details.</CardDescription>
+                      <CardDescription>Latest released household utility consumption.</CardDescription>
                     </div>
                     {latestBill && (
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary" className="text-xs">
                           {new Date(latestBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                         </Badge>
-                        {latestBill.status === 'Draft' && (
-                          <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-600 border-amber-200">
-                            Draft
-                          </Badge>
+                        {isCurrentPaid ? (
+                          <Badge className="bg-accent text-accent-foreground text-[10px]">PAID</Badge>
+                        ) : (
+                          <Badge variant="destructive" className="text-[10px]">PENDING</Badge>
                         )}
                       </div>
                     )}
@@ -205,26 +209,26 @@ export default function Home() {
                   ) : latestBill ? (
                     <div className="space-y-6">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 space-y-1">
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase">
+                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase mb-1">
                             <Wifi className="h-3 w-3" /> Wifi
                           </div>
                           <p className="text-lg font-bold">{latestBill.wifi.toFixed(3)} OMR</p>
                         </div>
-                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 space-y-1">
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase">
+                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase mb-1">
                             <Droplets className="h-3 w-3" /> Water
                           </div>
                           <p className="text-lg font-bold">{latestBill.water.toFixed(3)} OMR</p>
                         </div>
-                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 space-y-1">
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase">
+                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase mb-1">
                             <Lightbulb className="h-3 w-3" /> Electricity
                           </div>
                           <p className="text-lg font-bold">{latestBill.electricity.toFixed(3)} OMR</p>
                         </div>
-                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 space-y-1">
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase">
+                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase mb-1">
                             <Plus className="h-3 w-3" /> Misc
                           </div>
                           <p className="text-lg font-bold">{(latestBill.miscellaneous || 0).toFixed(3)} OMR</p>
@@ -233,7 +237,7 @@ export default function Home() {
 
                       <div className="pt-4 border-t flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="space-y-1">
-                          <span className="text-sm text-muted-foreground">Total Household Bill</span>
+                          <span className="text-sm text-muted-foreground">Household Total</span>
                           <p className="text-3xl font-black text-primary">{latestBill.total.toFixed(3)} OMR</p>
                         </div>
                         <Button className="gap-2" onClick={() => router.push('/bills')}>
@@ -252,7 +256,7 @@ export default function Home() {
               <Card className="shadow-lg border-t-4 border-accent">
                 <CardHeader>
                   <CardTitle className="text-lg font-bold flex items-center gap-2">
-                    <UserIcon className="h-5 w-5 text-accent" /> Lease Quick View
+                    <UserIcon className="h-5 w-5 text-accent" /> Lease View
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -262,13 +266,13 @@ export default function Home() {
                       <span className="font-bold">{profile?.roomUnit || 'Pending'}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Monthly Base Rent</span>
+                      <span className="text-muted-foreground">Base Rent</span>
                       <span className="font-bold text-primary">{profile?.monthlyRent ? `${profile.monthlyRent.toLocaleString()} OMR` : 'Not Set'}</span>
                     </div>
                   </div>
                   <div className="pt-4 border-t">
                     <Button variant="outline" className="w-full text-xs h-8" onClick={() => router.push('/profile')}>
-                      View Full Lease Details
+                      Full Lease Details
                     </Button>
                   </div>
                 </CardContent>
@@ -287,27 +291,23 @@ export default function Home() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      Manage resident profiles, update contact information, and oversee occupancy details.
+                      Manage resident profiles and oversaw occupancy details.
                     </p>
-                    <Button variant="outline" className="w-full">
-                      Open Registry <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                    <Button variant="outline" className="w-full">Registry <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
 
                 <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/utilities')}>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-lg">
-                      <Zap className="h-5 w-5 text-primary" /> Utility Management
+                      <Zap className="h-5 w-5 text-primary" /> Current Bill
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      Record the current monthly bill for the dashboard snapshot.
+                      Record the active monthly bill for the dashboard snapshot.
                     </p>
-                    <Button variant="outline" className="w-full">
-                      Manage Current Bill <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                    <Button variant="outline" className="w-full">Manage Cycle <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
 
@@ -319,59 +319,37 @@ export default function Home() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      Record past and current expenses for historical consumption trends.
+                      Record past and current expenses for consumption trends.
                     </p>
-                    <Button variant="outline" className="w-full">
-                      Expense Ledger <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/pro-rata')}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <Calculator className="h-5 w-5 text-primary" /> Pro-Rata Allocation
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Calculate fair household utility splits based on resident billing days and occupancy.
-                    </p>
-                    <Button variant="outline" className="w-full">
-                      Configure Splits <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/birthdays')}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <Cake className="h-5 w-5 text-primary" /> Birthday Greetings
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Track upcoming resident birthdays and send personalized AI-powered greetings.
-                    </p>
-                    <Button variant="outline" className="w-full">
-                      View Birthdays <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                    <Button variant="outline" className="w-full">Expense Ledger <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
 
                 <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/statements')}>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-lg">
-                      <FileText className="h-5 w-5 text-primary" /> Billing Statements
+                      <FileText className="h-5 w-5 text-primary" /> Billing & Payments
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      Generate individual and general billing reports for rent and shared utilities.
+                      Generate statements and track resident payment statuses.
                     </p>
-                    <Button variant="outline" className="w-full">
-                      Generate Statements <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                    <Button variant="outline" className="w-full">Statements <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/birthdays')}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Cake className="h-5 w-5 text-primary" /> Birthdays
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Celebrate resident birthdays with AI-powered cards.
+                    </p>
+                    <Button variant="outline" className="w-full">View Dates <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
 
@@ -383,11 +361,9 @@ export default function Home() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      View and resolve maintenance requests submitted by residents.
+                      View and resolve resident maintenance requests.
                     </p>
-                    <Button variant="outline" className="w-full group-hover:bg-destructive group-hover:text-white transition-colors">
-                      View Issues <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                    <Button variant="outline" className="w-full">View Issues <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
               </>
@@ -401,11 +377,9 @@ export default function Home() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      View your historical billing statements for rent and utilities.
+                      View historical billing statements and payment status.
                     </p>
-                    <Button variant="outline" className="w-full group-hover:bg-primary group-hover:text-white transition-colors">
-                      View History <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                    <Button variant="outline" className="w-full">History <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
 
@@ -417,11 +391,9 @@ export default function Home() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      Need a repair? Report plumbing, electrical, or other maintenance issues here.
+                      Need a repair? Report maintenance issues here.
                     </p>
-                    <Button variant="outline" className="w-full group-hover:bg-primary group-hover:text-white transition-colors">
-                      Report Problem <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                    <Button variant="outline" className="w-full">Report Problem <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
                 
@@ -433,11 +405,9 @@ export default function Home() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      Update your personal details, emergency contacts, and manage security preferences.
+                      Update your personal details and contact info.
                     </p>
-                    <Button variant="outline" className="w-full">
-                      Manage Profile <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                    <Button variant="outline" className="w-full">Manage Profile <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
               </>
@@ -449,7 +419,7 @@ export default function Home() {
       <footer className="mt-auto py-6 text-center text-sm text-muted-foreground border-t bg-white">
         <div className="flex justify-center items-center gap-2">
           <Building2 className="h-4 w-4 text-primary/50" /> 
-          <span className="font-medium">Villa 5604 Admin Portal 2026</span> powered by G-Matrix SDS
+          <span className="font-medium">Villa 5604 Admin Portal 2026</span>
         </div>
       </footer>
     </div>

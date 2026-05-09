@@ -34,6 +34,7 @@
         "miscellaneous": { "type": "number" },
         "total": { "type": "number" },
         "status": { "type": "string", "enum": ["Draft", "Released"] },
+        "paidResidents": { "type": "array", "items": { "type": "string" }, "description": "List of user IDs who have paid their share" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["monthYear", "wifi", "water", "electricity"]

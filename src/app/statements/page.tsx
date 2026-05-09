@@ -7,18 +7,14 @@ import {
   FileText, 
   ArrowLeft, 
   Loader2, 
-  Download, 
   Printer, 
   User as UserIcon, 
-  Users, 
   Building2,
-  Calendar,
-  CheckCircle2,
-  Info,
-  ChevronRight,
   Receipt,
   Send,
-  Clock
+  Clock,
+  CheckCircle2,
+  Circle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,10 +22,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, query, doc, orderBy, where, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, doc, orderBy, where, updateDoc, serverTimestamp, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
@@ -40,10 +36,11 @@ interface StatementAllocation {
   roomUnit: string;
   baseRent: number;
   wifiShare: number;
-  usageShare: number; // Water + Electricity
+  usageShare: number;
   miscShare: number;
   totalDue: number;
   billingDays: number;
+  isPaid: boolean;
 }
 
 export default function StatementsPage() {
@@ -56,8 +53,8 @@ export default function StatementsPage() {
   const [selectedResidentId, setSelectedResidentId] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'general' | 'individual'>('general');
   const [isReleasing, setIsReleasing] = useState(false);
+  const [isUpdatingPayment, setIsUpdatingPayment] = useState<string | null>(null);
 
-  // Access Control check
   const userProfileRef = useMemoFirebase(() => {
     if (!db || !user) return null;
     return doc(db, 'users', user.uid);
@@ -90,7 +87,6 @@ export default function StatementsPage() {
     }
   }, [user, userLoading, profileLoading, isSuperAdmin, router, toast]);
 
-  // Fetch Data
   const billsQuery = useMemoFirebase(() => {
     if (!db || !isSuperAdmin) return null;
     return query(collection(db, 'utility_bills'), orderBy('monthYear', 'desc'));
@@ -137,7 +133,36 @@ export default function StatementsPage() {
     });
   };
 
-  // Calculation Logic
+  const togglePaymentStatus = async (residentId: string, currentStatus: boolean) => {
+    if (!db || !selectedBill || isUpdatingPayment) return;
+
+    setIsUpdatingPayment(residentId);
+    const billRef = doc(db, 'utility_bills', selectedBill.id);
+
+    updateDoc(billRef, {
+      paidResidents: currentStatus 
+        ? arrayRemove(residentId) 
+        : arrayUnion(residentId),
+      updatedAt: serverTimestamp()
+    })
+    .then(() => {
+      toast({
+        title: currentStatus ? "Marked as Pending" : "Marked as Paid",
+        description: `Payment status updated for this resident.`,
+      });
+    })
+    .catch((err) => {
+      const permissionError = new FirestorePermissionError({
+        path: billRef.path,
+        operation: 'update'
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    })
+    .finally(() => {
+      setIsUpdatingPayment(null);
+    });
+  };
+
   const statementResults = useMemo(() => {
     if (!selectedBill || !residents || residents.length === 0) return null;
 
@@ -153,6 +178,8 @@ export default function StatementsPage() {
     const wifiSharePerPerson = wifiTotal / numResidents;
     const mainUsagePerDay = totalManDays > 0 ? mainUsageTotal / totalManDays : 0;
     const miscUsagePerDay = totalMiscManDays > 0 ? miscTotal / totalMiscManDays : 0;
+
+    const paidList = selectedBill.paidResidents || [];
 
     const allocations: StatementAllocation[] = residents.map(r => {
       const resDays = r.billingDays ?? 30;
@@ -172,7 +199,8 @@ export default function StatementsPage() {
         usageShare: resUsageShare,
         miscShare: resMiscShare,
         totalDue: baseRent + resWifiShare + resUsageShare + resMiscShare,
-        billingDays: resDays
+        billingDays: resDays,
+        isPaid: paidList.includes(r.id)
       };
     });
 
@@ -197,8 +225,6 @@ export default function StatementsPage() {
   return (
     <div className="min-h-screen bg-slate-50 py-8 px-4 print:bg-white print:p-0">
       <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 print:max-w-full">
-        
-        {/* Header - Hidden on Print */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
           <div className="space-y-1">
             <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors group">
@@ -207,7 +233,7 @@ export default function StatementsPage() {
             <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
               <FileText className="h-8 w-8 text-primary" /> Billing Statements
             </h1>
-            <p className="text-muted-foreground">Generate reports and invoices for household billing.</p>
+            <p className="text-muted-foreground">Generate reports and manage resident payment statuses.</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" className="gap-2" onClick={() => window.print()} disabled={!selectedBill}>
@@ -216,19 +242,17 @@ export default function StatementsPage() {
             {selectedBill && selectedBill.status !== 'Released' && (
               <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleReleaseBill} disabled={isReleasing}>
                 {isReleasing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                Release Bill to Residents
+                Release Bill
               </Button>
             )}
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 print:block">
-          {/* Controls - Hidden on Print */}
           <div className="space-y-6 print:hidden">
             <Card className="shadow-lg border-t-4 border-primary">
               <CardHeader>
                 <CardTitle className="text-lg">Statement Settings</CardTitle>
-                <CardDescription>Select period and report type.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -243,14 +267,7 @@ export default function StatementsPage() {
                       ) : bills && bills.length > 0 ? (
                         bills.map((bill: any) => (
                           <SelectItem key={bill.id} value={bill.id}>
-                            <div className="flex items-center gap-2">
-                              {new Date(bill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                              {bill.status === 'Released' ? (
-                                <Badge variant="outline" className="text-[10px] h-4 bg-accent/10 text-accent border-accent/20">Released</Badge>
-                              ) : (
-                                <Badge variant="outline" className="text-[10px] h-4">Draft</Badge>
-                              )}
-                            </div>
+                            {new Date(bill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                           </SelectItem>
                         ))
                       ) : (
@@ -271,17 +288,15 @@ export default function StatementsPage() {
                 </div>
 
                 {viewMode === 'individual' && (
-                  <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-                    <Label>Select Resident</Label>
+                  <div className="space-y-2 animate-in slide-in-from-top-2">
+                    <Label>Resident</Label>
                     <Select value={selectedResidentId} onValueChange={setSelectedResidentId}>
                       <SelectTrigger>
                         <SelectValue placeholder="Choose resident..." />
                       </SelectTrigger>
                       <SelectContent>
                         {residents?.map((r: any) => (
-                          <SelectItem key={r.id} value={r.id}>
-                            {r.firstName} {r.lastName}
-                          </SelectItem>
+                          <SelectItem key={r.id} value={r.id}>{r.firstName} {r.lastName}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -291,179 +306,129 @@ export default function StatementsPage() {
             </Card>
 
             {selectedBill && (
-              <Card className="shadow-md bg-white">
+              <Card className="shadow-md">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                    <Clock className="h-4 w-4" /> Bill Status
-                  </CardTitle>
+                  <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Bill Status</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Status</span>
-                    {selectedBill.status === 'Released' ? (
-                      <Badge className="bg-accent text-accent-foreground font-bold">RELEASED</Badge>
-                    ) : (
-                      <Badge variant="secondary">DRAFT</Badge>
-                    )}
-                  </div>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {selectedBill.status === 'Released' 
-                      ? "This statement is currently visible to all residents in their portal."
-                      : "This statement is private. Residents cannot see it until it is released."}
-                  </p>
+                  <Badge className={selectedBill.status === 'Released' ? 'bg-accent' : 'bg-slate-500'}>
+                    {selectedBill.status || 'Draft'}
+                  </Badge>
                 </CardContent>
               </Card>
             )}
           </div>
 
-          {/* Main Statement View */}
           <div className="lg:col-span-3">
             {!selectedBill ? (
-              <Card className="h-full min-h-[400px] border-dashed flex flex-col items-center justify-center text-center p-8 text-muted-foreground bg-slate-50/50 print:hidden">
+              <Card className="h-full min-h-[400px] border-dashed flex flex-col items-center justify-center text-center p-8 text-muted-foreground bg-slate-50/50">
                 <FileText className="h-16 w-16 mb-4 opacity-10" />
                 <h3 className="text-xl font-semibold mb-2">No Statement Selected</h3>
-                <p className="max-w-xs mx-auto">
-                  Please select a billing period from the settings to generate a statement.
-                </p>
               </Card>
             ) : viewMode === 'general' ? (
-              <Card className="shadow-xl border-none print:shadow-none print:border">
-                <CardHeader className="bg-primary text-primary-foreground rounded-t-lg print:bg-white print:text-black print:border-b">
+              <Card className="shadow-xl border-none print:border">
+                <CardHeader className="bg-primary text-primary-foreground rounded-t-lg print:bg-white print:text-black">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2 text-2xl font-bold">
-                        <Building2 className="h-6 w-6" /> General Billing Statement
+                        <Building2 className="h-6 w-6" /> General Statement
                       </div>
-                      <CardDescription className="text-primary-foreground/80 print:text-slate-500">
-                        Villa 5604 - {new Date(selectedBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                      <CardDescription className="text-primary-foreground/80">
+                        {new Date(selectedBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                       </CardDescription>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs opacity-70">Total Household Bill</p>
-                      <p className="text-xl font-bold">{selectedBill.total.toFixed(3)} OMR</p>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-6">
-                  <div className="rounded-md border bg-white overflow-hidden">
-                    <Table>
-                      <TableHeader className="bg-slate-50">
-                        <TableRow>
-                          <TableHead>Resident (Unit)</TableHead>
-                          <TableHead className="text-right">Rent</TableHead>
-                          <TableHead className="text-right">Wifi</TableHead>
-                          <TableHead className="text-right">Usage (W/E)</TableHead>
-                          <TableHead className="text-right">Misc</TableHead>
-                          <TableHead className="text-right font-bold text-primary">Total OMR</TableHead>
+                  <Table>
+                    <TableHeader className="bg-slate-50">
+                      <TableRow>
+                        <TableHead>Resident (Unit)</TableHead>
+                        <TableHead className="text-right">Total OMR</TableHead>
+                        <TableHead className="text-center">Payment Status</TableHead>
+                        <TableHead className="text-right print:hidden">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {statementResults?.map((s, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell>
+                            <span className="font-medium">{s.residentName}</span>
+                            <span className="text-xs text-muted-foreground ml-1">({s.roomUnit})</span>
+                          </TableCell>
+                          <TableCell className="text-right font-bold">{s.totalDue.toFixed(3)}</TableCell>
+                          <TableCell className="text-center">
+                            {s.isPaid ? (
+                              <Badge className="bg-accent text-accent-foreground gap-1">
+                                <CheckCircle2 className="h-3 w-3" /> Paid
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-muted-foreground gap-1">
+                                <Circle className="h-3 w-3" /> Pending
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right print:hidden">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              disabled={isUpdatingPayment === s.residentId}
+                              onClick={() => togglePaymentStatus(s.residentId, s.isPaid)}
+                            >
+                              {isUpdatingPayment === s.residentId ? <Loader2 className="h-3 w-3 animate-spin" /> : (s.isPaid ? 'Undo Paid' : 'Mark Paid')}
+                            </Button>
+                          </TableCell>
                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {statementResults?.map((s, idx) => (
-                          <TableRow key={idx}>
-                            <TableCell className="font-medium">
-                              {s.residentName} <span className="text-xs text-muted-foreground">({s.roomUnit})</span>
-                            </TableCell>
-                            <TableCell className="text-right">{s.baseRent.toFixed(3)}</TableCell>
-                            <TableCell className="text-right">{s.wifiShare.toFixed(3)}</TableCell>
-                            <TableCell className="text-right">{s.usageShare.toFixed(3)}</TableCell>
-                            <TableCell className="text-right">{s.miscShare.toFixed(3)}</TableCell>
-                            <TableCell className="text-right font-bold text-primary">{s.totalDue.toFixed(3)}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            ) : individualStatement && (
+              <Card className="shadow-2xl overflow-hidden print:border">
+                <div className="p-8 bg-slate-900 text-white flex justify-between print:text-black print:bg-white">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-6 w-6 text-primary" />
+                      <span className="text-2xl font-black">VILLA 5604</span>
+                    </div>
+                    <p className="opacity-70">{new Date(selectedBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs uppercase opacity-50">Bill To</p>
+                    <h2 className="text-2xl font-bold">{individualStatement.residentName}</h2>
+                    <p className="opacity-70">Unit {individualStatement.roomUnit}</p>
+                    <div className="mt-2">
+                      {individualStatement.isPaid ? (
+                        <Badge className="bg-accent">PAID</Badge>
+                      ) : (
+                        <Badge variant="destructive">PENDING PAYMENT</Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <CardContent className="p-8">
+                  <div className="space-y-4 mb-8">
+                    {[
+                      { label: 'Base Rent', val: individualStatement.baseRent },
+                      { label: 'Wifi Share', val: individualStatement.wifiShare },
+                      { label: 'Utilities Share', val: individualStatement.usageShare },
+                      { label: 'Misc Share', val: individualStatement.miscShare },
+                    ].map(item => (
+                      <div key={item.label} className="flex justify-between border-b pb-2">
+                        <span>{item.label}</span>
+                        <span className="font-mono">{item.val.toFixed(3)} OMR</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="bg-slate-50 p-6 rounded-xl flex justify-between items-center border">
+                    <span className="font-black text-slate-500 uppercase">Total Due</span>
+                    <span className="text-4xl font-black text-primary">{individualStatement.totalDue.toFixed(3)} OMR</span>
                   </div>
                 </CardContent>
               </Card>
-            ) : (
-              selectedResidentId === 'all' ? (
-                <Card className="h-full min-h-[400px] border-dashed flex flex-col items-center justify-center text-center p-8 text-muted-foreground bg-slate-50/50 print:hidden">
-                  <UserIcon className="h-16 w-16 mb-4 opacity-10" />
-                  <h3 className="text-xl font-semibold mb-2">Select a Resident</h3>
-                  <p className="max-w-xs mx-auto">
-                    Choose a specific resident from the settings to view their individual statement.
-                  </p>
-                </Card>
-              ) : individualStatement ? (
-                <div className="space-y-6">
-                  <Card className="shadow-2xl border-none print:shadow-none print:border overflow-hidden">
-                    <div className="p-8 bg-slate-900 text-white flex flex-col md:flex-row justify-between gap-8 print:bg-white print:text-black print:border-b print:p-6">
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2">
-                          <div className="p-2 bg-primary rounded-lg print:bg-slate-200">
-                            <Building2 className="h-6 w-6 text-white print:text-black" />
-                          </div>
-                          <span className="text-2xl font-black tracking-tighter">VILLA 5604</span>
-                        </div>
-                        <div className="text-sm opacity-70 print:text-black print:opacity-100">
-                          <p>Individual Billing Statement</p>
-                          <p>Period: {new Date(selectedBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
-                        </div>
-                      </div>
-                      <div className="text-right space-y-2">
-                        <div className="text-xs uppercase tracking-widest opacity-50 print:opacity-100">Bill To</div>
-                        <h2 className="text-2xl font-bold">{individualStatement.residentName}</h2>
-                        <div className="text-sm opacity-70 print:opacity-100">
-                          <p>Unit: {individualStatement.roomUnit}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <CardContent className="p-8 print:p-6">
-                      <div className="mb-12">
-                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 border-b pb-2">
-                          <Receipt className="h-5 w-5 text-primary" /> Breakdown of Charges
-                        </h3>
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-center py-2">
-                            <div>
-                              <p className="font-semibold">Base Monthly Rent</p>
-                              <p className="text-xs text-muted-foreground">Fixed monthly lease amount</p>
-                            </div>
-                            <p className="font-mono">{individualStatement.baseRent.toFixed(3)} OMR</p>
-                          </div>
-                          
-                          <div className="flex justify-between items-center py-2">
-                            <div>
-                              <p className="font-semibold">Wifi Share</p>
-                              <p className="text-xs text-muted-foreground">Household connectivity split (Equal)</p>
-                            </div>
-                            <p className="font-mono">{individualStatement.wifiShare.toFixed(3)} OMR</p>
-                          </div>
-
-                          <div className="flex justify-between items-center py-2">
-                            <div>
-                              <p className="font-semibold">Utilities Usage Share</p>
-                              <p className="text-xs text-muted-foreground">Water & Electricity consumption share</p>
-                            </div>
-                            <p className="font-mono">{individualStatement.usageShare.toFixed(3)} OMR</p>
-                          </div>
-
-                          {individualStatement.miscShare > 0 && (
-                            <div className="flex justify-between items-center py-2">
-                              <div>
-                                <p className="font-semibold">Miscellaneous Expenses</p>
-                                <p className="text-xs text-muted-foreground">Shared household supplies / maintenance</p>
-                              </div>
-                              <p className="font-mono">{individualStatement.miscShare.toFixed(3)} OMR</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="bg-slate-50 p-6 rounded-xl flex justify-between items-center border border-slate-200 print:bg-white">
-                        <div>
-                          <p className="text-xs uppercase font-black text-slate-500 tracking-wider">Total Amount Due</p>
-                          <p className="text-sm text-muted-foreground italic">Please pay by the 5th of next month</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-4xl font-black text-primary">{individualStatement.totalDue.toFixed(3)} OMR</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              ) : null
             )}
           </div>
         </div>
