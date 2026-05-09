@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -15,12 +16,13 @@ import {
   User as UserIcon,
   ShieldCheck,
   Settings,
-  Lock
+  Lock,
+  UserCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useAuth, useDoc } from '@/firebase';
-import { collection, query, doc } from 'firebase/firestore';
+import { collection, query, doc, where } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   DropdownMenu, 
@@ -60,22 +62,21 @@ export default function Home() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Use useMemoFirebase to stabilize the query reference
-  const tenantsQuery = useMemoFirebase(() => {
+  // Query all residents for stats if SuperAdmin
+  const residentsQuery = useMemoFirebase(() => {
     if (!db || !isSuperAdmin) return null;
-    return query(collection(db, 'tenants'));
+    return query(collection(db, 'users'), where('role', '==', 'Resident'));
   }, [db, isSuperAdmin]);
 
-  const { data: tenants, loading: tenantsLoading } = useCollection(tenantsQuery);
+  const { data: residents, loading: residentsLoading } = useCollection(residentsQuery);
 
-  // Calculate statistics - only relevant for SuperAdmin
+  // Calculate statistics
   const stats = useMemo(() => {
-    if (!tenants) return { count: 0, totalRent: 0 };
+    if (!residents) return { count: 0 };
     return {
-      count: tenants.length,
-      totalRent: tenants.reduce((acc, tenant: any) => acc + (Number(tenant.rentAmount) || 0), 0)
+      count: residents.length
     };
-  }, [tenants]);
+  }, [residents]);
 
   const handleLogout = async () => {
     try {
@@ -177,29 +178,13 @@ export default function Home() {
                   <Users className="h-16 w-16" />
                 </div>
                 <CardHeader className="pb-2">
-                  <CardDescription className="text-primary-foreground/70">Total Tenants</CardDescription>
+                  <CardDescription className="text-primary-foreground/70">Total Residents</CardDescription>
                   <CardTitle className="text-3xl font-bold">
-                    {tenantsLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats.count}
+                    {residentsLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats.count}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-xs text-primary-foreground/60">Active residents in portfolio</p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-none shadow-sm bg-accent text-accent-foreground overflow-hidden relative">
-                <div className="absolute right-0 top-0 p-4 opacity-10">
-                  <TrendingUp className="h-16 w-16" />
-                </div>
-                <CardHeader className="pb-2">
-                  <CardDescription className="text-accent-foreground/70">Monthly Revenue</CardDescription>
-                  <CardTitle className="text-3xl font-bold flex items-center">
-                    <span className="text-lg font-medium mr-1.5 opacity-80">OMR</span>
-                    {tenantsLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats.totalRent.toLocaleString(undefined, { minimumFractionDigits: 3 })}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-accent-foreground/60">Total combined rent</p>
+                  <p className="text-xs text-primary-foreground/60">Registered occupants in portfolio</p>
                 </CardContent>
               </Card>
             </div>
@@ -207,6 +192,25 @@ export default function Home() {
 
           {/* Feature Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Tenant Management - Available to SuperAdmin */}
+            {isSuperAdmin && (
+              <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/tenants')}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <UserCheck className="h-5 w-5 text-primary" /> Tenant Registry
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Manage resident profiles, update contact information, and oversee occupancy details.
+                  </p>
+                  <Button variant="outline" className="w-full">
+                    Open Registry <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Profile Management - Available to All */}
             <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/profile')}>
               <CardHeader>
