@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Wrench, 
@@ -75,20 +75,30 @@ export default function RepairsPage() {
   }, [user, profile]);
 
   const requestsQuery = useMemoFirebase(() => {
+    // Guard against running queries before auth/profile state is ready
     if (!db || !user || profileLoading) return null;
     
+    // For SuperAdmins, fetch everything
     if (isSuperAdmin) {
       return query(collection(db, 'maintenance_requests'), orderBy('createdAt', 'desc'));
-    } else {
-      return query(
-        collection(db, 'maintenance_requests'), 
-        where('residentId', '==', user.uid),
-        orderBy('createdAt', 'desc')
-      );
-    }
+    } 
+    
+    // For Residents, fetch only their own
+    return query(
+      collection(db, 'maintenance_requests'), 
+      where('residentId', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    );
   }, [db, user, isSuperAdmin, profileLoading]);
 
-  const { data: requests, loading: requestsLoading } = useCollection(requestsQuery);
+  const { data: requests, loading: requestsLoading, error: requestsError } = useCollection(requestsQuery);
+
+  // Handle unauthorized access or other errors
+  useEffect(() => {
+    if (requestsError) {
+      console.error('Data loading error:', requestsError);
+    }
+  }, [requestsError]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -150,7 +160,7 @@ export default function RepairsPage() {
         title: "Status Updated",
         description: `Request status changed to ${newStatus}.`,
       });
-    }).catch((serverError) => {
+    }).catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
         path: docRef.path,
         operation: 'update',
@@ -172,7 +182,7 @@ export default function RepairsPage() {
             description: "The maintenance record has been removed.",
           });
         })
-        .catch((serverError) => {
+        .catch(async (serverError) => {
           const permissionError = new FirestorePermissionError({
             path: docRef.path,
             operation: 'delete',
