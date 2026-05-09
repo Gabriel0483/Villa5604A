@@ -1,10 +1,11 @@
 
 "use client"
 
-import React, { useState, useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, addDoc, deleteDoc, doc, serverTimestamp, query, orderBy, updateDoc } from 'firebase/firestore';
-import { Plus, Trash2, User, Home, Loader2, ArrowLeft, Edit, Search, Banknote } from 'lucide-react';
+import { Plus, Trash2, User, Home, Loader2, ArrowLeft, Edit, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,18 +20,41 @@ import Link from 'next/link';
 
 export default function TenantsPage() {
   const db = useFirestore();
+  const router = useRouter();
+  const { user, loading: userLoading } = useUser();
   const { toast } = useToast();
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingTenant, setEditingTenant] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Use useMemoFirebase to stabilize the query reference and prevent infinite loops or slow fetching
+  // Stabilize the user profile query
+  const userProfileRef = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return doc(db, 'users', user.uid);
+  }, [db, user]);
+
+  const { data: profile, loading: profileLoading } = useDoc(userProfileRef);
+
+  const isSuperAdmin = useMemo(() => {
+    if (user?.email === 'rielmagpantay@gmail.com') return true;
+    if (user?.email === 'rielmagpantay@gmail.com@villa5604.app') return true;
+    return profile?.role === 'SuperAdmin';
+  }, [user, profile]);
+
+  // Security Redirect: If not an admin, go back to home
+  useEffect(() => {
+    if (!userLoading && !profileLoading && !isSuperAdmin) {
+      router.push('/');
+    }
+  }, [userLoading, profileLoading, isSuperAdmin, router]);
+
+  // CRITICAL: Only define the query if the user is an admin to prevent Permission Denied errors
   const tenantsQuery = useMemoFirebase(() => {
-    if (!db) return null;
-    // We order by createdAt to ensure the latest records appear first
+    if (!db || !isSuperAdmin) return null;
     return query(collection(db, 'tenants'), orderBy('createdAt', 'desc'));
-  }, [db]);
+  }, [db, isSuperAdmin]);
 
   const { data: tenants, loading: tenantsLoading } = useCollection(tenantsQuery);
 
@@ -59,12 +83,11 @@ export default function TenantsPage() {
     const rentAmountStr = formData.get('rentAmount') as string;
     const rentAmount = parseFloat(rentAmountStr);
 
-    // Basic validation to ensure data integrity before sending to Firestore
     if (!name || !email || !propertyAddress || isNaN(rentAmount)) {
       toast({
         variant: "destructive",
         title: "Validation Error",
-        description: "Please fill in all required fields with valid data.",
+        description: "Please fill in all required fields.",
       });
       return;
     }
@@ -82,13 +105,12 @@ export default function TenantsPage() {
     };
 
     if (editingTenant) {
-      // Non-blocking update mutation
       updateDoc(doc(db, 'tenants', editingTenant.id), tenantData)
         .then(() => {
           setIsDialogOpen(false);
           toast({
             title: "Tenant updated",
-            description: `${tenantData.name}'s records have been updated successfully.`,
+            description: `${tenantData.name}'s records updated.`,
           });
         })
         .catch(async (err) => {
@@ -101,14 +123,13 @@ export default function TenantsPage() {
         })
         .finally(() => setIsSubmitting(false));
     } else {
-      // Non-blocking create mutation
       const newTenant = { ...tenantData, createdAt: serverTimestamp() };
       addDoc(collection(db, 'tenants'), newTenant)
         .then(() => {
           setIsDialogOpen(false);
           toast({
             title: "Tenant added",
-            description: `${tenantData.name} has been successfully added to the registry.`,
+            description: `${tenantData.name} added to registry.`,
           });
         })
         .catch(async (err) => {
@@ -126,12 +147,11 @@ export default function TenantsPage() {
   const handleDeleteTenant = (tenantId: string, name: string) => {
     if (!db) return;
 
-    // Non-blocking delete mutation
     deleteDoc(doc(db, 'tenants', tenantId))
       .then(() => {
         toast({
           title: "Tenant removed",
-          description: `${name} has been removed from the system.`,
+          description: `${name} removed from system.`,
         });
       })
       .catch(async (err) => {
@@ -143,6 +163,17 @@ export default function TenantsPage() {
       });
   };
 
+  if (userLoading || profileLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-muted-foreground animate-pulse">Authenticating...</p>
+      </div>
+    );
+  }
+
+  if (!isSuperAdmin) return null;
+
   return (
     <div className="container mx-auto py-10 px-4 space-y-8 animate-in fade-in duration-500 max-w-7xl">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -151,14 +182,14 @@ export default function TenantsPage() {
             <ArrowLeft className="h-3 w-3 mr-1 group-hover:-translate-x-1 transition-transform" /> Back to Dashboard
           </Link>
           <h1 className="text-3xl font-bold tracking-tight text-primary">Tenant Management</h1>
-          <p className="text-muted-foreground">View, add, and update resident profiles securely stored in Firestore.</p>
+          <p className="text-muted-foreground">Securely manage resident lease profiles.</p>
         </div>
 
         <div className="flex items-center gap-3 w-full md:w-auto">
           <div className="relative flex-1 md:w-64">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by name or address..."
+              placeholder="Search registry..."
               className="pl-9 h-10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -173,7 +204,7 @@ export default function TenantsPage() {
           }}>
             <DialogTrigger asChild>
               <Button className="h-10 px-6 gap-2 bg-primary hover:bg-primary/90 shadow-sm" onClick={() => handleOpenDialog()}>
-                <Plus className="h-4 w-4" /> Add New Tenant
+                <Plus className="h-4 w-4" /> Add Tenant
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
@@ -181,7 +212,7 @@ export default function TenantsPage() {
                 <DialogHeader>
                   <DialogTitle>{editingTenant ? 'Edit Tenant' : 'Add Tenant'}</DialogTitle>
                   <DialogDescription>
-                    {editingTenant ? 'Update the details for this resident.' : 'Enter the details of the new tenant.'}
+                    Fill in the lease details for this resident.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-5 py-6">
@@ -212,12 +243,8 @@ export default function TenantsPage() {
                 </div>
                 <DialogFooter>
                   <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Cancel</Button>
-                  <Button type="submit" disabled={isSubmitting} className="min-w-[120px]">
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
-                      </>
-                    ) : (editingTenant ? 'Save Changes' : 'Add Tenant')}
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (editingTenant ? 'Save Changes' : 'Add Tenant')}
                   </Button>
                 </DialogFooter>
               </form>
@@ -226,26 +253,26 @@ export default function TenantsPage() {
         </div>
       </div>
 
-      <Card className="shadow-sm border-primary/5 overflow-hidden">
+      <Card className="shadow-sm border-primary/5">
         <CardHeader className="bg-slate-50/50">
           <CardTitle className="text-xl">Resident Registry</CardTitle>
           <CardDescription>
-            Managing {filteredTenants.length} residents in the database.
+            Active lease agreements in Villa 5604.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {tenantsLoading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               <Loader2 className="h-10 w-10 animate-spin text-primary/40" />
-              <p className="text-sm text-muted-foreground">Connecting to Firestore...</p>
+              <p className="text-sm text-muted-foreground">Fetching registry...</p>
             </div>
           ) : filteredTenants.length > 0 ? (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="w-[250px]">Resident Info</TableHead>
-                    <TableHead>Property Address</TableHead>
+                  <TableRow>
+                    <TableHead>Resident</TableHead>
+                    <TableHead>Property</TableHead>
                     <TableHead>Monthly Rent</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -255,21 +282,13 @@ export default function TenantsPage() {
                   {filteredTenants.map((tenant: any) => (
                     <TableRow key={tenant.id} className="group hover:bg-slate-50/80 transition-all duration-200">
                       <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-full bg-primary/5 flex items-center justify-center">
-                            <User className="h-4 w-4 text-primary" />
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="font-semibold text-slate-900">{tenant.name}</span>
-                            <span className="text-xs text-muted-foreground">{tenant.email}</span>
-                          </div>
+                        <div className="flex flex-col">
+                          <span className="font-semibold">{tenant.name}</span>
+                          <span className="text-xs text-muted-foreground">{tenant.email}</span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Home className="h-4 w-4 text-muted-foreground/60" />
-                          <span className="text-sm font-medium text-slate-700">{tenant.propertyAddress}</span>
-                        </div>
+                        <span className="text-sm">{tenant.propertyAddress}</span>
                       </TableCell>
                       <TableCell>
                         <div className="inline-flex items-center px-2 py-1 rounded-md bg-accent/10 text-accent-foreground font-bold text-sm">
@@ -278,26 +297,16 @@ export default function TenantsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={tenant.status === 'active' ? 'default' : 'secondary'} className="capitalize px-2.5 py-0.5 font-medium">
+                        <Badge variant={tenant.status === 'active' ? 'default' : 'secondary'}>
                           {tenant.status || 'active'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 text-primary hover:bg-primary/10"
-                            onClick={() => handleOpenDialog(tenant)}
-                          >
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => handleOpenDialog(tenant)}>
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                            onClick={() => handleDeleteTenant(tenant.id, tenant.name)}
-                          >
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteTenant(tenant.id, tenant.name)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -308,21 +317,8 @@ export default function TenantsPage() {
               </Table>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
-              <div className="p-5 bg-slate-50 rounded-full">
-                <Search className="h-10 w-10 text-slate-300" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900">No records found</h3>
-                <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                  {searchQuery ? `No results for "${searchQuery}". Try a different search term.` : 'Your resident registry is currently empty.'}
-                </p>
-              </div>
-              {!searchQuery && (
-                <Button onClick={() => handleOpenDialog()} variant="outline" className="mt-2">
-                  Add Your First Tenant
-                </Button>
-              )}
+            <div className="py-20 text-center text-muted-foreground">
+              No registry records found.
             </div>
           )}
         </CardContent>

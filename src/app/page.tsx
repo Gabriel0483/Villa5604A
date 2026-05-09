@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -51,20 +52,23 @@ export default function Home() {
 
   const { data: profile, loading: profileLoading } = useDoc(userProfileRef);
 
-  // Use useMemoFirebase to stabilize the query reference
-  const tenantsQuery = useMemoFirebase(() => {
-    if (!db) return null;
-    return query(collection(db, 'tenants'));
-  }, [db]);
-
-  const { data: tenants, loading: tenantsLoading } = useCollection(tenantsQuery);
-
   const isSuperAdmin = useMemo(() => {
     if (user?.email === 'rielmagpantay@gmail.com') return true;
+    // Also check if the login email (which might be a dummy domain) matches
+    if (user?.email === 'rielmagpantay@gmail.com@villa5604.app') return true;
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Calculate statistics - only relevant for SuperAdmin or for overall visibility
+  // Use useMemoFirebase to stabilize the query reference
+  // CRITICAL: Only define the query if the user is an admin to prevent Permission Denied errors for Residents
+  const tenantsQuery = useMemoFirebase(() => {
+    if (!db || !isSuperAdmin) return null;
+    return query(collection(db, 'tenants'));
+  }, [db, isSuperAdmin]);
+
+  const { data: tenants, loading: tenantsLoading } = useCollection(tenantsQuery);
+
+  // Calculate statistics - only relevant for SuperAdmin
   const stats = useMemo(() => {
     if (!tenants) return { count: 0, totalRent: 0 };
     return {
@@ -220,7 +224,7 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            {/* Tenant Registry - Only for SuperAdmin */}
+            {/* Tenant Registry - Restricted UI for Residents */}
             <Card className={!isSuperAdmin ? "opacity-60 border-dashed grayscale" : "hover:shadow-md transition-all border-primary/10"}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -235,9 +239,11 @@ export default function Home() {
                   }
                 </p>
                 {isSuperAdmin ? (
-                   <Button disabled variant="secondary" className="w-full gap-2">
-                   <Lock className="h-4 w-4" /> Coming Soon
-                 </Button>
+                   <Link href="/tenants">
+                     <Button variant="secondary" className="w-full gap-2">
+                       Enter Registry <ArrowRight className="ml-2 h-4 w-4" />
+                     </Button>
+                   </Link>
                 ) : (
                   <Button disabled variant="secondary" className="w-full gap-2">
                     <Lock className="h-4 w-4" /> Restricted
