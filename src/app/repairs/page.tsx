@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useMemo } from 'react';
@@ -14,7 +15,6 @@ import {
   Send,
   Droplets,
   Zap as ZapIcon,
-  Box,
   Construction,
   Filter,
   History
@@ -60,7 +60,11 @@ export default function RepairsPage() {
 
   const isSuperAdmin = useMemo(() => {
     if (!user || !profile) return false;
-    const adminEmails = ['rielmagpantay@gmail.com', 'room101@villa5604.app'];
+    const adminEmails = [
+      'rielmagpantay@gmail.com', 
+      'rielmagpantay@gmail.com@villa5604.app',
+      'room101@villa5604.app'
+    ];
     if (adminEmails.includes(user.email?.toLowerCase() || '')) return true;
     return profile.role === 'SuperAdmin';
   }, [user, profile]);
@@ -213,7 +217,6 @@ export default function RepairsPage() {
                       <SelectContent>
                         <SelectItem value="Plumbing">Plumbing (Water, Pipes, Drainage)</SelectItem>
                         <SelectItem value="Electrical">Electrical (Lights, Sockets, Wiring)</SelectItem>
-                        <SelectItem value="Appliance">Appliance (Kitchen, AC, Laundry)</SelectItem>
                         <SelectItem value="Structural">Structural (Walls, Windows, Doors)</SelectItem>
                         <SelectItem value="Other">Other</SelectItem>
                       </SelectContent>
@@ -310,7 +313,6 @@ export default function RepairsPage() {
                               <div className="flex items-center gap-1.5 text-xs">
                                 {request.category === 'Plumbing' && <Droplets className="h-3 w-3 text-blue-500" />}
                                 {request.category === 'Electrical' && <ZapIcon className="h-3 w-3 text-amber-500" />}
-                                {request.category === 'Appliance' && <Box className="h-3 w-3 text-slate-500" />}
                                 {request.category === 'Structural' && <Construction className="h-3 w-3 text-orange-500" />}
                                 {request.category}
                               </div>

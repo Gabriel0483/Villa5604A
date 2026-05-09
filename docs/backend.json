@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -43,7 +44,7 @@
       "properties": {
         "residentId": { "type": "string", "description": "ID of the resident who reported the issue" },
         "residentName": { "type": "string", "description": "Full name of the resident" },
-        "category": { "type": "string", "enum": ["Plumbing", "Electrical", "Appliance", "Structural", "Other"], "description": "Type of maintenance issue" },
+        "category": { "type": "string", "enum": ["Plumbing", "Electrical", "Structural", "Other"], "description": "Type of maintenance issue" },
         "description": { "type": "string", "description": "Detailed description of the problem" },
         "urgency": { "type": "string", "enum": ["Low", "Medium", "High", "Emergency"], "description": "How critical the repair is" },
         "status": { "type": "string", "enum": ["Pending", "Scheduled", "In Progress", "Resolved", "Cancelled"], "description": "Current status of the request" },
