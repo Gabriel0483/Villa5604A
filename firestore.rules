@@ -14,10 +14,10 @@ service cloud.firestore {
         'room101@villa5604.app',
         'admin001@villa5604.app'
       ];
-      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
       return isSignedIn() && (
         request.auth.token.email.lower() in adminEmails ||
-        (exists(userPath) && get(userPath).data.role == 'SuperAdmin')
+        userDoc.role == 'SuperAdmin'
       );
     }
 

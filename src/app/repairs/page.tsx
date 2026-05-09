@@ -160,14 +160,7 @@ export default function RepairsPage() {
   };
 
   const handleDeleteRequest = async (requestId: string) => {
-    if (!db || !isSuperAdmin) {
-      toast({
-        variant: "destructive",
-        title: "Action Denied",
-        description: "Only administrators can delete requests.",
-      });
-      return;
-    }
+    if (!db || !isSuperAdmin) return;
     
     if (confirm('Are you sure you want to permanently delete this maintenance request?')) {
       const docRef = doc(db, 'maintenance_requests', requestId);
