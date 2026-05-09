@@ -35,6 +35,21 @@
         "monthlyRent": { "type": "number", "description": "Monthly rent amount assigned to this resident" }
       },
       "required": ["userCode", "role", "firstName", "lastName"]
+    },
+    "UtilityBill": {
+      "title": "Utility Bill",
+      "description": "Monthly utility expenses for the shared household",
+      "type": "object",
+      "properties": {
+        "monthYear": { "type": "string", "description": "Month and Year of the bill (YYYY-MM)" },
+        "wifi": { "type": "number", "description": "Wifi bill amount" },
+        "water": { "type": "number", "description": "Water bill amount" },
+        "electricity": { "type": "number", "description": "Electricity bill amount" },
+        "miscellaneous": { "type": "number", "description": "Other shared expenses" },
+        "total": { "type": "number", "description": "Sum of all utilities" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["monthYear", "wifi", "water", "electricity"]
     }
   },
   "auth": {
@@ -48,6 +63,10 @@
     "/users/{userId}": {
       "schema": "#/entities/User",
       "description": "Collection of user profiles"
+    },
+    "/utility_bills/{billId}": {
+      "schema": "#/entities/UtilityBill",
+      "description": "Monthly utility bill records"
     }
   }
 }

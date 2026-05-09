@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -8,15 +9,15 @@ import {
   ArrowRight, 
   Users, 
   LayoutDashboard, 
-  TrendingUp,
   Loader2,
   LogOut,
   LogIn,
   User as UserIcon,
   ShieldCheck,
   Settings,
-  Lock,
-  UserCheck
+  UserCheck,
+  Zap,
+  Calculator
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -31,7 +32,6 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { cn } from '@/lib/utils';
 
 export default function Home() {
   const db = useFirestore();
@@ -214,6 +214,25 @@ export default function Home() {
               </Card>
             )}
 
+            {/* Utility Management - Available to SuperAdmin */}
+            {isSuperAdmin && (
+              <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/utilities')}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Zap className="h-5 w-5 text-primary" /> Utility Management
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Record and update monthly bills for Wifi, Water, Electricity, and more.
+                  </p>
+                  <Button variant="outline" className="w-full">
+                    Manage Utilities <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Profile Management - Available to All */}
             <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/profile')}>
               <CardHeader>
@@ -231,19 +250,19 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            {/* Property Maintenance - Placeholder for All */}
+            {/* Pro-Rata Calculator - Placeholder */}
             <Card className="opacity-60 border-dashed border-2 grayscale">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <LayoutDashboard className="h-5 w-5" /> Maintenance hub
+                  <Calculator className="h-5 w-5" /> Pro-Rata Allocation
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  View property documents, common area schedules, and repair statuses.
+                  Automatically distribute utility costs among residents based on occupancy periods.
                 </p>
                 <Button disabled variant="secondary" className="w-full gap-2">
-                  <Lock className="h-4 w-4" /> Coming Soon
+                  Coming Soon
                 </Button>
               </CardContent>
             </Card>
