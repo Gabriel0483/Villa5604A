@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -22,7 +21,8 @@ import {
   Lightbulb,
   Plus,
   Receipt,
-  FileText
+  FileText,
+  Cake
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -374,6 +374,25 @@ export default function Home() {
                   </p>
                   <Button variant="outline" className="w-full">
                     Generate Statements <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Birthday Greetings - Available to SuperAdmin */}
+            {isSuperAdmin && (
+              <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/birthdays')}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Cake className="h-5 w-5 text-primary" /> Birthday Greetings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Track upcoming resident birthdays and send personalized AI-powered greetings.
+                  </p>
+                  <Button variant="outline" className="w-full">
+                    View Birthdays <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </CardContent>
               </Card>
