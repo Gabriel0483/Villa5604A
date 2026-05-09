@@ -14,12 +14,10 @@ import {
   Save, 
   History,
   Calendar,
-  MoreVertical,
   Edit2,
   Trash2,
-  Search,
   CheckCircle2,
-  Info
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +28,16 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, query, doc, setDoc, deleteDoc, serverTimestamp, orderBy } from 'firebase/firestore';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
@@ -41,7 +49,9 @@ export default function UtilitiesPage() {
   const { toast } = useToast();
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isAddingNew, setIsAddingNew] = useState(false);
+  const [billToDelete, setBillToDelete] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     monthYear: '',
@@ -108,7 +118,7 @@ export default function UtilitiesPage() {
     const misc = parseFloat(formData.miscellaneous) || 0;
     const total = wifi + water + electricity + misc;
 
-    // Logic: If the month being saved is in the past, it should be released automatically
+    // Auto-release logic for historical trends (past months)
     const now = new Date();
     const currentMonthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const status = formData.monthYear < currentMonthYear ? 'Released' : 'Draft';
@@ -129,10 +139,8 @@ export default function UtilitiesPage() {
     setDoc(billRef, billData, { merge: true })
       .then(() => {
         toast({
-          title: status === 'Released' ? "Historical Bill Recorded" : "Bill Drafted",
-          description: status === 'Released' 
-            ? `Expenses for ${formData.monthYear} have been recorded and released for trend analysis.`
-            : `Draft for ${formData.monthYear} has been saved successfully.`,
+          title: status === 'Released' ? "Historical Data Recorded" : "Bill Drafted",
+          description: `Statement for ${formData.monthYear} has been saved.`,
         });
         setIsAddingNew(false);
         setFormData({ monthYear: '', wifi: '', water: '', electricity: '', miscellaneous: '' });
@@ -161,25 +169,30 @@ export default function UtilitiesPage() {
     setIsAddingNew(true);
   };
 
-  const handleDeleteBill = async (billId: string) => {
-    if (!db || !isSuperAdmin) return;
+  const confirmDeleteBill = async () => {
+    if (!db || !isSuperAdmin || !billToDelete) return;
     
-    if (confirm('Are you sure you want to delete this bill record?')) {
-      deleteDoc(doc(db, 'utility_bills', billId))
-        .then(() => {
-          toast({
-            title: "Bill Deleted",
-            description: "The utility record has been removed.",
-          });
-        })
-        .catch(async (err) => {
-          const permissionError = new FirestorePermissionError({
-            path: `utility_bills/${billId}`,
-            operation: 'delete'
-          });
-          errorEmitter.emit('permission-error', permissionError);
+    const id = billToDelete;
+    setBillToDelete(null);
+    setIsDeleting(true);
+
+    deleteDoc(doc(db, 'utility_bills', id))
+      .then(() => {
+        toast({
+          title: "Record Deleted",
+          description: "The utility bill has been permanently removed.",
         });
-    }
+      })
+      .catch(async (err) => {
+        const permissionError = new FirestorePermissionError({
+          path: `utility_bills/${id}`,
+          operation: 'delete'
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      })
+      .finally(() => {
+        setIsDeleting(false);
+      });
   };
 
   if (userLoading || profileLoading) {
@@ -203,10 +216,10 @@ export default function UtilitiesPage() {
             <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
               <Zap className="h-8 w-8 text-primary" /> Utility Management
             </h1>
-            <p className="text-muted-foreground">Log and track monthly shared expenses for Villa 5604.</p>
+            <p className="text-muted-foreground">Log and track shared expenses for Villa 5604.</p>
           </div>
           
-          <Button onClick={() => setIsAddingNew(!isAddingNew)} className="gap-2">
+          <Button onClick={() => setIsAddingNew(!isAddingNew)} className="gap-2 shadow-sm">
             {isAddingNew ? <History className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             {isAddingNew ? "View History" : "Add New Bill"}
           </Button>
@@ -216,7 +229,7 @@ export default function UtilitiesPage() {
           <Card className="shadow-lg border-t-4 border-primary">
             <CardHeader>
               <CardTitle className="text-xl">Record Monthly Expenses</CardTitle>
-              <CardDescription>Enter the total amounts for each utility category in OMR. Past months are automatically released.</CardDescription>
+              <CardDescription>Records for past months are automatically released for trend analysis.</CardDescription>
             </CardHeader>
             <form onSubmit={handleSaveBill}>
               <CardContent className="space-y-6">
@@ -322,21 +335,21 @@ export default function UtilitiesPage() {
                   <Button type="button" variant="outline" onClick={() => setIsAddingNew(false)}>Cancel</Button>
                   <Button type="submit" disabled={isSaving} className="gap-2">
                     {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    Save Monthly Bill
+                    Save Record
                   </Button>
                 </div>
               </CardFooter>
             </form>
           </Card>
         ) : (
-          <Card className="shadow-lg border-none">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
+          <Card className="shadow-lg border-none overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between pb-7">
               <div>
                 <CardTitle>Billing History</CardTitle>
-                <CardDescription>Review and manage historical utility expenses.</CardDescription>
+                <CardDescription>Manage your recorded utility expenses.</CardDescription>
               </div>
               <Badge variant="outline" className="text-primary font-semibold">
-                {bills?.length || 0} Records
+                {bills?.length || 0} Total
               </Badge>
             </CardHeader>
             <CardContent>
@@ -348,7 +361,6 @@ export default function UtilitiesPage() {
                       <TableHead>Wifi</TableHead>
                       <TableHead>Water</TableHead>
                       <TableHead>Electricity</TableHead>
-                      <TableHead>Misc</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="font-bold text-primary">Total</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
@@ -357,20 +369,19 @@ export default function UtilitiesPage() {
                   <TableBody>
                     {billsLoading ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="h-24 text-center">
+                        <TableCell colSpan={7} className="h-24 text-center">
                           <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
                         </TableCell>
                       </TableRow>
                     ) : bills && bills.length > 0 ? (
                       bills.map((bill: any) => (
-                        <TableRow key={bill.id} className="hover:bg-slate-50/50 transition-colors">
+                        <TableRow key={bill.id} className="hover:bg-slate-50/50 transition-colors group">
                           <TableCell className="font-medium">
                             {new Date(bill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                           </TableCell>
                           <TableCell>{bill.wifi.toFixed(3)}</TableCell>
                           <TableCell>{bill.water.toFixed(3)}</TableCell>
                           <TableCell>{bill.electricity.toFixed(3)}</TableCell>
-                          <TableCell>{(bill.miscellaneous || 0).toFixed(3)}</TableCell>
                           <TableCell>
                             <Badge variant={bill.status === 'Released' ? 'default' : 'secondary'} className="text-[10px]">
                               {bill.status}
@@ -381,7 +392,7 @@ export default function UtilitiesPage() {
                             <Button variant="ghost" size="icon" onClick={() => handleEditBill(bill)}>
                               <Edit2 className="h-4 w-4 text-slate-500" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDeleteBill(bill.id)}>
+                            <Button variant="ghost" size="icon" onClick={() => setBillToDelete(bill.id)}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </TableCell>
@@ -389,7 +400,7 @@ export default function UtilitiesPage() {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                        <TableCell colSpan={7} className="h-24 text-center text-muted-foreground italic">
                           No billing records found.
                         </TableCell>
                       </TableRow>
@@ -401,6 +412,31 @@ export default function UtilitiesPage() {
           </Card>
         )}
       </div>
+
+      <AlertDialog open={!!billToDelete} onOpenChange={(open) => !open && !isDeleting && setBillToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Billing Record?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action is permanent and will remove the expenses for {billToDelete} from the system and all resident trends.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDeleteBill();
+              }} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+            >
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Delete Permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
