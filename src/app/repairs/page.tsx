@@ -36,7 +36,7 @@ import {
   DialogTrigger 
 } from "@/components/ui/dialog";
 import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -73,21 +73,21 @@ export default function RepairsPage() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Fetch Requests
+  // Fetch Requests - Wait for profile to load to avoid permission flickering
   const repairsQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
-    // We wait for profile to potentially verify admin status
-    // but the resident query is safe regardless.
+    if (!db || !user || profileLoading) return null;
+    
     if (isSuperAdmin) {
       return query(collection(db, 'maintenance_requests'), orderBy('createdAt', 'desc'));
     } else {
+      // Resident query must be filtered to match security rules
       return query(
         collection(db, 'maintenance_requests'), 
         where('residentId', '==', user.uid),
         orderBy('createdAt', 'desc')
       );
     }
-  }, [db, user, isSuperAdmin]);
+  }, [db, user, isSuperAdmin, profileLoading]);
 
   const { data: requests, loading: requestsLoading } = useCollection(repairsQuery);
 
@@ -108,13 +108,13 @@ export default function RepairsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!db || !user || !profile) return;
+    if (!db || !user) return;
 
     setIsSubmitting(true);
 
     const requestData = {
       residentId: user.uid,
-      residentName: `${profile.firstName} ${profile.lastName}`.trim(),
+      residentName: profile ? `${profile.firstName} ${profile.lastName}`.trim() : (user.email?.split('@')[0] || 'Resident'),
       ...formData,
       status: 'Pending',
       createdAt: serverTimestamp(),
@@ -135,7 +135,7 @@ export default function RepairsPage() {
           path: 'maintenance_requests',
           operation: 'create',
           requestResourceData: requestData
-        });
+        } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
       })
       .finally(() => {
@@ -159,7 +159,7 @@ export default function RepairsPage() {
         path: `maintenance_requests/${requestId}`,
         operation: 'update',
         requestResourceData: { status: newStatus }
-      });
+      } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', permissionError);
     });
   };
