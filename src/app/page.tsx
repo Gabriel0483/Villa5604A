@@ -96,7 +96,6 @@ export default function Home() {
   const { data: latestBills, loading: billsLoading } = useCollection(latestBillQuery);
   const latestBill = latestBills?.[0] as any;
 
-  // Fetch residents count for collection awareness
   const residentsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(collection(db, 'users'), where('role', '==', 'Resident'));
@@ -124,7 +123,6 @@ export default function Home() {
 
   const isCurrentPaid = latestBill?.paidResidents?.includes(user.uid);
   
-  // Collection Awareness Stats
   const collectionProgress = latestBill && residents ? {
     paidCount: latestBill.paidResidents?.length || 0,
     totalCount: residents.length,
@@ -204,7 +202,7 @@ export default function Home() {
                       <CardTitle className="text-xl font-bold flex items-center gap-2">
                         <Receipt className="h-5 w-5 text-primary" /> Current Bill Snapshot
                       </CardTitle>
-                      <CardDescription>Latest released household utility consumption.</CardDescription>
+                      <CardDescription>Latest active household utility cycle.</CardDescription>
                     </div>
                     {latestBill && (
                       <div className="flex items-center gap-2">
@@ -264,7 +262,7 @@ export default function Home() {
                           </div>
                           <Progress value={collectionProgress.percentage} className="h-2 bg-slate-200" />
                           <p className="text-[10px] text-muted-foreground text-center">
-                            This tracker shows the collective progress of payments for this billing period.
+                            Collective progress of all payments for this conceptual billing cycle.
                           </p>
                         </div>
                       )}
@@ -281,7 +279,7 @@ export default function Home() {
                     </div>
                   ) : (
                     <div className="py-8 text-center text-muted-foreground italic">
-                      No billing records have been published yet for this month.
+                      No active billing snapshot has been published for the community yet.
                     </div>
                   )}
                 </CardContent>
@@ -339,9 +337,9 @@ export default function Home() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      Record the active monthly bill for the dashboard snapshot.
+                      Update the active cycle snapshot for the resident dashboard.
                     </p>
-                    <Button variant="outline" className="w-full">Manage Cycle <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                    <Button variant="outline" className="w-full">Manage Snapshot <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
 

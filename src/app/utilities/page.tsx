@@ -63,7 +63,6 @@ export default function CurrentUtilityPage() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Load the current ACTIVE snapshot into the form
   const activeSnapshotQuery = useMemoFirebase(() => {
     if (!db || !isSuperAdmin) return null;
     return query(
@@ -86,15 +85,14 @@ export default function CurrentUtilityPage() {
         electricity: bill.electricity?.toString() || '',
         miscellaneous: bill.miscellaneous?.toString() || '0'
       });
-    } else {
-      // Fallback if no snapshot is set yet
+    } else if (!billsLoading) {
       const now = new Date();
       setFormData(prev => ({
         ...prev,
         monthYear: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
       }));
     }
-  }, [activeSnapshots]);
+  }, [activeSnapshots, billsLoading]);
 
   useEffect(() => {
     if (!userLoading && !profileLoading) {
@@ -188,7 +186,7 @@ export default function CurrentUtilityPage() {
         <Card className="shadow-lg border-t-4 border-primary">
           <CardHeader>
             <CardTitle className="text-xl">Active Cycle Details</CardTitle>
-            <CardDescription>Configure the Current Billing Month values.</CardDescription>
+            <CardDescription>Configure values for the conceptual Current Billing Month.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -206,7 +204,7 @@ export default function CurrentUtilityPage() {
                     required 
                   />
                 </div>
-                <p className="text-[10px] text-muted-foreground">Pick the month that represents the current active billing period.</p>
+                <p className="text-[10px] text-muted-foreground">The snapshot will follow this selected month regardless of the current date.</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="wifi">Wifi Total (OMR)</Label>
@@ -244,7 +242,7 @@ export default function CurrentUtilityPage() {
             {formData.monthYear && (
               <div className="bg-primary/5 p-6 rounded-xl border border-primary/10 flex flex-col md:flex-row justify-between items-center gap-4">
                 <div className="text-center md:text-left">
-                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Snapshot Total</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Snapshot Total ({formData.monthYear})</p>
                   <p className="text-3xl font-black text-primary">
                     {(parseFloat(formData.wifi || '0') + parseFloat(formData.water || '0') + parseFloat(formData.electricity || '0') + parseFloat(formData.miscellaneous || '0')).toFixed(3)} OMR
                   </p>
@@ -263,7 +261,7 @@ export default function CurrentUtilityPage() {
           <CardFooter className="bg-slate-50 border-t py-4 justify-between items-center">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <AlertCircle className="h-4 w-4" />
-              The "Current Snapshot" is purely for dashboard awareness and does not release official statements.
+              The "Current Snapshot" is purely for dashboard awareness.
             </div>
           </CardFooter>
         </Card>
