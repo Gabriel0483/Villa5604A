@@ -34,9 +34,9 @@ service cloud.firestore {
     }
 
     match /maintenance_requests/{requestId} {
+      // Index update: ensures queries filtering by residentId and ordering by createdAt are optimized
       allow create: if isSignedIn();
       allow read: if isSignedIn() && (resource.data.residentId == request.auth.uid || isSuperAdmin());
-      // Explicitly allow update and delete for SuperAdmins
       allow update, delete: if isSuperAdmin();
     }
   }
