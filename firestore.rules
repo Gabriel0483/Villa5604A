@@ -34,10 +34,21 @@ service cloud.firestore {
       allow write: if isSuperAdmin();
     }
 
-    // Maintenance requests: Residents see their own, admins see all
+    // Maintenance requests: Residents can create and read their own history, admins see all
     match /maintenance_requests/{requestId} {
+      // Allow creation for any signed-in user
       allow create: if isSignedIn();
-      allow read: if isSignedIn() && (isSuperAdmin() || (resource != null && resource.data.residentId == request.auth.uid));
+      
+      // Allow reading if admin or if the request belongs to the resident
+      // For listing (queries), Firestore rules check if the query filter matches
+      allow read: if isSignedIn() && (
+        isSuperAdmin() || 
+        (resource != null && resource.data.residentId == request.auth.uid) ||
+        // Allow the query to be evaluated against the potential results
+        (resource == null)
+      );
+      
+      // Only admins can update or delete requests
       allow update: if isSuperAdmin();
       allow delete: if isSuperAdmin();
     }

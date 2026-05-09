@@ -35,7 +35,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, query, doc, addDoc, updateDoc, serverTimestamp, orderBy, where } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -70,7 +70,7 @@ export default function RepairsPage() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Fetch Requests - Defensive check to prevent unauthorized list attempts while profile loads
+  // Fetch Requests - Defensive check to ensure profile is loaded
   const requestsQuery = useMemoFirebase(() => {
     if (!db || !user || profileLoading) return null;
     
@@ -78,6 +78,7 @@ export default function RepairsPage() {
     if (isSuperAdmin) {
       return query(baseQuery, orderBy('createdAt', 'desc'));
     } else {
+      // Residents can only query their own requests
       return query(baseQuery, where('residentId', '==', user.uid), orderBy('createdAt', 'desc'));
     }
   }, [db, user, isSuperAdmin, profileLoading]);
@@ -122,7 +123,7 @@ export default function RepairsPage() {
           path: 'maintenance_requests',
           operation: 'create',
           requestResourceData: requestData
-        });
+        } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
       })
       .finally(() => {
@@ -150,7 +151,7 @@ export default function RepairsPage() {
         path: `maintenance_requests/${requestId}`,
         operation: 'update',
         requestResourceData: updates
-      });
+      } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', permissionError);
     });
   };
