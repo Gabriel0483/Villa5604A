@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -284,7 +285,7 @@ export default function ProfilePage() {
                   <CardDescription>Details of your assigned room and rent.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <span className="text-xs text-muted-foreground uppercase font-semibold">Assigned Unit</span>
                       <p className="text-lg font-bold text-slate-900">{profile?.roomUnit || 'Pending'}</p>
@@ -293,12 +294,6 @@ export default function ProfilePage() {
                       <span className="text-xs text-muted-foreground uppercase font-semibold">Monthly Rent</span>
                       <p className="text-lg font-bold text-primary">
                         {profile?.monthlyRent ? `${profile.monthlyRent.toLocaleString()} OMR` : 'Contact Admin'}
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-xs text-muted-foreground uppercase font-semibold">Billing Days</span>
-                      <p className="text-lg font-bold text-slate-700 flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-slate-400" /> {profile?.billingDays ?? 30} days
                       </p>
                     </div>
                   </div>
