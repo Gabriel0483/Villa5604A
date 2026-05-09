@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Tenant": {
@@ -29,7 +30,9 @@
         "bloodType": { "type": "string", "enum": ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"], "description": "Blood type for medical emergencies" },
         "emergencyContact": { "type": "string", "description": "Emergency contact phone number" },
         "role": { "type": "string", "enum": ["SuperAdmin", "Resident"], "description": "Access level" },
-        "tenantId": { "type": "string", "description": "Reference to tenant record if role is Resident" }
+        "tenantId": { "type": "string", "description": "Reference to tenant record if role is Resident" },
+        "roomUnit": { "type": "string", "description": "Assigned room or unit number" },
+        "monthlyRent": { "type": "number", "description": "Monthly rent amount assigned to this resident" }
       },
       "required": ["userCode", "role", "firstName", "lastName"]
     }

@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -19,7 +20,10 @@ import {
   Heart,
   KeyRound,
   Eye,
-  EyeOff
+  EyeOff,
+  Home,
+  DollarSign,
+  Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -271,6 +275,32 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* My Profile Section */}
           <div className="lg:col-span-2 space-y-8">
+            {/* Lease Info for Residents */}
+            {!isSuperAdmin && (
+              <Card className="shadow-lg border-t-4 border-accent bg-accent/5">
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold flex items-center gap-2">
+                    <Home className="h-5 w-5 text-accent" /> Lease Information
+                  </CardTitle>
+                  <CardDescription>Details of your assigned room and rent.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground uppercase font-semibold">Assigned Unit</span>
+                      <p className="text-lg font-bold text-slate-900">{profile?.roomUnit || 'Pending Assignment'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground uppercase font-semibold">Monthly Rent</span>
+                      <p className="text-lg font-bold text-primary">
+                        {profile?.monthlyRent ? `$${profile.monthlyRent.toLocaleString()}` : 'Contact Admin'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Card className="shadow-lg border-t-4 border-primary">
               <CardHeader className="bg-white border-b pb-6">
                 <div className="flex items-center space-x-4">
@@ -521,7 +551,7 @@ export default function ProfilePage() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-xs text-muted-foreground">
-                      Villa 5604 uses industry-standard encryption to protect your data. Your blood type and emergency contact are vital for safety measures.
+                      Villa 5604 uses industry-standard encryption to protect your data. Your assigned Room Unit and Rent are set by the management team.
                     </p>
                   </CardContent>
                 </Card>

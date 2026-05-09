@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -18,7 +19,9 @@ import {
   Loader2,
   Filter,
   MoreHorizontal,
-  ChevronRight
+  ChevronRight,
+  Home,
+  DollarSign
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -75,7 +78,9 @@ export default function TenantRegistryPage() {
     mobile: '',
     personalEmail: '',
     bloodType: '',
-    emergencyContact: ''
+    emergencyContact: '',
+    roomUnit: '',
+    monthlyRent: ''
   });
 
   // Check if user is SuperAdmin
@@ -131,7 +136,8 @@ export default function TenantRegistryPage() {
     return residents.filter(r => 
       `${r.firstName} ${r.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.mobile?.includes(searchTerm) ||
-      r.id?.toLowerCase().includes(searchTerm.toLowerCase())
+      r.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.roomUnit?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [residents, searchTerm]);
 
@@ -144,7 +150,9 @@ export default function TenantRegistryPage() {
       mobile: resident.mobile || '',
       personalEmail: resident.personalEmail || '',
       bloodType: resident.bloodType || '',
-      emergencyContact: resident.emergencyContact || ''
+      emergencyContact: resident.emergencyContact || '',
+      roomUnit: resident.roomUnit || '',
+      monthlyRent: resident.monthlyRent?.toString() || ''
     });
     setIsEditDialogOpen(true);
   };
@@ -165,6 +173,7 @@ export default function TenantRegistryPage() {
     const updates = {
       ...editFormData,
       name: `${editFormData.firstName} ${editFormData.lastName}`.trim(),
+      monthlyRent: editFormData.monthlyRent ? parseFloat(editFormData.monthlyRent) : 0,
       updatedAt: serverTimestamp()
     };
 
@@ -212,14 +221,14 @@ export default function TenantRegistryPage() {
               <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Dashboard
             </Link>
             <h1 className="text-3xl font-bold text-primary tracking-tight">Tenant Registry</h1>
-            <p className="text-muted-foreground">Manage resident profiles and contact information.</p>
+            <p className="text-muted-foreground">Manage resident profiles, units, and rent assignments.</p>
           </div>
           
           <div className="flex items-center gap-2 bg-white p-1 rounded-lg border shadow-sm">
             <div className="relative">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input 
-                placeholder="Search residents..." 
+                placeholder="Search name or room..." 
                 className="pl-9 w-[200px] md:w-[300px] border-none focus-visible:ring-0"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -242,17 +251,18 @@ export default function TenantRegistryPage() {
               <Table>
                 <TableHeader className="bg-slate-50/50">
                   <TableRow>
-                    <TableHead className="w-[250px]">Resident Name</TableHead>
+                    <TableHead className="w-[200px]">Resident Name</TableHead>
+                    <TableHead>Room Unit</TableHead>
+                    <TableHead>Monthly Rent</TableHead>
                     <TableHead>Contact Info</TableHead>
                     <TableHead>Blood Type</TableHead>
-                    <TableHead>Birth Date</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {residentsLoading ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="h-24 text-center">
+                      <TableCell colSpan={6} className="h-24 text-center">
                         <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
                       </TableCell>
                     </TableRow>
@@ -271,17 +281,30 @@ export default function TenantRegistryPage() {
                           </div>
                         </TableCell>
                         <TableCell>
+                          {resident.roomUnit ? (
+                            <Badge variant="secondary" className="gap-1.5">
+                              <Home className="h-3 w-3" /> {resident.roomUnit}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground italic text-xs">Unassigned</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-semibold text-primary">
+                          {resident.monthlyRent ? (
+                            <div className="flex items-center gap-1">
+                              <DollarSign className="h-3.5 w-3.5" />
+                              {resident.monthlyRent.toLocaleString()}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground italic text-xs">Not set</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
                           <div className="flex flex-col gap-1">
                             <div className="flex items-center gap-1.5 text-xs">
                               <Phone className="h-3 w-3 text-muted-foreground" />
                               {resident.mobile || 'No mobile'}
                             </div>
-                            {resident.personalEmail && (
-                              <div className="flex items-center gap-1.5 text-xs">
-                                <Mail className="h-3 w-3 text-muted-foreground" />
-                                {resident.personalEmail}
-                              </div>
-                            )}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -294,9 +317,6 @@ export default function TenantRegistryPage() {
                             </Badge>
                           ) : '-'}
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {resident.dob || 'Not provided'}
-                        </TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" onClick={() => handleEditClick(resident)} className="gap-2">
                             <Edit3 className="h-4 w-4" /> Manage
@@ -306,7 +326,7 @@ export default function TenantRegistryPage() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                         No residents found matching your search.
                       </TableCell>
                     </TableRow>
@@ -327,61 +347,84 @@ export default function TenantRegistryPage() {
                 <UserCircle className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <DialogTitle>Edit Resident Profile</DialogTitle>
+                <DialogTitle>Manage Resident Account</DialogTitle>
                 <DialogDescription>
-                  Updating information for {selectedUser?.firstName} {selectedUser?.lastName}
+                  Updating profile and lease details for {selectedUser?.firstName} {selectedUser?.lastName}
                 </DialogDescription>
               </div>
             </div>
           </DialogHeader>
-          <div className="p-6 space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
-                <Input id="firstName" name="firstName" value={editFormData.firstName} onChange={handleEditFormChange} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input id="lastName" name="lastName" value={editFormData.lastName} onChange={handleEditFormChange} />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="dob">Date of Birth</Label>
-                <Input id="dob" name="dob" type="date" value={editFormData.dob} onChange={handleEditFormChange} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="mobile">Mobile Number</Label>
-                <Input id="mobile" name="mobile" value={editFormData.mobile} onChange={handleEditFormChange} />
+          <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-primary uppercase tracking-wider">Lease Assignment</h3>
+              <div className="grid grid-cols-2 gap-4 bg-primary/5 p-4 rounded-lg border border-primary/10">
+                <div className="space-y-2">
+                  <Label htmlFor="roomUnit" className="text-primary">Room / Unit Number</Label>
+                  <div className="relative">
+                    <Home className="absolute left-3 top-2.5 h-4 w-4 text-primary/60" />
+                    <Input id="roomUnit" name="roomUnit" value={editFormData.roomUnit} onChange={handleEditFormChange} className="pl-10 border-primary/20" placeholder="e.g. 101" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="monthlyRent" className="text-primary">Monthly Rent Amount</Label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-primary/60" />
+                    <Input id="monthlyRent" name="monthlyRent" type="number" value={editFormData.monthlyRent} onChange={handleEditFormChange} className="pl-10 border-primary/20" placeholder="0.00" />
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="personalEmail">Email Address</Label>
-                <Input id="personalEmail" name="personalEmail" type="email" value={editFormData.personalEmail} onChange={handleEditFormChange} />
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Personal Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input id="firstName" name="firstName" value={editFormData.firstName} onChange={handleEditFormChange} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input id="lastName" name="lastName" value={editFormData.lastName} onChange={handleEditFormChange} />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="bloodType">Blood Type</Label>
-                <Select value={editFormData.bloodType} onValueChange={(val) => handleSelectChange('bloodType', val)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(type => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="emergencyContact">Emergency Contact Number</Label>
-              <div className="relative">
-                <Heart className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input id="emergencyContact" name="emergencyContact" className="pl-10" value={editFormData.emergencyContact} onChange={handleEditFormChange} />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="dob">Date of Birth</Label>
+                  <Input id="dob" name="dob" type="date" value={editFormData.dob} onChange={handleEditFormChange} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mobile">Mobile Number</Label>
+                  <Input id="mobile" name="mobile" value={editFormData.mobile} onChange={handleEditFormChange} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="personalEmail">Email Address</Label>
+                  <Input id="personalEmail" name="personalEmail" type="email" value={editFormData.personalEmail} onChange={handleEditFormChange} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bloodType">Blood Type</Label>
+                  <Select value={editFormData.bloodType} onValueChange={(val) => handleSelectChange('bloodType', val)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(type => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="emergencyContact">Emergency Contact Number</Label>
+                <div className="relative">
+                  <Heart className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input id="emergencyContact" name="emergencyContact" className="pl-10" value={editFormData.emergencyContact} onChange={handleEditFormChange} />
+                </div>
               </div>
             </div>
           </div>
