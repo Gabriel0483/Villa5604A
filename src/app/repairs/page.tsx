@@ -38,6 +38,7 @@ import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@
 import { collection, query, doc, addDoc, updateDoc, serverTimestamp, orderBy, where } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
 export default function RepairsPage() {

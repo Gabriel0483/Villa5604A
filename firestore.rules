@@ -1,5 +1,5 @@
 
-rules_version='2'
+rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -8,22 +8,21 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Helper function to get the current user's role from Firestore
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-
     // Helper function to check if the user is a SuperAdmin
     function isSuperAdmin() {
+      let adminEmails = [
+        'rielmagpantay@gmail.com',
+        'rielmagpantay@gmail.com@villa5604.app',
+        'room101@villa5604.app'
+      ];
+      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
       return isSignedIn() && (
-        request.auth.token.email == 'rielmagpantay@gmail.com' ||
-        request.auth.token.email == 'rielmagpantay@gmail.com@villa5604.app' ||
-        request.auth.token.email == 'room101@villa5604.app' ||
-        getUserData().role == 'SuperAdmin'
+        request.auth.token.email in adminEmails ||
+        (exists(userPath) && get(userPath).data.role == 'SuperAdmin')
       );
     }
 
-    // Tenant records
+    // Tenant records (Administrative only)
     match /tenants/{tenantId} {
       allow read, write: if isSuperAdmin();
     }
@@ -43,8 +42,9 @@ service cloud.firestore {
     // Maintenance requests
     match /maintenance_requests/{requestId} {
       allow create: if isSignedIn();
-      allow read: if isSuperAdmin() || (isSignedIn() && request.resource.data.residentId == request.auth.uid || resource.data.residentId == request.auth.uid);
-      allow update, delete: if isSuperAdmin();
+      allow read: if isSignedIn() && (isSuperAdmin() || resource.data.residentId == request.auth.uid);
+      allow update: if isSuperAdmin();
+      allow delete: if isSuperAdmin();
     }
   }
 }
