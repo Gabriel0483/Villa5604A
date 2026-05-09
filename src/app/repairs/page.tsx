@@ -13,11 +13,9 @@ import {
   AlertTriangle, 
   MessageSquareText, 
   History,
-  MoreVertical,
   Filter,
   User as UserIcon,
   Home,
-  ChevronRight,
   Send
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -72,16 +70,17 @@ export default function RepairsPage() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Fetch Requests
+  // Fetch Requests - Defensive check to prevent unauthorized list attempts while profile loads
   const requestsQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
+    if (!db || !user || profileLoading) return null;
+    
     const baseQuery = collection(db, 'maintenance_requests');
     if (isSuperAdmin) {
       return query(baseQuery, orderBy('createdAt', 'desc'));
     } else {
       return query(baseQuery, where('residentId', '==', user.uid), orderBy('createdAt', 'desc'));
     }
-  }, [db, user, isSuperAdmin]);
+  }, [db, user, isSuperAdmin, profileLoading]);
 
   const { data: requests, loading: requestsLoading } = useCollection(requestsQuery);
 
@@ -99,7 +98,7 @@ export default function RepairsPage() {
 
     const requestData = {
       residentId: user.uid,
-      residentName: `${profile.firstName} ${profile.lastName}`,
+      residentName: `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || profile.name || 'Resident',
       roomUnit: profile.roomUnit || 'Unknown',
       category: formData.category,
       urgency: formData.urgency,
@@ -134,10 +133,12 @@ export default function RepairsPage() {
   const handleUpdateStatus = async (requestId: string, newStatus: string) => {
     if (!db || !isSuperAdmin) return;
 
-    updateDoc(doc(db, 'maintenance_requests', requestId), {
+    const updates = {
       status: newStatus,
       updatedAt: serverTimestamp()
-    })
+    };
+
+    updateDoc(doc(db, 'maintenance_requests', requestId), updates)
     .then(() => {
       toast({
         title: "Status Updated",
@@ -148,7 +149,7 @@ export default function RepairsPage() {
       const permissionError = new FirestorePermissionError({
         path: `maintenance_requests/${requestId}`,
         operation: 'update',
-        requestResourceData: { status: newStatus }
+        requestResourceData: updates
       });
       errorEmitter.emit('permission-error', permissionError);
     });
@@ -156,8 +157,9 @@ export default function RepairsPage() {
 
   if (userLoading || profileLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-muted-foreground animate-pulse">Authenticating...</p>
       </div>
     );
   }
@@ -268,7 +270,7 @@ export default function RepairsPage() {
                 </Select>
               </div>
               <Badge variant="outline" className="font-mono text-[10px]">
-                {filteredRequests.length} Total Found
+                {(requests?.length || 0)} Total Requests
               </Badge>
             </div>
 
@@ -301,7 +303,7 @@ export default function RepairsPage() {
                             <CardDescription className="flex items-center gap-3 text-xs">
                               <span className="flex items-center gap-1"><Home className="h-3 w-3" /> Unit {req.roomUnit}</span>
                               <span className="flex items-center gap-1"><UserIcon className="h-3 w-3" /> {req.residentName}</span>
-                              <span>{req.createdAt?.toDate().toLocaleDateString()}</span>
+                              <span>{req.createdAt?.toDate ? req.createdAt.toDate().toLocaleDateString() : 'Just now'}</span>
                             </CardDescription>
                           </div>
                         </div>

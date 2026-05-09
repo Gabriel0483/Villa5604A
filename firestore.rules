@@ -22,29 +22,29 @@ service cloud.firestore {
       );
     }
 
-    // Tenant records (Administrative only)
-    match /tenants/{tenantId} {
-      allow read, write: if isSuperAdmin();
-    }
-
-    // User profiles
+    // User profiles: Users can read/write their own, admins can do everything
     match /users/{userId} {
-      allow read: if isSuperAdmin() || (isSignedIn() && request.auth.uid == userId);
-      allow write: if isSuperAdmin() || (isSignedIn() && request.auth.uid == userId);
+      allow read: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
+      allow write: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
     }
 
-    // Utility bills
+    // Utility bills: All signed-in users can read, only admins can write
     match /utility_bills/{billId} {
       allow read: if isSignedIn();
       allow write: if isSuperAdmin();
     }
 
-    // Maintenance requests
+    // Maintenance requests: Residents see their own, admins see all
     match /maintenance_requests/{requestId} {
       allow create: if isSignedIn();
-      allow read: if isSignedIn() && (isSuperAdmin() || resource.data.residentId == request.auth.uid);
+      allow read: if isSignedIn() && (isSuperAdmin() || (resource != null && resource.data.residentId == request.auth.uid));
       allow update: if isSuperAdmin();
       allow delete: if isSuperAdmin();
+    }
+
+    // Legacy tenant records (Administrative only)
+    match /tenants/{tenantId} {
+      allow read, write: if isSuperAdmin();
     }
   }
 }
