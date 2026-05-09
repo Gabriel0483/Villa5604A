@@ -27,7 +27,8 @@ import {
   Calculator,
   BarChart3,
   CheckCircle2,
-  Clock
+  Clock,
+  TrendingUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -43,6 +44,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
 export default function Home() {
   const db = useFirestore();
@@ -81,9 +83,6 @@ export default function Home() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Snapshot logic: Get the latest bill specifically marked as isSnapshot.
-  // We removed the restrictive 'monthYear >= today' filter to ensure
-  // that snapshots for the previous month (standard billing) are visible.
   const latestBillQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
@@ -97,6 +96,14 @@ export default function Home() {
   const { data: latestBills, loading: billsLoading } = useCollection(latestBillQuery);
   const latestBill = latestBills?.[0] as any;
 
+  // Fetch residents count for collection awareness
+  const residentsQuery = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return query(collection(db, 'users'), where('role', '==', 'Resident'));
+  }, [db, user]);
+
+  const { data: residents, loading: residentsLoading } = useCollection(residentsQuery);
+
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -106,7 +113,7 @@ export default function Home() {
     }
   };
 
-  if (userLoading || (user && profileLoading) || !mounted || !user) {
+  if (userLoading || (user && (profileLoading || residentsLoading)) || !mounted || !user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -116,6 +123,13 @@ export default function Home() {
   }
 
   const isCurrentPaid = latestBill?.paidResidents?.includes(user.uid);
+  
+  // Collection Awareness Stats
+  const collectionProgress = latestBill && residents ? {
+    paidCount: latestBill.paidResidents?.length || 0,
+    totalCount: residents.length,
+    percentage: residents.length > 0 ? ((latestBill.paidResidents?.length || 0) / residents.length) * 100 : 0
+  } : null;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -237,6 +251,23 @@ export default function Home() {
                           <p className="text-lg font-bold">{(latestBill.miscellaneous || 0).toFixed(3)} OMR</p>
                         </div>
                       </div>
+
+                      {collectionProgress && (
+                        <div className="p-4 bg-slate-50 rounded-lg border space-y-3">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold flex items-center gap-1.5 text-slate-600">
+                              <TrendingUp className="h-3.5 w-3.5" /> Household Collection Progress
+                            </span>
+                            <span className="font-bold text-primary">
+                              {collectionProgress.paidCount} of {collectionProgress.totalCount} Residents Paid
+                            </span>
+                          </div>
+                          <Progress value={collectionProgress.percentage} className="h-2 bg-slate-200" />
+                          <p className="text-[10px] text-muted-foreground text-center">
+                            This tracker shows the collective progress of payments for this billing period.
+                          </p>
+                        </div>
+                      )}
 
                       <div className="pt-4 border-t flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="space-y-1">
