@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -69,7 +70,7 @@ export default function RepairsPage() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Fetch Requests - Ensure we wait for profile to avoid permission issues during check
+  // Fetch Requests
   const requestsQuery = useMemoFirebase(() => {
     if (!db || !user || profileLoading) return null;
     
@@ -96,14 +97,14 @@ export default function RepairsPage() {
 
   const handleSubmitRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!db || !user || !profile) return;
+    if (!db || !user) return;
 
     setIsSubmitting(true);
 
     const requestData = {
       residentId: user.uid,
-      residentName: `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || profile.name || 'Resident',
-      roomUnit: profile.roomUnit || 'Unknown',
+      residentName: profile ? `${profile.firstName || ''} ${profile.lastName || ''}`.trim() : (user.displayName || 'Resident'),
+      roomUnit: profile?.roomUnit || 'General',
       category: formData.category,
       urgency: formData.urgency,
       description: formData.description,
@@ -163,7 +164,7 @@ export default function RepairsPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-muted-foreground animate-pulse">Checking access...</p>
+        <p className="text-muted-foreground animate-pulse">Initializing module...</p>
       </div>
     );
   }

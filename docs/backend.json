@@ -1,21 +1,6 @@
 
 {
   "entities": {
-    "Tenant": {
-      "title": "Tenant",
-      "description": "Information about a tenant and their lease agreement.",
-      "type": "object",
-      "properties": {
-        "name": { "type": "string", "description": "Full name of the tenant" },
-        "email": { "type": "string", "format": "email", "description": "Email address" },
-        "phone": { "type": "string", "description": "Phone number" },
-        "propertyAddress": { "type": "string", "description": "The address of the rented property" },
-        "rentAmount": { "type": "number", "description": "Monthly rent amount in OMR" },
-        "status": { "type": "string", "enum": ["active", "past", "pending"], "description": "Current status of the tenant" },
-        "createdAt": { "type": "string", "format": "date-time", "description": "When the record was created" }
-      },
-      "required": ["name", "email", "propertyAddress", "rentAmount"]
-    },
     "User": {
       "title": "User",
       "description": "User profile with comprehensive personal details",
@@ -30,7 +15,6 @@
         "bloodType": { "type": "string", "enum": ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"], "description": "Blood type for medical emergencies" },
         "emergencyContact": { "type": "string", "description": "Emergency contact phone number" },
         "role": { "type": "string", "enum": ["SuperAdmin", "Resident"], "description": "Access level" },
-        "tenantId": { "type": "string", "description": "Reference to tenant record if role is Resident" },
         "roomUnit": { "type": "string", "description": "Assigned room or unit number" },
         "monthlyRent": { "type": "number", "description": "Monthly rent amount assigned to this resident in OMR" },
         "billingDays": { "type": "number", "description": "Number of days the resident is billed for in the cycle (default 30)" },
@@ -75,10 +59,6 @@
     "providers": ["password"]
   },
   "firestore": {
-    "/tenants/{tenantId}": {
-      "schema": "#/entities/Tenant",
-      "description": "Collection of tenant records"
-    },
     "/users/{userId}": {
       "schema": "#/entities/User",
       "description": "Collection of user profiles"

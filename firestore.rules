@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -32,24 +33,20 @@ service cloud.firestore {
       allow write: if isSuperAdmin();
     }
 
-    // Maintenance requests: Residents can create and read their own history, admins see all
+    // Maintenance requests
     match /maintenance_requests/{requestId} {
-      // Allow creation for any signed-in user
+      // Residents can create requests for themselves
       allow create: if isSignedIn();
       
-      // Allow reading if admin or if the request belongs to the resident
+      // Residents can list/read their own, admins see all
       allow read: if isSignedIn() && (
         isSuperAdmin() || 
-        (resource != null && resource.data.residentId == request.auth.uid)
+        (resource != null && resource.data.residentId == request.auth.uid) ||
+        (resource == null) // Allow query planning
       );
       
       // Only admins can update status or delete
       allow update, delete: if isSuperAdmin();
-    }
-
-    // Legacy tenant records (Administrative only)
-    match /tenants/{tenantId} {
-      allow read, write: if isSuperAdmin();
     }
   }
 }
