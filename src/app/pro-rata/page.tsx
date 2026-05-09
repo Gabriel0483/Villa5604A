@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -8,7 +9,6 @@ import {
   Loader2, 
   Users, 
   Receipt, 
-  Sparkles, 
   CheckCircle2, 
   ChevronRight,
   Info,
@@ -24,8 +24,17 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, query, doc, orderBy, where } from 'firebase/firestore';
-import { suggestPro_rata_methodology, type ProRataOutput } from '@/ai/flows/suggest-pro-rata-methodology';
 import Link from 'next/link';
+
+interface LocalAllocationResult {
+  methodology: string;
+  allocations: Array<{
+    residentName: string;
+    amount: number;
+    explanation: string;
+  }>;
+  totalAllocated: number;
+}
 
 export default function ProRataPage() {
   const router = useRouter();
@@ -35,7 +44,7 @@ export default function ProRataPage() {
 
   const [selectedBillId, setSelectedBillId] = useState<string>('');
   const [isCalculating, setIsCalculating] = useState(false);
-  const [allocationResults, setAllocationResults] = useState<ProRataOutput | null>(null);
+  const [allocationResults, setAllocationResults] = useState<LocalAllocationResult | null>(null);
 
   // Access Control check
   const userProfileRef = useMemoFirebase(() => {
@@ -88,7 +97,7 @@ export default function ProRataPage() {
     return bills?.find(b => b.id === selectedBillId);
   }, [bills, selectedBillId]);
 
-  const handleCalculate = async () => {
+  const handleCalculate = () => {
     if (!selectedBill || !residents || residents.length === 0) {
       toast({
         variant: "destructive",
@@ -101,26 +110,34 @@ export default function ProRataPage() {
     setIsCalculating(true);
     setAllocationResults(null);
 
-    try {
-      const result = await suggestPro_rata_methodology({
-        totalAmount: selectedBill.total,
-        monthYear: selectedBill.monthYear,
-        residents: residents.map(r => ({
-          name: `${r.firstName} ${r.lastName}`,
-          roomUnit: r.roomUnit,
-          monthlyRent: r.monthlyRent
-        }))
-      });
-      setAllocationResults(result);
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "AI Analysis Failed",
-        description: "Could not generate allocation suggestions. Please try again."
-      });
-    } finally {
-      setIsCalculating(false);
-    }
+    // Perform a standard equal split calculation
+    setTimeout(() => {
+      try {
+        const totalAmount = selectedBill.total;
+        const count = residents.length;
+        const share = totalAmount / count;
+
+        const allocations = residents.map(r => ({
+          residentName: `${r.firstName} ${r.lastName}`,
+          amount: share,
+          explanation: `Equal split of ${totalAmount.toFixed(3)} OMR among ${count} active residents.`
+        }));
+
+        setAllocationResults({
+          methodology: "Standard equal distribution among all registered residents for the selected billing period.",
+          allocations: allocations,
+          totalAllocated: totalAmount
+        });
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Calculation Error",
+          description: "An error occurred while processing the allocation. Please check your data."
+        });
+      } finally {
+        setIsCalculating(false);
+      }
+    }, 500); // Small delay for visual feedback
   };
 
   if (userLoading || profileLoading) {
@@ -144,7 +161,7 @@ export default function ProRataPage() {
             <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
               <Calculator className="h-8 w-8 text-primary" /> Pro-Rata Allocation
             </h1>
-            <p className="text-muted-foreground">Distribute utility costs fairly among villa residents using AI suggestions.</p>
+            <p className="text-muted-foreground">Distribute utility costs fairly among villa residents.</p>
           </div>
         </div>
 
@@ -197,8 +214,8 @@ export default function ProRataPage() {
                   disabled={!selectedBill || isCalculating || !residents || residents.length === 0}
                   onClick={handleCalculate}
                 >
-                  {isCalculating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                  Generate Allocation
+                  {isCalculating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calculator className="h-4 w-4" />}
+                  Calculate Allocation
                 </Button>
               </CardContent>
             </Card>
@@ -206,15 +223,15 @@ export default function ProRataPage() {
             <Card className="bg-primary/5 border-primary/20">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-bold flex items-center gap-2">
-                  <Info className="h-4 w-4 text-primary" /> How it works
+                  <Info className="h-4 w-4 text-primary" /> Calculation logic
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <p className="text-xs text-muted-foreground">
-                  The AI analyzes the total bill and the active resident list. It typically suggests an equal split unless specific room configurations or rent levels suggest a different weight.
+                  The system calculates an equal split of the total bill among all active residents registered in the Tenant Registry.
                 </p>
                 <p className="text-xs text-muted-foreground font-semibold">
-                  Always verify AI suggestions before communicating to residents.
+                  Ensure the resident list is up-to-date before calculating.
                 </p>
               </CardContent>
             </Card>
@@ -227,7 +244,7 @@ export default function ProRataPage() {
                 <Calculator className="h-16 w-16 mb-4 opacity-10" />
                 <h3 className="text-xl font-semibold mb-2">No Calculation Active</h3>
                 <p className="max-w-xs mx-auto">
-                  Select a billing period and click "Generate Allocation" to start the AI analysis.
+                  Select a billing period and click "Calculate Allocation" to see the distribution.
                 </p>
               </Card>
             ) : (
@@ -237,10 +254,10 @@ export default function ProRataPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <CardTitle className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5" /> Suggested Distribution
+                          <CheckCircle2 className="h-5 w-5" /> Calculated Distribution
                         </CardTitle>
                         <CardDescription className="text-primary-foreground/70">
-                          Analysis for {new Date(selectedBill!.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                          Period: {new Date(selectedBill!.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                         </CardDescription>
                       </div>
                       <Badge variant="secondary" className="text-lg px-4 py-1">
@@ -258,7 +275,7 @@ export default function ProRataPage() {
                         <TableHeader className="bg-slate-50">
                           <TableRow>
                             <TableHead>Resident</TableHead>
-                            <TableHead>Suggested Share</TableHead>
+                            <TableHead>Calculated Share</TableHead>
                             <TableHead className="hidden md:table-cell">Notes</TableHead>
                           </TableRow>
                         </TableHeader>
