@@ -50,9 +50,12 @@ export default function Home() {
   const router = useRouter();
   const { user, loading: userLoading } = useUser();
   const [mounted, setMounted] = useState(false);
+  const [currentMonthYear, setCurrentMonthYear] = useState('');
 
   useEffect(() => {
     setMounted(true);
+    const now = new Date();
+    setCurrentMonthYear(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
   }, []);
 
   useEffect(() => {
@@ -81,15 +84,19 @@ export default function Home() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
+  // Snapshot logic: Get the latest released bill that is marked as isSnapshot 
+  // AND is not a pass month (must be current or future relative to today)
   const latestBillQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
+    if (!db || !user || !currentMonthYear) return null;
     return query(
       collection(db, 'utility_bills'), 
+      where('isSnapshot', '==', true),
       where('status', '==', 'Released'),
+      where('monthYear', '>=', currentMonthYear), 
       orderBy('monthYear', 'desc'), 
       limit(1)
     );
-  }, [db, user]);
+  }, [db, user, currentMonthYear]);
 
   const { data: latestBills, loading: billsLoading } = useCollection(latestBillQuery);
   const latestBill = latestBills?.[0] as any;
@@ -247,7 +254,7 @@ export default function Home() {
                     </div>
                   ) : (
                     <div className="py-8 text-center text-muted-foreground italic">
-                      No billing records have been published yet.
+                      No billing records have been published yet for this month.
                     </div>
                   )}
                 </CardContent>
@@ -336,6 +343,20 @@ export default function Home() {
                       Generate statements and track resident payment statuses.
                     </p>
                     <Button variant="outline" className="w-full">Statements <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/pro-rata')}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Calculator className="h-5 w-5 text-primary" /> Pro-Rata
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Calculate fair splits of household bills among residents.
+                    </p>
+                    <Button variant="outline" className="w-full">Split Logic <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
 

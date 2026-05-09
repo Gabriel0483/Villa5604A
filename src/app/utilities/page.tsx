@@ -129,7 +129,8 @@ export default function CurrentUtilityPage() {
       miscellaneous: misc,
       total,
       updatedAt: serverTimestamp(),
-      status: status
+      status: status,
+      isSnapshot: true // Dedicated to the snapshot
     };
 
     const billRef = doc(db, 'utility_bills', formData.monthYear);

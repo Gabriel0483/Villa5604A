@@ -35,6 +35,7 @@
         "total": { "type": "number" },
         "status": { "type": "string", "enum": ["Draft", "Released"] },
         "paidResidents": { "type": "array", "items": { "type": "string" }, "description": "List of user IDs who have paid their share" },
+        "isSnapshot": { "type": "boolean", "description": "Flag to indicate if this is the active dashboard snapshot" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["monthYear", "wifi", "water", "electricity"]
