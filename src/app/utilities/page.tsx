@@ -24,7 +24,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, query, doc, setDoc, serverTimestamp, orderBy, limit } from 'firebase/firestore';
+import { collection, query, doc, setDoc, serverTimestamp, orderBy, limit, where } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
@@ -63,17 +63,22 @@ export default function CurrentUtilityPage() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Load the current/latest bill into form
-  const latestBillQuery = useMemoFirebase(() => {
+  // Load the current ACTIVE snapshot into the form
+  const activeSnapshotQuery = useMemoFirebase(() => {
     if (!db || !isSuperAdmin) return null;
-    return query(collection(db, 'utility_bills'), orderBy('monthYear', 'desc'), limit(1));
+    return query(
+      collection(db, 'utility_bills'), 
+      where('isSnapshot', '==', true),
+      orderBy('monthYear', 'desc'), 
+      limit(1)
+    );
   }, [db, isSuperAdmin]);
 
-  const { data: latestBills, loading: billsLoading } = useCollection(latestBillQuery);
+  const { data: activeSnapshots, loading: billsLoading } = useCollection(activeSnapshotQuery);
 
   useEffect(() => {
-    if (latestBills && latestBills.length > 0) {
-      const bill = latestBills[0] as any;
+    if (activeSnapshots && activeSnapshots.length > 0) {
+      const bill = activeSnapshots[0] as any;
       setFormData({
         monthYear: bill.monthYear || '',
         wifi: bill.wifi?.toString() || '',
@@ -82,13 +87,14 @@ export default function CurrentUtilityPage() {
         miscellaneous: bill.miscellaneous?.toString() || '0'
       });
     } else {
+      // Fallback if no snapshot is set yet
       const now = new Date();
       setFormData(prev => ({
         ...prev,
         monthYear: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
       }));
     }
-  }, [latestBills]);
+  }, [activeSnapshots]);
 
   useEffect(() => {
     if (!userLoading && !profileLoading) {
@@ -121,8 +127,6 @@ export default function CurrentUtilityPage() {
     const misc = parseFloat(formData.miscellaneous) || 0;
     const total = wifi + water + electricity + misc;
 
-    // We maintain 'Draft' status for snapshot updates to avoid auto-releasing 
-    // the official billing statement in the history module.
     const billData = {
       monthYear: formData.monthYear,
       wifi,
@@ -139,10 +143,10 @@ export default function CurrentUtilityPage() {
     setDoc(billRef, billData, { merge: true })
       .then(() => {
         toast({
-          title: showOnDashboard ? "Snapshot Published" : "Draft Saved",
+          title: showOnDashboard ? "Current Billing Month Updated" : "Draft Saved",
           description: showOnDashboard 
-            ? `Household totals for ${formData.monthYear} are now visible on the dashboard.`
-            : `Snapshot for ${formData.monthYear} has been saved but is hidden from residents.`,
+            ? `Active cycle for ${formData.monthYear} is now the primary dashboard snapshot.`
+            : `Information for ${formData.monthYear} has been saved as a hidden draft.`,
         });
       })
       .catch(async (err) => {
@@ -178,18 +182,18 @@ export default function CurrentUtilityPage() {
           <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
             <Zap className="h-8 w-8 text-primary" /> Current Bill Management
           </h1>
-          <p className="text-muted-foreground">Manage the active billing month shown on the dashboard snapshot.</p>
+          <p className="text-muted-foreground">Manage the Active Billing Cycle shown on the resident dashboard.</p>
         </div>
 
         <Card className="shadow-lg border-t-4 border-primary">
           <CardHeader>
             <CardTitle className="text-xl">Active Cycle Details</CardTitle>
-            <CardDescription>Update values for the current billing period.</CardDescription>
+            <CardDescription>Configure the Current Billing Month values.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="monthYear">Active Month</Label>
+                <Label htmlFor="monthYear">Billing Month</Label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input 
@@ -202,6 +206,7 @@ export default function CurrentUtilityPage() {
                     required 
                   />
                 </div>
+                <p className="text-[10px] text-muted-foreground">Pick the month that represents the current active billing period.</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="wifi">Wifi Total (OMR)</Label>
@@ -246,10 +251,10 @@ export default function CurrentUtilityPage() {
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" className="gap-2" onClick={(e) => handleSaveBill(e, false)} disabled={isSaving}>
-                    Save (Hidden)
+                    Save Draft
                   </Button>
                   <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90" onClick={(e) => handleSaveBill(e, true)} disabled={isSaving}>
-                    <Send className="h-4 w-4" /> Publish to Dashboard
+                    <Send className="h-4 w-4" /> Set as Current Snapshot
                   </Button>
                 </div>
               </div>
@@ -258,7 +263,7 @@ export default function CurrentUtilityPage() {
           <CardFooter className="bg-slate-50 border-t py-4 justify-between items-center">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <AlertCircle className="h-4 w-4" />
-              This only updates the dashboard total. Official statements must be released in <strong>Billing & Payments</strong>.
+              The "Current Snapshot" is purely for dashboard awareness and does not release official statements.
             </div>
           </CardFooter>
         </Card>
