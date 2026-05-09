@@ -50,12 +50,9 @@ export default function Home() {
   const router = useRouter();
   const { user, loading: userLoading } = useUser();
   const [mounted, setMounted] = useState(false);
-  const [currentMonthYear, setCurrentMonthYear] = useState('');
 
   useEffect(() => {
     setMounted(true);
-    const now = new Date();
-    setCurrentMonthYear(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
   }, []);
 
   useEffect(() => {
@@ -84,19 +81,18 @@ export default function Home() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Snapshot logic: Get the latest released bill that is marked as isSnapshot 
-  // AND is not a pass month (must be current or future relative to today)
-  // We removed the status requirement to allow draft snapshots on dashboard.
+  // Snapshot logic: Get the latest bill specifically marked as isSnapshot.
+  // We removed the restrictive 'monthYear >= today' filter to ensure
+  // that snapshots for the previous month (standard billing) are visible.
   const latestBillQuery = useMemoFirebase(() => {
-    if (!db || !user || !currentMonthYear) return null;
+    if (!db || !user) return null;
     return query(
       collection(db, 'utility_bills'), 
       where('isSnapshot', '==', true),
-      where('monthYear', '>=', currentMonthYear), 
       orderBy('monthYear', 'desc'), 
       limit(1)
     );
-  }, [db, user, currentMonthYear]);
+  }, [db, user]);
 
   const { data: latestBills, loading: billsLoading } = useCollection(latestBillQuery);
   const latestBill = latestBills?.[0] as any;
