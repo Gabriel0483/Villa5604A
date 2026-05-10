@@ -53,6 +53,7 @@ export default function Home() {
     setMounted(true);
   }, []);
 
+  // Strict Redirection to /login as landing page
   useEffect(() => {
     if (mounted && !userLoading && !user) {
       router.push('/login');
@@ -145,7 +146,18 @@ export default function Home() {
     }
   };
 
-  if (userLoading || (user && (profileLoading || residentsLoading || billsLoading)) || !mounted || !user) {
+  // If not mounted or loading auth, show full page spinner
+  if (!mounted || userLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-slate-50">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-sm font-medium text-muted-foreground animate-pulse">Initializing Portal...</p>
+      </div>
+    );
+  }
+
+  // If loading user specific data
+  if (user && (profileLoading || residentsLoading || billsLoading)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <div className="relative">
@@ -156,6 +168,9 @@ export default function Home() {
       </div>
     );
   }
+
+  // Final check to prevent flash of content before redirect
+  if (!user) return null;
 
   const isCurrentPaid = latestBill?.paidResidents?.includes(user.uid);
   
@@ -376,9 +391,6 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Manage resident profiles and oversaw occupancy details.
-                    </p>
                     <Button variant="outline" className="w-full">Registry <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
@@ -390,9 +402,6 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Update the active cycle snapshot for the resident dashboard.
-                    </p>
                     <Button variant="outline" className="w-full">Manage Snapshot <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
@@ -404,9 +413,6 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Record past and current expenses for consumption trends.
-                    </p>
                     <Button variant="outline" className="w-full">Expense Ledger <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
@@ -418,9 +424,6 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Generate statements and track resident payment statuses.
-                    </p>
                     <Button variant="outline" className="w-full">Statements <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
@@ -432,9 +435,6 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Calculate fair splits of household bills among residents.
-                    </p>
                     <Button variant="outline" className="w-full">Split Logic <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
@@ -446,9 +446,6 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Celebrate resident birthdays with AI-powered cards.
-                    </p>
                     <Button variant="outline" className="w-full">View Dates <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
@@ -460,9 +457,6 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      View and resolve resident maintenance requests.
-                    </p>
                     <Button variant="outline" className="w-full">View Issues <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
@@ -476,9 +470,6 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      View historical billing statements and payment status.
-                    </p>
                     <Button variant="outline" className="w-full">History <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
@@ -490,9 +481,6 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Need a repair? Report maintenance issues here.
-                    </p>
                     <Button variant="outline" className="w-full">Report Problem <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
@@ -504,9 +492,6 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Update your personal details and contact info.
-                    </p>
                     <Button variant="outline" className="w-full">Manage Profile <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>

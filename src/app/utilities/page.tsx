@@ -63,17 +63,17 @@ export default function CurrentUtilityPage() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  const activeSnapshotQuery = useMemoFirebase(() => {
+  // Fetch the latest entry regardless of snapshot status to pre-populate correctly
+  const latestEntryQuery = useMemoFirebase(() => {
     if (!db || !isSuperAdmin) return null;
     return query(
       collection(db, 'utility_bills'), 
-      where('isSnapshot', '==', true),
       orderBy('monthYear', 'desc'), 
       limit(1)
     );
   }, [db, isSuperAdmin]);
 
-  const { data: activeSnapshots, loading: billsLoading } = useCollection(activeSnapshotQuery);
+  const { data: latestEntries, loading: billsLoading } = useCollection(latestEntryQuery);
 
   const toDisplay = (storage: string) => {
     if (!storage) return '';
@@ -82,7 +82,6 @@ export default function CurrentUtilityPage() {
   };
 
   const toStorage = (display: string) => {
-    // Standardize input by removing spaces and handling format
     const clean = display.replace(/\s/g, '');
     const parts = clean.split('/');
     if (parts.length === 2) {
@@ -96,11 +95,10 @@ export default function CurrentUtilityPage() {
   };
 
   useEffect(() => {
-    // Only initialize the form once data is ready and we haven't already initialized
     if (billsLoading || userLoading || profileLoading || !isSuperAdmin || initializedRef.current) return;
 
-    if (activeSnapshots && activeSnapshots.length > 0) {
-      const bill = activeSnapshots[0] as any;
+    if (latestEntries && latestEntries.length > 0) {
+      const bill = latestEntries[0] as any;
       setFormData({
         wifi: bill.wifi?.toString() || '',
         water: bill.water?.toString() || '',
@@ -109,10 +107,10 @@ export default function CurrentUtilityPage() {
       });
       setDisplayMonth(toDisplay(bill.monthYear || ''));
       initializedRef.current = true;
-    } else if (activeSnapshots && activeSnapshots.length === 0) {
+    } else if (latestEntries && latestEntries.length === 0) {
       initializedRef.current = true;
     }
-  }, [activeSnapshots, billsLoading, userLoading, profileLoading, isSuperAdmin]);
+  }, [latestEntries, billsLoading, userLoading, profileLoading, isSuperAdmin]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -154,12 +152,11 @@ export default function CurrentUtilityPage() {
 
     const billRef = doc(db, 'utility_bills', storageMonth);
 
-    // Save specifically to Firestore using standardized ID
     setDoc(billRef, billData, { merge: true })
       .then(() => {
         toast({
           title: showOnDashboard ? "Current Billing Month Updated" : "Draft Saved",
-          description: `Snapshot for ${displayMonth} has been persisted to the database.`,
+          description: `Snapshot for ${displayMonth} has been persisted to Firestore.`,
         });
       })
       .catch(async (err) => {
@@ -200,7 +197,7 @@ export default function CurrentUtilityPage() {
         <Card className="shadow-lg border-t-4 border-primary">
           <CardHeader>
             <CardTitle className="text-xl">Active Cycle Details</CardTitle>
-            <CardDescription>Enter values for the household and publish to the resident dashboard. Data is saved to Firestore.</CardDescription>
+            <CardDescription>Enter values for the household and publish to the resident dashboard. Snapshot persists in Firestore.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
