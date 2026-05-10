@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -130,7 +131,7 @@ export default function ProRataPage() {
           
           const resTotalShare = resWifiShare + resMainUsageShare + resMiscShare;
 
-          let explanation = `Wifi: ${resWifiShare.toFixed(3)} OMR. Usage: ${resMainUsageShare.toFixed(3)} OMR (${resDays} days).`;
+          let explanation = `Wifi: ${resWifiShare.toFixed(3)} OMR. Usage: ${resMainUsageShare.toFixed(3)} OMR.`;
           if (isMisc && miscTotal > 0) {
             explanation += ` Misc: ${resMiscShare.toFixed(3)} OMR.`;
           } else if (miscTotal > 0) {

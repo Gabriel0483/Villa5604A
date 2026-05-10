@@ -290,9 +290,6 @@ export default function Home() {
                       <div className="pt-4 border-t flex flex-col items-center justify-center text-center">
                         <span className="text-sm text-muted-foreground">My Total Share</span>
                         <p className="text-4xl font-black text-primary">{myIndividualShares.total.toFixed(3)} OMR</p>
-                        <p className="text-[10px] text-muted-foreground mt-2 italic">
-                          Calculated for {myIndividualShares.days} residency days.
-                        </p>
                       </div>
                     </div>
                   ) : (
