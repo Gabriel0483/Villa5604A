@@ -11,28 +11,21 @@ import {
   Plus, 
   ArrowLeft, 
   Loader2, 
-  Save, 
-  CalendarRange,
-  CheckCircle2
+  CalendarRange
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { doc, setDoc, serverTimestamp, getDoc, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+import { doc, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import Link from 'next/link';
 
 export default function CurrentUtilityPage() {
   const router = useRouter();
   const { user, loading: userLoading } = useUser();
   const db = useFirestore();
-  const { toast } = useToast();
 
-  const [isSaving, setIsSaving] = useState(false);
   const [isLoadingRecord, setIsLoadingRecord] = useState(false);
   const [formData, setFormData] = useState({
     startDate: '',
@@ -95,91 +88,9 @@ export default function CurrentUtilityPage() {
     fetchLatest();
   }, [db, isSuperAdmin]);
 
-  useEffect(() => {
-    if (!db || !isSuperAdmin || !formData.startDate) return;
-
-    const fetchRecord = async () => {
-      const periodId = formData.startDate.substring(0, 10);
-      const docRef = doc(db, 'utility_bills', periodId);
-      
-      try {
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (data.startDate === formData.startDate) {
-            setFormData(prev => ({
-              ...prev,
-              endDate: data.endDate || prev.endDate,
-              wifi: data.wifi?.toString() || prev.wifi,
-              water: data.water?.toString() || prev.water,
-              electricity: data.electricity?.toString() || prev.electricity,
-              miscellaneous: data.miscellaneous?.toString() || prev.miscellaneous
-            }));
-          }
-        }
-      } catch (error) {}
-    };
-
-    fetchRecord();
-  }, [db, isSuperAdmin, formData.startDate]);
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSaveBill = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!db || !isSuperAdmin) return;
-
-    if (!formData.startDate || !formData.endDate) {
-      toast({ 
-        variant: "destructive", 
-        title: "Incomplete Dates", 
-        description: "Please specify both Start and End dates for the billing cycle." 
-      });
-      return;
-    }
-
-    setIsSaving(true);
-    const wifi = parseFloat(formData.wifi) || 0;
-    const water = parseFloat(formData.water) || 0;
-    const electricity = parseFloat(formData.electricity) || 0;
-    const misc = parseFloat(formData.miscellaneous) || 0;
-    const periodId = formData.startDate.substring(0, 10);
-
-    const billData = {
-      monthYear: periodId,
-      startDate: formData.startDate,
-      endDate: formData.endDate,
-      wifi, 
-      water, 
-      electricity, 
-      miscellaneous: misc,
-      total: wifi + water + electricity + misc,
-      updatedAt: serverTimestamp(),
-      status: 'Released' 
-    };
-
-    const billRef = doc(db, 'utility_bills', periodId);
-    
-    setDoc(billRef, billData, { merge: true })
-      .then(() => {
-        toast({ 
-          title: "Statement Released", 
-          description: `Utility data is now visible to all residents for the period starting ${formData.startDate}.`,
-          className: "bg-accent text-accent-foreground border-none"
-        });
-      })
-      .catch((err) => {
-        const permissionError = new FirestorePermissionError({ 
-          path: billRef.path, 
-          operation: 'write', 
-          requestResourceData: billData 
-        });
-        errorEmitter.emit('permission-error', permissionError);
-      })
-      .finally(() => setIsSaving(false));
   };
 
   const calculatedTotal = useMemo(() => {
@@ -217,7 +128,7 @@ export default function CurrentUtilityPage() {
           )}
           <CardHeader>
             <CardTitle className="text-xl">Active Cycle Details</CardTitle>
-            <CardDescription>Records are automatically released to residents upon saving to ensure immediate visibility.</CardDescription>
+            <CardDescription>View current billing range and expense totals.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
@@ -230,7 +141,7 @@ export default function CurrentUtilityPage() {
                   name="startDate" 
                   value={formData.startDate} 
                   onChange={handleInputChange} 
-                  required 
+                  disabled
                 />
               </div>
               <div className="space-y-2">
@@ -242,7 +153,7 @@ export default function CurrentUtilityPage() {
                   name="endDate" 
                   value={formData.endDate} 
                   onChange={handleInputChange} 
-                  required 
+                  disabled
                 />
               </div>
             </div>
@@ -252,14 +163,14 @@ export default function CurrentUtilityPage() {
                 <Label>Wifi Total (OMR)</Label>
                 <div className="relative">
                   <Wifi className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input name="wifi" type="number" step="0.001" value={formData.wifi} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
+                  <Input name="wifi" type="number" step="0.001" value={formData.wifi} onChange={handleInputChange} className="pl-10" placeholder="0.000" disabled />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Miscellaneous (OMR)</Label>
                 <div className="relative">
                   <Plus className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input name="miscellaneous" type="number" step="0.001" value={formData.miscellaneous} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
+                  <Input name="miscellaneous" type="number" step="0.001" value={formData.miscellaneous} onChange={handleInputChange} className="pl-10" placeholder="0.000" disabled />
                 </div>
               </div>
             </div>
@@ -269,14 +180,14 @@ export default function CurrentUtilityPage() {
                 <Label>Water (OMR)</Label>
                 <div className="relative">
                   <Droplets className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input name="water" type="number" step="0.001" value={formData.water} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
+                  <Input name="water" type="number" step="0.001" value={formData.water} onChange={handleInputChange} className="pl-10" placeholder="0.000" disabled />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Electricity (OMR)</Label>
                 <div className="relative">
                   <Lightbulb className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input name="electricity" type="number" step="0.001" value={formData.electricity} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
+                  <Input name="electricity" type="number" step="0.001" value={formData.electricity} onChange={handleInputChange} className="pl-10" placeholder="0.000" disabled />
                 </div>
               </div>
             </div>
@@ -288,10 +199,6 @@ export default function CurrentUtilityPage() {
                   {calculatedTotal} OMR
                 </p>
               </div>
-              <Button className="w-full md:w-auto min-w-[180px] gap-2 shadow-lg" onClick={handleSaveBill} disabled={isSaving || isLoadingRecord}>
-                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Save & Release
-              </Button>
             </div>
           </CardContent>
         </Card>
