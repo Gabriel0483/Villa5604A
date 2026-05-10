@@ -22,11 +22,6 @@ import {
   FileText,
   Cake,
   Wrench,
-  History,
-  Calculator,
-  BarChart3,
-  TrendingUp,
-  Info,
   Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -102,12 +97,11 @@ export default function Home() {
 
   const { data: residents, loading: residentsLoading } = useCollection(residentsQuery);
 
-  // Calculate the individual share for the resident dashboard
   const myIndividualShares = useMemo(() => {
     if (!latestBill || !residents || residents.length === 0 || !user) return null;
 
     const numResidents = residents.length;
-    const wifiTotal = latestBill.wifi;
+    const wifiTotal = latestBill.wifi || 0;
     const miscTotal = latestBill.miscellaneous || 0;
     
     const totalManDays = residents.reduce((acc, r) => acc + (r.billingDays ?? 30), 0);
@@ -149,11 +143,15 @@ export default function Home() {
     }
   };
 
-  if (userLoading || (user && (profileLoading || residentsLoading)) || !mounted || !user) {
+  // Critical fix: Wait for bills to load before deciding if data is "missing"
+  if (userLoading || (user && (profileLoading || residentsLoading || billsLoading)) || !mounted || !user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-muted-foreground animate-pulse">Initializing Portal...</p>
+        <div className="relative">
+           <Loader2 className="h-10 w-10 animate-spin text-primary" />
+           <Building2 className="h-4 w-4 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+        </div>
+        <p className="text-sm font-medium text-muted-foreground animate-pulse">Syncing Portal Data...</p>
       </div>
     );
   }
@@ -256,9 +254,7 @@ export default function Home() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {billsLoading ? (
-                    <div className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
-                  ) : latestBill && myIndividualShares ? (
+                  {latestBill && myIndividualShares ? (
                     <div className="space-y-6">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
@@ -293,8 +289,8 @@ export default function Home() {
                       </div>
                     </div>
                   ) : (
-                    <div className="py-8 text-center text-muted-foreground italic">
-                      No personal share data available.
+                    <div className="py-12 text-center text-muted-foreground italic bg-slate-50/50 rounded-lg border border-dashed">
+                      No active personal snapshot found for this period.
                     </div>
                   )}
                 </CardContent>
@@ -313,28 +309,26 @@ export default function Home() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {billsLoading ? (
-                    <div className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
-                  ) : latestBill ? (
+                  {latestBill ? (
                     <div className="space-y-6">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
                           <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-semibold uppercase mb-1">
                             <Wifi className="h-3 w-3" /> Total Wifi
                           </div>
-                          <p className="text-lg font-bold">{latestBill.wifi.toFixed(3)} OMR</p>
+                          <p className="text-lg font-bold">{(latestBill.wifi || 0).toFixed(3)} OMR</p>
                         </div>
                         <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
                           <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-semibold uppercase mb-1">
                             <Droplets className="h-3 w-3" /> Total Water
                           </div>
-                          <p className="text-lg font-bold">{latestBill.water.toFixed(3)} OMR</p>
+                          <p className="text-lg font-bold">{(latestBill.water || 0).toFixed(3)} OMR</p>
                         </div>
                         <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
                           <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-semibold uppercase mb-1">
                             <Lightbulb className="h-3 w-3" /> Total Elec
                           </div>
-                          <p className="text-lg font-bold">{latestBill.electricity.toFixed(3)} OMR</p>
+                          <p className="text-lg font-bold">{(latestBill.electricity || 0).toFixed(3)} OMR</p>
                         </div>
                         <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
                           <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-semibold uppercase mb-1">
@@ -360,11 +354,11 @@ export default function Home() {
 
                       <div className="pt-4 border-t flex flex-col items-center justify-center text-center">
                         <span className="text-sm text-muted-foreground">Household Total</span>
-                        <p className="text-4xl font-black text-slate-900">{latestBill.total.toFixed(3)} OMR</p>
+                        <p className="text-4xl font-black text-slate-900">{(latestBill.total || 0).toFixed(3)} OMR</p>
                       </div>
                     </div>
                   ) : (
-                    <div className="py-8 text-center text-muted-foreground italic">
+                    <div className="py-12 text-center text-muted-foreground italic bg-slate-50/50 rounded-lg border border-dashed">
                       No active household snapshot found.
                     </div>
                   )}
