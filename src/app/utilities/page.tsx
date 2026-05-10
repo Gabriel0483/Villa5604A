@@ -45,6 +45,7 @@ export default function CurrentUtilityPage() {
   });
 
   const initializedRef = useRef(false);
+  const userHasEditedRef = useRef(false);
 
   const userProfileRef = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -69,7 +70,7 @@ export default function CurrentUtilityPage() {
 
   // Sync with Firestore data on load
   useEffect(() => {
-    if (!isSuperAdmin || initializedRef.current || billsLoading) return;
+    if (!isSuperAdmin || userHasEditedRef.current || billsLoading) return;
 
     if (latestEntries && latestEntries.length > 0) {
       const bill = latestEntries[0] as any;
@@ -88,15 +89,20 @@ export default function CurrentUtilityPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    userHasEditedRef.current = true;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSaveBill = async (e: React.FormEvent, showOnDashboard: boolean) => {
+  const handleSaveBill = async (e: React.FormEvent, isPublished: boolean) => {
     e.preventDefault();
     if (!db || !isSuperAdmin) return;
 
     if (!formData.monthYear) {
-      toast({ variant: "destructive", title: "Missing Month", description: "Please select the billing month." });
+      toast({ 
+        variant: "destructive", 
+        title: "Missing Month", 
+        description: "Please select the billing month." 
+      });
       return;
     }
 
@@ -116,25 +122,37 @@ export default function CurrentUtilityPage() {
       miscellaneous: misc,
       total: wifi + water + electricity + misc,
       updatedAt: serverTimestamp(),
-      isSnapshot: showOnDashboard === true,
+      isSnapshot: isPublished,
       status: 'Released'
     };
 
+    // Use the monthYear as the document ID for absolute consistency
     const billRef = doc(db, 'utility_bills', formData.monthYear);
+    
     setDoc(billRef, billData, { merge: true })
       .then(() => {
-        toast({ title: showOnDashboard ? "Snapshot Published" : "Draft Saved", description: `Record for ${formData.monthYear} successfully persistent.` });
-        // After saving, reset initialized so we can potentially re-sync if needed, though state is already updated
-        initializedRef.current = false;
+        toast({ 
+          title: isPublished ? "Record Published" : "Draft Saved", 
+          description: `Billing data for ${formData.monthYear} has been persistent in the registry.` 
+        });
+        userHasEditedRef.current = false;
       })
       .catch((err) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: billRef.path, operation: 'write', requestResourceData: billData }));
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
+          path: billRef.path, 
+          operation: 'write', 
+          requestResourceData: billData 
+        }));
       })
       .finally(() => setIsSaving(false));
   };
 
   if (userLoading || profileLoading || (isSuperAdmin && billsLoading && !initializedRef.current)) {
-    return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   if (!isSuperAdmin) return null;
@@ -154,7 +172,7 @@ export default function CurrentUtilityPage() {
         <Card className="shadow-lg border-t-4 border-primary">
           <CardHeader>
             <CardTitle className="text-xl">Active Cycle Details</CardTitle>
-            <CardDescription>Enter values for the month and define the active billing range.</CardDescription>
+            <CardDescription>Records are saved and tracked by the selected Billing Month.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -176,7 +194,7 @@ export default function CurrentUtilityPage() {
                 <Label>Wifi Total (OMR)</Label>
                 <div className="relative">
                   <Wifi className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input name="wifi" type="number" step="0.001" value={formData.wifi} onChange={handleInputChange} className="pl-10" />
+                  <Input name="wifi" type="number" step="0.001" value={formData.wifi} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
                 </div>
               </div>
             </div>
@@ -206,11 +224,6 @@ export default function CurrentUtilityPage() {
                   required 
                 />
               </div>
-              <div className="md:col-span-2">
-                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                  These dates define the "Active Billing Period" visible to residents.
-                </p>
-              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -218,34 +231,34 @@ export default function CurrentUtilityPage() {
                 <Label>Water (OMR)</Label>
                 <div className="relative">
                   <Droplets className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input name="water" type="number" step="0.001" value={formData.water} onChange={handleInputChange} className="pl-10" />
+                  <Input name="water" type="number" step="0.001" value={formData.water} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Electricity (OMR)</Label>
                 <div className="relative">
                   <Lightbulb className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input name="electricity" type="number" step="0.001" value={formData.electricity} onChange={handleInputChange} className="pl-10" />
+                  <Input name="electricity" type="number" step="0.001" value={formData.electricity} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Miscellaneous (OMR)</Label>
                 <div className="relative">
                   <Plus className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input name="miscellaneous" type="number" step="0.001" value={formData.miscellaneous} onChange={handleInputChange} className="pl-10" />
+                  <Input name="miscellaneous" type="number" step="0.001" value={formData.miscellaneous} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
                 </div>
               </div>
             </div>
             
             <div className="bg-primary/5 p-6 rounded-xl border border-primary/10 flex flex-col md:flex-row justify-between items-center gap-4">
               <div className="text-center md:text-left">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Snapshot Total</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Calculated Total</p>
                 <p className="text-3xl font-black text-primary">
                   {(parseFloat(formData.wifi || '0') + parseFloat(formData.water || '0') + parseFloat(formData.electricity || '0') + parseFloat(formData.miscellaneous || '0')).toFixed(3)} OMR
                 </p>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={(e) => handleSaveBill(e, false)} disabled={isSaving}>Save Draft</Button>
+                <Button variant="outline" onClick={(e) => handleSaveBill(e, false)} disabled={isSaving}>Save as Draft</Button>
                 <Button className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2" onClick={(e) => handleSaveBill(e, true)} disabled={isSaving}>
                   <Send className="h-4 w-4" /> Publish to Dashboard
                 </Button>

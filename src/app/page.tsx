@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
@@ -21,7 +21,6 @@ import {
   UserCheck,
   CheckCircle2,
   AlertCircle,
-  Calendar,
   Receipt
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -38,7 +37,6 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 
 export default function Home() {
   const { user, loading: userLoading } = useUser();
