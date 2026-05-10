@@ -116,7 +116,7 @@ export default function CurrentUtilityPage() {
             <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Dashboard
           </Link>
           <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
-            <Zap className="h-8 w-8 text-primary" /> Utility Management
+            <Zap className="h-8 w-8 text-primary" /> Latest Bills
           </h1>
         </div>
 
