@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -17,8 +16,7 @@ import {
   Check,
   XCircle,
   Construction,
-  Trash2,
-  AlertCircle
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,7 +34,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -102,7 +99,7 @@ export default function RepairsPage() {
     );
   }, [db, user, isSuperAdmin, profileLoading]);
 
-  const { data: requests, loading: requestsLoading, error: requestsError } = useCollection(requestsQuery);
+  const { data: requests, loading: requestsLoading } = useCollection(requestsQuery);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -141,7 +138,7 @@ export default function RepairsPage() {
         setActiveTab('history');
       })
       .catch((err) => {
-        // Handled via global listener
+        // Handled globally
       })
       .finally(() => {
         setIsSubmitting(false);
@@ -176,7 +173,6 @@ export default function RepairsPage() {
     const id = requestToDelete;
     const docRef = doc(db, 'maintenance_requests', id);
     
-    // Close dialog immediately to prevent "freeze" feeling during async cleanup
     setRequestToDelete(null);
     setIsDeleting(true);
 
@@ -236,9 +232,6 @@ export default function RepairsPage() {
             <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
               <Wrench className="h-8 w-8 text-primary" /> {isSuperAdmin ? 'Manage Issues' : 'Repairs & Maintenance'}
             </h1>
-            <p className="text-muted-foreground">
-              {isSuperAdmin ? 'Review and manage household repair requests.' : 'Report a problem in your room or shared areas.'}
-            </p>
           </div>
           
           {!isSuperAdmin && (
@@ -269,7 +262,6 @@ export default function RepairsPage() {
               <CardHeader className="bg-white border-b flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>{isSuperAdmin ? 'Resident Requests' : 'My Requests'}</CardTitle>
-                  <CardDescription>Track the status of reported issues.</CardDescription>
                 </div>
                 <Badge variant="outline" className="font-mono">
                   {requests?.length || 0} Total
@@ -278,18 +270,6 @@ export default function RepairsPage() {
               <CardContent className="p-0">
                 {requestsLoading ? (
                   <div className="p-12 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /></div>
-                ) : requestsError ? (
-                  <div className="p-8">
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>System Notice</AlertTitle>
-                      <AlertDescription>
-                        {requestsError.message.includes('index') 
-                          ? "Note: If you just submitted a request, it has been saved successfully. However, the system is currently optimizing the history view. Please refresh this page in a few minutes to see your updated list."
-                          : "We couldn't load the requests. Please check your connection or contact the administrator."}
-                      </AlertDescription>
-                    </Alert>
-                  </div>
                 ) : requests && requests.length > 0 ? (
                   <div className="divide-y">
                     {requests.map((req: any) => (
@@ -364,7 +344,6 @@ export default function RepairsPage() {
               <Card className="shadow-xl border-t-4 border-primary">
                 <CardHeader>
                   <CardTitle className="text-xl">Report a Problem</CardTitle>
-                  <CardDescription>Provide details about the issue so we can fix it quickly.</CardDescription>
                 </CardHeader>
                 <form onSubmit={handleSubmitRequest}>
                   <CardContent className="space-y-6">

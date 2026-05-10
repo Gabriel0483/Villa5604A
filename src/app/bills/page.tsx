@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState } from 'react';
@@ -11,18 +10,13 @@ import {
   Building2,
   Receipt as ReceiptIcon,
   ChevronRight,
-  Wifi,
-  Droplets,
-  Lightbulb,
-  Plus,
   TrendingUp,
   CheckCircle2,
   Clock,
-  Users,
-  Info
+  Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, query, doc, where, orderBy } from 'firebase/firestore';
@@ -99,7 +93,6 @@ export default function MyBillsPage() {
 
   const { data: bills, loading: billsLoading } = useCollection(billsQuery);
 
-  // Fetch all residents for comparison view
   const residentsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(collection(db, 'users'), where('role', '==', 'Resident'));
@@ -118,7 +111,6 @@ export default function MyBillsPage() {
       }));
   }, [bills]);
 
-  // Calculate distribution for the selected bill
   const communityStatement = useMemo(() => {
     if (!selectedBill || !residents || residents.length === 0) return null;
 
@@ -167,7 +159,6 @@ export default function MyBillsPage() {
           <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
             <Receipt className="h-8 w-8 text-primary" /> Billing & Consumption
           </h1>
-          <p className="text-muted-foreground">Track released utility statements and community consumption trends.</p>
         </div>
 
         {bills && bills.length > 0 && (
@@ -176,7 +167,6 @@ export default function MyBillsPage() {
               <CardTitle className="text-lg flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-primary" /> Consumption Trends
               </CardTitle>
-              <CardDescription>Visual comparison of Water and Electricity costs (OMR) over time.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-[300px] w-full">
@@ -327,11 +317,6 @@ export default function MyBillsPage() {
                         <span className="text-xs uppercase font-bold opacity-80">Household Total Bill</span>
                         <h2 className="text-4xl font-black">{selectedBill.total.toFixed(3)} OMR</h2>
                       </div>
-                      
-                      <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg flex gap-3 text-xs text-amber-800 italic">
-                        <Info className="h-4 w-4 shrink-0" />
-                        Your specific share is calculated based on household billing days and applicable charges. Switch to "Community View" to see the full breakdown.
-                      </div>
                     </TabsContent>
                     
                     <TabsContent value="community" className="animate-in fade-in slide-in-from-top-2">
@@ -365,9 +350,6 @@ export default function MyBillsPage() {
                           </TableBody>
                         </Table>
                       </div>
-                      <p className="mt-4 text-[10px] text-muted-foreground text-center italic">
-                        Shares are calculated fairly based on wifi (equal split) and usage (man-days).
-                      </p>
                     </TabsContent>
                   </Tabs>
                 </div>

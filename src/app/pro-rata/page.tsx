@@ -10,9 +10,7 @@ import {
   Receipt, 
   CheckCircle2, 
   ChevronRight,
-  Info,
-  Download,
-  AlertCircle
+  Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,7 +43,6 @@ export default function ProRataPage() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [allocationResults, setAllocationResults] = useState<LocalAllocationResult | null>(null);
 
-  // Access Control check
   const userProfileRef = useMemoFirebase(() => {
     if (!db || !user) return null;
     return doc(db, 'users', user.uid);
@@ -78,7 +75,6 @@ export default function ProRataPage() {
     }
   }, [user, userLoading, profileLoading, isSuperAdmin, router, toast]);
 
-  // Fetch Data
   const billsQuery = useMemoFirebase(() => {
     if (!db || !isSuperAdmin) return null;
     return query(collection(db, 'utility_bills'), orderBy('monthYear', 'desc'));
@@ -109,7 +105,6 @@ export default function ProRataPage() {
     setIsCalculating(true);
     setAllocationResults(null);
 
-    // Perform pro-rata calculation
     setTimeout(() => {
       try {
         const numResidents = residents.length;
@@ -117,10 +112,7 @@ export default function ProRataPage() {
         const mainUsageTotal = (selectedBill.water || 0) + (selectedBill.electricity || 0);
         const miscTotal = selectedBill.miscellaneous || 0;
         
-        // Total man-days for shared Water & Elec
         const totalManDays = residents.reduce((acc, r) => acc + (r.billingDays ?? 30), 0);
-        
-        // Misc applicable residents
         const miscApplicableResidents = residents.filter(r => r.isMiscApplicable !== false);
         const totalMiscManDays = miscApplicableResidents.reduce((acc, r) => acc + (r.billingDays ?? 30), 0);
 
@@ -192,17 +184,14 @@ export default function ProRataPage() {
             <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
               <Calculator className="h-8 w-8 text-primary" /> Pro-Rata Allocation
             </h1>
-            <p className="text-muted-foreground">Distribute utility costs fairly among villa residents.</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Configuration Sidebar */}
           <div className="space-y-6">
             <Card className="shadow-lg border-t-4 border-primary">
               <CardHeader>
                 <CardTitle className="text-lg">Step 1: Select Bill</CardTitle>
-                <CardDescription>Choose the month to allocate.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -252,15 +241,11 @@ export default function ProRataPage() {
             </Card>
           </div>
 
-          {/* Results Area */}
           <div className="lg:col-span-2">
             {!allocationResults ? (
               <Card className="h-full min-h-[400px] border-dashed flex flex-col items-center justify-center text-center p-8 text-muted-foreground bg-slate-50/50">
                 <Calculator className="h-16 w-16 mb-4 opacity-10" />
                 <h3 className="text-xl font-semibold mb-2">No Calculation Active</h3>
-                <p className="max-w-xs mx-auto">
-                  Select a billing period and click "Calculate Allocation" to see the distribution.
-                </p>
               </Card>
             ) : (
               <div className="space-y-6 animate-in fade-in duration-700">
@@ -281,10 +266,6 @@ export default function ProRataPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="pt-6">
-                    <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-100 italic text-sm text-slate-600">
-                      <strong>Methodology:</strong> {allocationResults.methodology}
-                    </div>
-
                     <div className="rounded-md border overflow-hidden bg-white">
                       <Table>
                         <TableHeader className="bg-slate-50">
@@ -316,16 +297,6 @@ export default function ProRataPage() {
                     </Button>
                   </CardFooter>
                 </Card>
-
-                {Math.abs(allocationResults.totalAllocated - selectedBill!.total) > 0.005 && (
-                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg flex gap-3 text-amber-800 text-sm items-start">
-                    <AlertCircle className="h-5 w-5 shrink-0" />
-                    <div>
-                      <p className="font-bold">Variance Detected</p>
-                      <p className="opacity-80">The total allocated ({allocationResults.totalAllocated.toFixed(3)}) differs from the bill total ({selectedBill!.total.toFixed(3)}). This might occur due to rounding or exclusion of some residents from Miscellaneous charges.</p>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </div>

@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -13,15 +12,12 @@ import {
   Loader2, 
   Save, 
   Calendar,
-  AlertCircle,
-  History,
   Send
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, query, doc, setDoc, serverTimestamp, orderBy, limit, where } from 'firebase/firestore';
@@ -45,7 +41,6 @@ export default function CurrentUtilityPage() {
     miscellaneous: ''
   });
 
-  // Ref to track if we have successfully loaded data from the database
   const hasLoadedFromDb = useRef(false);
 
   const userProfileRef = useMemoFirebase(() => {
@@ -80,7 +75,6 @@ export default function CurrentUtilityPage() {
 
   const { data: activeSnapshots, loading: billsLoading } = useCollection(activeSnapshotQuery);
 
-  // Synchronization effect: Populate form from database
   useEffect(() => {
     if (billsLoading || hasLoadedFromDb.current || isFormDirty) return;
 
@@ -95,7 +89,6 @@ export default function CurrentUtilityPage() {
       });
       hasLoadedFromDb.current = true;
     } else if (!billsLoading) {
-      // If no snapshot exists in DB, set a default once
       const now = new Date();
       const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       setFormData(prev => ({
@@ -159,9 +152,8 @@ export default function CurrentUtilityPage() {
             ? `Active cycle for ${formData.monthYear} is now the primary dashboard snapshot.`
             : `Information for ${formData.monthYear} has been saved as a hidden draft.`,
         });
-        // After successful save, we can consider the form clean and synced with DB
         setIsFormDirty(false);
-        hasLoadedFromDb.current = false; // Allow re-sync from DB if query updates
+        hasLoadedFromDb.current = false;
       })
       .catch(async (err) => {
         const permissionError = new FirestorePermissionError({
@@ -196,13 +188,11 @@ export default function CurrentUtilityPage() {
           <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
             <Zap className="h-8 w-8 text-primary" /> Current Bill Management
           </h1>
-          <p className="text-muted-foreground">Manage the Active Billing Cycle shown on the resident dashboard.</p>
         </div>
 
         <Card className="shadow-lg border-t-4 border-primary">
           <CardHeader>
             <CardTitle className="text-xl">Active Cycle Details</CardTitle>
-            <CardDescription>Configure values for the conceptual Current Billing Month.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -220,7 +210,6 @@ export default function CurrentUtilityPage() {
                     required 
                   />
                 </div>
-                <p className="text-[10px] text-muted-foreground">This selected month defines the active cycle shown to residents.</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="wifi">Wifi Total (OMR)</Label>
@@ -274,12 +263,6 @@ export default function CurrentUtilityPage() {
               </div>
             )}
           </CardContent>
-          <CardFooter className="bg-slate-50 border-t py-4 justify-between items-center">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <AlertCircle className="h-4 w-4" />
-              The "Dashboard Snapshot" is purely for resident awareness.
-            </div>
-          </CardFooter>
         </Card>
       </div>
     </div>

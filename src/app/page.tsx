@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { 
   Building2, 
   ArrowRight, 
-  Users, 
   Loader2,
   LogOut,
   User as UserIcon,
@@ -25,8 +24,6 @@ import {
   History,
   Calculator,
   BarChart3,
-  CheckCircle2,
-  Clock,
   TrendingUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -189,19 +186,17 @@ export default function Home() {
             <h1 className="text-3xl font-bold tracking-tight text-primary">
               Villa 5604 Portal
             </h1>
-            <p className="text-muted-foreground">Welcome to the central management hub.</p>
           </div>
 
           {!isSuperAdmin && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="lg:col-span-2 shadow-lg border-t-4 border-primary">
+              <Card className="lg:col-span-3 shadow-lg border-t-4 border-primary">
                 <CardHeader className="pb-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="text-xl font-bold flex items-center gap-2">
                         <Receipt className="h-5 w-5 text-primary" /> Current Bill Snapshot
                       </CardTitle>
-                      <CardDescription>Latest active household utility cycle.</CardDescription>
                     </div>
                     {latestBill && (
                       <div className="flex items-center gap-2">
@@ -260,9 +255,6 @@ export default function Home() {
                             </span>
                           </div>
                           <Progress value={collectionProgress.percentage} className="h-2 bg-slate-200" />
-                          <p className="text-[10px] text-muted-foreground text-center">
-                            Collective progress of all payments for this conceptual billing cycle.
-                          </p>
                         </div>
                       )}
 
@@ -281,31 +273,6 @@ export default function Home() {
                       No active billing snapshot has been published for the community yet.
                     </div>
                   )}
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-lg border-t-4 border-accent">
-                <CardHeader>
-                  <CardTitle className="text-lg font-bold flex items-center gap-2">
-                    <UserIcon className="h-5 w-5 text-accent" /> Lease View
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Assigned Room</span>
-                      <span className="font-bold">{profile?.roomUnit || 'Pending'}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Base Rent</span>
-                      <span className="font-bold text-primary">{profile?.monthlyRent ? `${profile.monthlyRent.toLocaleString()} OMR` : 'Not Set'}</span>
-                    </div>
-                  </div>
-                  <div className="pt-4 border-t">
-                    <Button variant="outline" className="w-full text-xs h-8" onClick={() => router.push('/profile')}>
-                      Full Lease Details
-                    </Button>
-                  </div>
                 </CardContent>
               </Card>
             </div>
