@@ -22,7 +22,9 @@ import {
   FileText,
   Cake,
   Wrench,
-  Users
+  Users,
+  BarChart3,
+  Calculator
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -143,7 +145,6 @@ export default function Home() {
     }
   };
 
-  // Critical fix: Wait for bills to load before deciding if data is "missing"
   if (userLoading || (user && (profileLoading || residentsLoading || billsLoading)) || !mounted || !user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
