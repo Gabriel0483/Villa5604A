@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
@@ -18,12 +18,16 @@ import {
   Wrench,
   BarChart,
   Calculator,
-  UserCheck
+  UserCheck,
+  CheckCircle2,
+  AlertCircle,
+  Calendar,
+  Receipt
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useFirestore, useMemoFirebase, useUser, useAuth, useDoc } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useFirestore, useMemoFirebase, useUser, useAuth, useDoc, useCollection } from '@/firebase';
+import { doc, query, collection, where, orderBy, limit } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   DropdownMenu, 
@@ -34,6 +38,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
 export default function Home() {
   const { user, loading: userLoading } = useUser();
@@ -83,6 +88,63 @@ function DashboardContent() {
     if (adminEmails.includes(user.email?.toLowerCase() || '')) return true;
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
+
+  // Fetch Latest Released Bill for the Snapshot
+  const latestBillQuery = useMemoFirebase(() => {
+    if (!db) return null;
+    return query(
+      collection(db, 'utility_bills'), 
+      where('status', '==', 'Released'),
+      orderBy('monthYear', 'desc'),
+      limit(1)
+    );
+  }, [db]);
+
+  const { data: bills, loading: billsLoading } = useCollection(latestBillQuery);
+  const activeBill = bills && bills.length > 0 ? bills[0] : null;
+
+  // Fetch all residents for share calculation
+  const residentsQuery = useMemoFirebase(() => {
+    if (!db) return null;
+    return query(collection(db, 'users'), where('role', '==', 'Resident'));
+  }, [db]);
+
+  const { data: residents, loading: residentsLoading } = useCollection(residentsQuery);
+
+  const myShare = useMemo(() => {
+    if (!activeBill || !residents || residents.length === 0) return null;
+
+    const numResidents = residents.length;
+    const totalManDays = residents.reduce((acc, r) => acc + (r.billingDays ?? 30), 0);
+    const miscTotal = activeBill.miscellaneous || 0;
+    const miscApplicableResidents = residents.filter(r => r.isMiscApplicable !== false);
+    const totalMiscManDays = miscApplicableResidents.reduce((acc, r) => acc + (r.billingDays ?? 30), 0);
+
+    const wifiSharePerPerson = activeBill.wifi / numResidents;
+    const waterSharePerDay = totalManDays > 0 ? (activeBill.water || 0) / totalManDays : 0;
+    const electricitySharePerDay = totalManDays > 0 ? (activeBill.electricity || 0) / totalManDays : 0;
+    const miscUsagePerDay = totalMiscManDays > 0 ? miscTotal / totalMiscManDays : 0;
+
+    // For SuperAdmin preview, use the first resident if admin is not a resident
+    const targetUser = residents.find(r => r.id === user?.uid) || residents[0];
+    if (!targetUser) return null;
+
+    const resDays = targetUser.billingDays ?? 30;
+    const isMisc = targetUser.isMiscApplicable !== false;
+    
+    const wifi = wifiSharePerPerson;
+    const water = waterSharePerDay * resDays;
+    const electricity = electricitySharePerDay * resDays;
+    const misc = isMisc ? (miscUsagePerDay * resDays) : 0;
+    const rent = targetUser.monthlyRent || 0;
+    
+    return {
+      total: rent + wifi + water + electricity + misc,
+      isPaid: activeBill.paidResidents?.includes(targetUser.id),
+      targetName: `${targetUser.firstName} ${targetUser.lastName}`,
+      isMe: targetUser.id === user?.uid
+    };
+  }, [activeBill, residents, user]);
 
   const handleLogout = async () => {
     try {
@@ -149,7 +211,86 @@ function DashboardContent() {
 
       <main className="flex-1 container mx-auto p-4 md:p-8 max-w-7xl">
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          
+          {/* Quick Snapshot Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* My Billing Snapshot */}
+            <Card className="shadow-lg border-t-4 border-primary relative overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Receipt className="h-5 w-5 text-primary" /> 
+                  {isSuperAdmin && !myShare?.isMe ? "Preview Share" : "My Billing Snapshot"}
+                </CardTitle>
+                <CardDescription>
+                  {activeBill ? 
+                    new Date(activeBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 
+                    "Latest released period"
+                  }
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {billsLoading || residentsLoading ? (
+                  <div className="flex justify-center py-6"><Loader2 className="h-6 w-6 animate-spin text-primary/30" /></div>
+                ) : myShare ? (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <p className="text-3xl font-black text-primary">{myShare.total.toFixed(3)} OMR</p>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mt-1">
+                          {myShare.isMe ? "Your estimated share" : `Previewing share for ${myShare.targetName}`}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        {myShare.isPaid ? (
+                          <Badge className="bg-accent text-accent-foreground gap-1"><CheckCircle2 className="h-3 w-3" /> Paid</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-muted-foreground">Pending</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center py-6 text-center text-muted-foreground">
+                    <AlertCircle className="h-8 w-8 mb-2 opacity-20" />
+                    <p className="text-xs">No active statements found.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Household Snapshot */}
+            <Card className="shadow-lg border-t-4 border-accent relative overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <BarChart className="h-5 w-5 text-accent" /> Household Snapshot
+                </CardTitle>
+                <CardDescription>Aggregate consumption totals</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {billsLoading ? (
+                  <div className="flex justify-center py-6"><Loader2 className="h-6 w-6 animate-spin text-accent/30" /></div>
+                ) : activeBill ? (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground">Total Household</p>
+                      <p className="text-2xl font-black text-slate-800">{activeBill.total.toFixed(3)} OMR</p>
+                    </div>
+                    <div className="space-y-1 text-right">
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground">Status</p>
+                      <Badge className="bg-accent/10 text-accent border-accent/20">Active Cycle</Badge>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center py-6 text-center text-muted-foreground">
+                    <AlertCircle className="h-8 w-8 mb-2 opacity-20" />
+                    <p className="text-xs">No consumption data released.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
             {isSuperAdmin ? (
               <>
                 {[
