@@ -36,7 +36,7 @@ export default function CurrentUtilityPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingRecord, setIsLoadingRecord] = useState(false);
   const [formData, setFormData] = useState({
-    monthYear: '', // Will be set in useEffect to avoid hydration mismatch
+    monthYear: '', 
     startDate: '',
     endDate: '',
     wifi: '',
@@ -45,7 +45,6 @@ export default function CurrentUtilityPage() {
     miscellaneous: '0'
   });
 
-  // Handle initialization to avoid hydration mismatch with new Date()
   useEffect(() => {
     setFormData(prev => ({
       ...prev,
@@ -67,7 +66,6 @@ export default function CurrentUtilityPage() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Fetch the record whenever the month selection changes
   useEffect(() => {
     if (!db || !isSuperAdmin || !formData.monthYear) return;
 
@@ -88,7 +86,6 @@ export default function CurrentUtilityPage() {
             miscellaneous: data.miscellaneous?.toString() || '0'
           }));
         } else {
-          // Reset fields for new month but keep monthYear
           setFormData(prev => ({
             ...prev,
             startDate: '',
@@ -139,8 +136,7 @@ export default function CurrentUtilityPage() {
       miscellaneous: misc,
       total: wifi + water + electricity + misc,
       updatedAt: serverTimestamp(),
-      status: isPublished ? 'Released' : 'Draft',
-      isSnapshot: isPublished
+      status: isPublished ? 'Released' : 'Draft'
     };
 
     const billRef = doc(db, 'utility_bills', formData.monthYear);
@@ -192,12 +188,12 @@ export default function CurrentUtilityPage() {
           )}
           <CardHeader>
             <CardTitle className="text-xl">Active Cycle Details</CardTitle>
-            <CardDescription>Select a month to load existing data or create a new record.</CardDescription>
+            <CardDescription>Select a month to manage utility records for the household.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label>Billing Month (Select to load data)</Label>
+                <Label>Billing Month</Label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input 
@@ -280,7 +276,7 @@ export default function CurrentUtilityPage() {
               <div className="flex gap-2">
                 <Button variant="outline" onClick={(e) => handleSaveBill(e, false)} disabled={isSaving || isLoadingRecord}>Save Draft</Button>
                 <Button className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2" onClick={(e) => handleSaveBill(e, true)} disabled={isSaving || isLoadingRecord}>
-                  <Send className="h-4 w-4" /> Publish to Dashboard
+                  <Send className="h-4 w-4" /> Release Statement
                 </Button>
               </div>
             </div>
