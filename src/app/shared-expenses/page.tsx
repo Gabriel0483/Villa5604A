@@ -4,7 +4,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  BarChart3, 
+  BarChart, 
   ArrowLeft, 
   Loader2, 
   Plus, 
@@ -118,8 +118,6 @@ export default function SharedExpensesPage() {
     const misc = parseFloat(formData.miscellaneous) || 0;
     const total = wifi + water + electricity + misc;
 
-    // For shared expenses module, records are automatically marked as "Released"
-    // to populate the trends chart immediately.
     const billData = {
       monthYear: formData.monthYear,
       wifi,
@@ -211,7 +209,7 @@ export default function SharedExpensesPage() {
               <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Dashboard
             </Link>
             <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
-              <BarChart3 className="h-8 w-8 text-primary" /> Shared Expenses Ledger
+              <BarChart className="h-8 w-8 text-primary" /> Shared Expenses Ledger
             </h1>
             <p className="text-muted-foreground">Historical records for Water and Electricity consumption trends.</p>
           </div>
@@ -270,50 +268,21 @@ export default function SharedExpensesPage() {
                     <Label htmlFor="water">Water (OMR)</Label>
                     <div className="relative">
                       <Droplets className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        id="water" 
-                        name="water" 
-                        type="number" 
-                        step="0.001" 
-                        value={formData.water} 
-                        onChange={handleInputChange} 
-                        className="pl-10" 
-                        placeholder="0.000" 
-                        required 
-                      />
+                      <Input id="water" name="water" type="number" step="0.001" value={formData.water} onChange={handleInputChange} className="pl-10" placeholder="0.000" required />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="electricity">Electricity (OMR)</Label>
                     <div className="relative">
                       <Lightbulb className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        id="electricity" 
-                        name="electricity" 
-                        type="number" 
-                        step="0.001" 
-                        value={formData.electricity} 
-                        onChange={handleInputChange} 
-                        className="pl-10" 
-                        placeholder="0.000" 
-                        required 
-                      />
+                      <Input id="electricity" name="electricity" type="number" step="0.001" value={formData.electricity} onChange={handleInputChange} className="pl-10" placeholder="0.000" required />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="miscellaneous">Misc (OMR)</Label>
                     <div className="relative">
                       <PlusIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        id="miscellaneous" 
-                        name="miscellaneous" 
-                        type="number" 
-                        step="0.001" 
-                        value={formData.miscellaneous} 
-                        onChange={handleInputChange} 
-                        className="pl-10" 
-                        placeholder="0.000" 
-                      />
+                      <Input id="miscellaneous" name="miscellaneous" type="number" step="0.001" value={formData.miscellaneous} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
                     </div>
                   </div>
                 </div>

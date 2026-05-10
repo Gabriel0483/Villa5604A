@@ -23,7 +23,7 @@ import {
   Cake,
   Wrench,
   Users,
-  BarChart3,
+  BarChart,
   Calculator
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -81,7 +81,6 @@ export default function Home() {
 
   const latestBillQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
-    // For general persistence, ensure we are looking for the latest snapshot
     return query(
       collection(db, 'utility_bills'), 
       where('isSnapshot', '==', true),
@@ -146,7 +145,6 @@ export default function Home() {
     }
   };
 
-  // Wait for profile, residents, and bills to load fully before rendering dashboard
   if (userLoading || (user && (profileLoading || residentsLoading || billsLoading)) || !mounted || !user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
@@ -232,7 +230,6 @@ export default function Home() {
 
           {!isSuperAdmin && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Individual Snapshot */}
               <Card className="shadow-lg border-t-4 border-primary">
                 <CardHeader className="pb-4">
                   <div className="flex items-center justify-between">
@@ -299,7 +296,6 @@ export default function Home() {
                 </CardContent>
               </Card>
 
-              {/* Household Snapshot */}
               <Card className="shadow-lg border-t-4 border-slate-300">
                 <CardHeader className="pb-4">
                   <div className="flex items-center justify-between">
@@ -404,7 +400,7 @@ export default function Home() {
                 <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/shared-expenses')}>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-lg">
-                      <BarChart3 className="h-5 w-5 text-primary" /> Shared Expenses
+                      <BarChart className="h-5 w-5 text-primary" /> Shared Expenses
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">

@@ -33,10 +33,9 @@ export default function CurrentUtilityPage() {
   const { toast } = useToast();
 
   const [isSaving, setIsSaving] = useState(false);
-  const [isFormDirty, setIsFormDirty] = useState(false);
   const [displayMonth, setDisplayMonth] = useState(''); // Format: MM/YYYY
   const [formData, setFormData] = useState({
-    monthYear: '', // Format: YYYY-MM (Storage Format)
+    monthYear: '', // Format: YYYY-MM
     wifi: '',
     water: '',
     electricity: '',
@@ -77,25 +76,24 @@ export default function CurrentUtilityPage() {
 
   const { data: activeSnapshots, loading: billsLoading } = useCollection(activeSnapshotQuery);
 
-  // Helper to convert Storage (YYYY-MM) to Display (MM/YYYY)
   const toDisplay = (storage: string) => {
     if (!storage) return '';
     const parts = storage.split('-');
     return parts.length === 2 ? `${parts[1]}/${parts[0]}` : storage;
   };
 
-  // Helper to convert Display (MM/YYYY) to Storage (YYYY-MM)
   const toStorage = (display: string) => {
     const parts = display.split('/');
     if (parts.length === 2) {
-      const mm = parts[0].padStart(2, '0');
-      const yyyy = parts[1];
-      return `${yyyy}-${mm}`;
+      const mm = parts[0].trim().padStart(2, '0');
+      const yyyy = parts[1].trim();
+      if (mm.length === 2 && yyyy.length === 4) {
+        return `${yyyy}-${mm}`;
+      }
     }
     return display;
   };
 
-  // Populate form from database only when data arrives and user hasn't started editing
   useEffect(() => {
     if (userLoading || profileLoading || billsLoading || initializedRef.current || !isSuperAdmin) return;
 
@@ -112,7 +110,6 @@ export default function CurrentUtilityPage() {
       setDisplayMonth(toDisplay(sMonth));
       initializedRef.current = true;
     } else if (activeSnapshots && activeSnapshots.length === 0) {
-      // If we finished loading and there truly are no snapshots, mark as initialized to stop checking
       initializedRef.current = true;
     }
   }, [activeSnapshots, billsLoading, userLoading, profileLoading, isSuperAdmin]);
@@ -133,15 +130,12 @@ export default function CurrentUtilityPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setIsFormDirty(true);
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setDisplayMonth(val);
-    setIsFormDirty(true);
-    // Sync with storage format if valid
     const storageVal = toStorage(val);
     setFormData(prev => ({ ...prev, monthYear: storageVal }));
   };
@@ -191,9 +185,6 @@ export default function CurrentUtilityPage() {
             ? `Active cycle for ${displayMonth} is now the primary dashboard snapshot.`
             : `Information for ${displayMonth} has been saved as a hidden draft.`,
         });
-        setIsFormDirty(false);
-        // Reset initialization to allow refresh from saved state if needed
-        initializedRef.current = false;
       })
       .catch(async (err) => {
         const permissionError = new FirestorePermissionError({
