@@ -192,19 +192,6 @@ function DashboardContent() {
 
       <main className="flex-1 container mx-auto p-4 md:p-8 max-w-7xl">
         <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
-            <div className="relative z-10 space-y-2 text-center md:text-left">
-              <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-tight">Welcome Home, {profile?.firstName || 'Resident'}!</h2>
-              <p className="text-slate-600 font-bold text-sm md:text-base max-w-lg">Everything you need to track utility bills and report maintenance issues efficiently.</p>
-            </div>
-            <div className="hidden md:block absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-primary/5 to-transparent pointer-events-none" />
-            <div className="relative z-10">
-              <Badge variant="outline" className="px-4 py-2 border-primary/20 text-primary font-black uppercase text-[10px] md:text-xs tracking-tighter bg-primary/5">
-                Current Role: {isSuperAdmin ? 'Administrator' : 'Resident'}
-              </Badge>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {(isSuperAdmin ? adminModules : residentModules).map(item => (
               <Card 
