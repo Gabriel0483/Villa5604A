@@ -260,11 +260,11 @@ export default function MyBillsPage() {
                               <div className="space-y-4 md:space-y-6 mb-8 md:mb-12">
                                 <h3 className="font-black text-slate-900 uppercase text-[10px] md:text-xs tracking-widest border-b pb-2 md:pb-4 mb-4 md:mb-8">Itemized Charges</h3>
                                 {[
-                                  { label: 'Base Rent (Monthly)', val: calculatedStatement.myEntry.baseRent },
-                                  { label: 'Wifi (Equal Share)', val: calculatedStatement.myEntry.wifi },
-                                  { label: 'Water (Man-Days)', val: calculatedStatement.myEntry.water },
-                                  { label: 'Electricity (Man-Days)', val: calculatedStatement.myEntry.electricity },
-                                  { label: 'Misc (Applicable Split)', val: calculatedStatement.myEntry.misc },
+                                  { label: 'Base Rent', val: calculatedStatement.myEntry.baseRent },
+                                  { label: 'Wifi Share', val: calculatedStatement.myEntry.wifi },
+                                  { label: 'Water Share', val: calculatedStatement.myEntry.water },
+                                  { label: 'Electricity Share', val: calculatedStatement.myEntry.electricity },
+                                  { label: 'Miscellaneous', val: calculatedStatement.myEntry.misc },
                                 ].map(item => (
                                   <div key={item.label} className="flex justify-between items-center py-1 group">
                                     <span className="text-slate-600 font-bold uppercase text-[9px] md:text-[11px] tracking-widest group-hover:text-slate-900 transition-colors truncate mr-2">{item.label}</span>
