@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useEffect, useState } from 'react';
@@ -16,7 +15,6 @@ import {
   FileText,
   Cake,
   Wrench,
-  BarChart,
   UserCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -155,7 +153,6 @@ function DashboardContent() {
                 {[
                   { title: 'Tenant Registry', icon: <UserCheck className="h-5 w-5" />, path: '/tenants', label: 'Manage Residents' },
                   { title: 'Utility Cycle', icon: <Zap className="h-5 w-5" />, path: '/utilities', label: 'Utility Management' },
-                  { title: 'Shared Expenses', icon: <BarChart className="h-5 w-5" />, path: '/shared-expenses', label: 'Expense Ledger' },
                   { title: 'Billing Statements', icon: <FileText className="h-5 w-5" />, path: '/statements', label: 'Statements & Payments' },
                   { title: 'Birthdays', icon: <Cake className="h-5 w-5" />, path: '/birthdays', label: 'Greet Residents' },
                 ].map(item => (
