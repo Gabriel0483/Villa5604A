@@ -14,17 +14,18 @@ import {
   Save, 
   Calendar,
   Send,
-  CalendarRange
+  CalendarRange,
+  Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, query, doc, setDoc, serverTimestamp, orderBy, limit } from 'firebase/firestore';
+import { useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
+import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
+import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
 
 export default function CurrentUtilityPage() {
@@ -34,18 +35,16 @@ export default function CurrentUtilityPage() {
   const { toast } = useToast();
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingRecord, setIsLoadingRecord] = useState(false);
   const [formData, setFormData] = useState({
-    monthYear: '', // YYYY-MM
+    monthYear: new Date().toISOString().substring(0, 7), // Default to current month YYYY-MM
     startDate: '',
     endDate: '',
     wifi: '',
     water: '',
     electricity: '',
-    miscellaneous: ''
+    miscellaneous: '0'
   });
-
-  const initializedRef = useRef(false);
-  const userHasEditedRef = useRef(false);
 
   const userProfileRef = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -61,35 +60,50 @@ export default function CurrentUtilityPage() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  const latestEntryQuery = useMemoFirebase(() => {
-    if (!db || !isSuperAdmin) return null;
-    return query(collection(db, 'utility_bills'), orderBy('monthYear', 'desc'), limit(1));
-  }, [db, isSuperAdmin]);
-
-  const { data: latestEntries, loading: billsLoading } = useCollection(latestEntryQuery);
-
-  // Sync with Firestore data on load
+  // Fetch the record whenever the month selection changes
   useEffect(() => {
-    if (!isSuperAdmin || userHasEditedRef.current || billsLoading) return;
+    if (!db || !isSuperAdmin || !formData.monthYear) return;
 
-    if (latestEntries && latestEntries.length > 0) {
-      const bill = latestEntries[0] as any;
-      setFormData({
-        monthYear: bill.monthYear || '',
-        startDate: bill.startDate || '',
-        endDate: bill.endDate || '',
-        wifi: bill.wifi?.toString() || '',
-        water: bill.water?.toString() || '',
-        electricity: bill.electricity?.toString() || '',
-        miscellaneous: bill.miscellaneous?.toString() || '0'
-      });
-      initializedRef.current = true;
-    }
-  }, [latestEntries, isSuperAdmin, billsLoading]);
+    const fetchRecord = async () => {
+      setIsLoadingRecord(true);
+      const docRef = doc(db, 'utility_bills', formData.monthYear);
+      try {
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setFormData(prev => ({
+            ...prev,
+            startDate: data.startDate || '',
+            endDate: data.endDate || '',
+            wifi: data.wifi?.toString() || '',
+            water: data.water?.toString() || '',
+            electricity: data.electricity?.toString() || '',
+            miscellaneous: data.miscellaneous?.toString() || '0'
+          }));
+        } else {
+          // Reset fields for new month but keep monthYear
+          setFormData(prev => ({
+            ...prev,
+            startDate: '',
+            endDate: '',
+            wifi: '',
+            water: '',
+            electricity: '',
+            miscellaneous: '0'
+          }));
+        }
+      } catch (error) {
+        console.error("Error fetching record:", error);
+      } finally {
+        setIsLoadingRecord(false);
+      }
+    };
+
+    fetchRecord();
+  }, [db, isSuperAdmin, formData.monthYear]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    userHasEditedRef.current = true;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -98,11 +112,7 @@ export default function CurrentUtilityPage() {
     if (!db || !isSuperAdmin) return;
 
     if (!formData.monthYear) {
-      toast({ 
-        variant: "destructive", 
-        title: "Missing Month", 
-        description: "Please select the billing month." 
-      });
+      toast({ variant: "destructive", title: "Missing Month", description: "Please select a month first." });
       return;
     }
 
@@ -122,20 +132,18 @@ export default function CurrentUtilityPage() {
       miscellaneous: misc,
       total: wifi + water + electricity + misc,
       updatedAt: serverTimestamp(),
-      isSnapshot: isPublished,
-      status: 'Released'
+      status: isPublished ? 'Released' : 'Draft',
+      isSnapshot: isPublished
     };
 
-    // Use the monthYear as the document ID for absolute consistency
     const billRef = doc(db, 'utility_bills', formData.monthYear);
     
     setDoc(billRef, billData, { merge: true })
       .then(() => {
         toast({ 
-          title: isPublished ? "Record Published" : "Draft Saved", 
-          description: `Billing data for ${formData.monthYear} has been persistent in the registry.` 
+          title: isPublished ? "Bill Released" : "Draft Saved", 
+          description: `Records for ${formData.monthYear} have been updated.` 
         });
-        userHasEditedRef.current = false;
       })
       .catch((err) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ 
@@ -147,7 +155,7 @@ export default function CurrentUtilityPage() {
       .finally(() => setIsSaving(false));
   };
 
-  if (userLoading || profileLoading || (isSuperAdmin && billsLoading && !initializedRef.current)) {
+  if (userLoading || profileLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -169,15 +177,20 @@ export default function CurrentUtilityPage() {
           </h1>
         </div>
 
-        <Card className="shadow-lg border-t-4 border-primary">
+        <Card className="shadow-lg border-t-4 border-primary relative overflow-hidden">
+          {isLoadingRecord && (
+            <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          )}
           <CardHeader>
             <CardTitle className="text-xl">Active Cycle Details</CardTitle>
-            <CardDescription>Records are saved and tracked by the selected Billing Month.</CardDescription>
+            <CardDescription>Select a month to load existing data or create a new record.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label>Billing Month</Label>
+                <Label>Billing Month (Select to load data)</Label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input 
@@ -185,7 +198,7 @@ export default function CurrentUtilityPage() {
                     name="monthYear" 
                     value={formData.monthYear} 
                     onChange={handleInputChange} 
-                    className="pl-10" 
+                    className="pl-10 font-bold border-primary/30" 
                     required 
                   />
                 </div>
@@ -258,8 +271,8 @@ export default function CurrentUtilityPage() {
                 </p>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={(e) => handleSaveBill(e, false)} disabled={isSaving}>Save as Draft</Button>
-                <Button className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2" onClick={(e) => handleSaveBill(e, true)} disabled={isSaving}>
+                <Button variant="outline" onClick={(e) => handleSaveBill(e, false)} disabled={isSaving || isLoadingRecord}>Save Draft</Button>
+                <Button className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2" onClick={(e) => handleSaveBill(e, true)} disabled={isSaving || isLoadingRecord}>
                   <Send className="h-4 w-4" /> Publish to Dashboard
                 </Button>
               </div>

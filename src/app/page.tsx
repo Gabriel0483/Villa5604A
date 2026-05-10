@@ -87,7 +87,7 @@ function DashboardContent() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Fetch Latest Released Bill for the Snapshot
+  // Fetch Latest Released Bill
   const latestBillQuery = useMemoFirebase(() => {
     if (!db) return null;
     return query(
@@ -101,7 +101,7 @@ function DashboardContent() {
   const { data: bills, loading: billsLoading } = useCollection(latestBillQuery);
   const activeBill = bills && bills.length > 0 ? bills[0] : null;
 
-  // Fetch all residents for share calculation
+  // Fetch all residents for share calculation (Residents can read but not list all details, but we only need basic metrics)
   const residentsQuery = useMemoFirebase(() => {
     if (!db) return null;
     return query(collection(db, 'users'), where('role', '==', 'Resident'));
@@ -210,14 +210,13 @@ function DashboardContent() {
       <main className="flex-1 container mx-auto p-4 md:p-8 max-w-7xl">
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
           
-          {/* Quick Snapshot Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* My Billing Snapshot */}
             <Card className="shadow-lg border-t-4 border-primary relative overflow-hidden">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Receipt className="h-5 w-5 text-primary" /> 
-                  {isSuperAdmin && !myShare?.isMe ? "Preview Share" : "My Billing Snapshot"}
+                  {isSuperAdmin && !myShare?.isMe ? "Preview Resident Share" : "My Billing Snapshot"}
                 </CardTitle>
                 <CardDescription>
                   {activeBill ? 
@@ -250,7 +249,7 @@ function DashboardContent() {
                 ) : (
                   <div className="flex flex-col items-center py-6 text-center text-muted-foreground">
                     <AlertCircle className="h-8 w-8 mb-2 opacity-20" />
-                    <p className="text-xs">No active statements found.</p>
+                    <p className="text-xs">No active statements released.</p>
                   </div>
                 )}
               </CardContent>
