@@ -23,7 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, query, doc, setDoc, serverTimestamp, orderBy, limit, where } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 import Link from 'next/link';
 
 export default function CurrentUtilityPage() {
@@ -33,9 +33,8 @@ export default function CurrentUtilityPage() {
   const { toast } = useToast();
 
   const [isSaving, setIsSaving] = useState(false);
-  const [displayMonth, setDisplayMonth] = useState(''); // Format: MM/YYYY
+  const [displayMonth, setDisplayMonth] = useState(''); 
   const [formData, setFormData] = useState({
-    monthYear: '', // Format: YYYY-MM
     wifi: '',
     water: '',
     electricity: '',
@@ -83,61 +82,41 @@ export default function CurrentUtilityPage() {
   };
 
   const toStorage = (display: string) => {
-    const parts = display.split('/');
+    // Standardize input by removing spaces and handling format
+    const clean = display.replace(/\s/g, '');
+    const parts = clean.split('/');
     if (parts.length === 2) {
-      const mm = parts[0].trim().padStart(2, '0');
-      const yyyy = parts[1].trim();
+      const mm = parts[0].padStart(2, '0');
+      const yyyy = parts[1];
       if (mm.length === 2 && yyyy.length === 4) {
         return `${yyyy}-${mm}`;
       }
     }
-    return display;
+    return null;
   };
 
   useEffect(() => {
-    if (userLoading || profileLoading || billsLoading || initializedRef.current || !isSuperAdmin) return;
+    // Only initialize the form once data is ready and we haven't already initialized
+    if (billsLoading || userLoading || profileLoading || !isSuperAdmin || initializedRef.current) return;
 
     if (activeSnapshots && activeSnapshots.length > 0) {
       const bill = activeSnapshots[0] as any;
-      const sMonth = bill.monthYear || '';
       setFormData({
-        monthYear: sMonth,
         wifi: bill.wifi?.toString() || '',
         water: bill.water?.toString() || '',
         electricity: bill.electricity?.toString() || '',
         miscellaneous: bill.miscellaneous?.toString() || '0'
       });
-      setDisplayMonth(toDisplay(sMonth));
+      setDisplayMonth(toDisplay(bill.monthYear || ''));
       initializedRef.current = true;
     } else if (activeSnapshots && activeSnapshots.length === 0) {
       initializedRef.current = true;
     }
   }, [activeSnapshots, billsLoading, userLoading, profileLoading, isSuperAdmin]);
 
-  useEffect(() => {
-    if (!userLoading && !profileLoading) {
-      if (!user) router.push('/login');
-      else if (!isSuperAdmin) {
-        toast({
-          variant: "destructive",
-          title: "Access Denied",
-          description: "You do not have permission to access utility management."
-        });
-        router.push('/');
-      }
-    }
-  }, [user, userLoading, profileLoading, isSuperAdmin, router, toast]);
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setDisplayMonth(val);
-    const storageVal = toStorage(val);
-    setFormData(prev => ({ ...prev, monthYear: storageVal }));
   };
 
   const handleSaveBill = async (e: React.FormEvent, showOnDashboard: boolean) => {
@@ -145,9 +124,7 @@ export default function CurrentUtilityPage() {
     if (!db || !isSuperAdmin) return;
 
     const storageMonth = toStorage(displayMonth);
-    const monthRegex = /^\d{4}-\d{2}$/;
-    
-    if (!monthRegex.test(storageMonth)) {
+    if (!storageMonth) {
       toast({
         variant: "destructive",
         title: "Invalid Format",
@@ -177,13 +154,12 @@ export default function CurrentUtilityPage() {
 
     const billRef = doc(db, 'utility_bills', storageMonth);
 
+    // Save specifically to Firestore using standardized ID
     setDoc(billRef, billData, { merge: true })
       .then(() => {
         toast({
           title: showOnDashboard ? "Current Billing Month Updated" : "Draft Saved",
-          description: showOnDashboard 
-            ? `Active cycle for ${displayMonth} is now the primary dashboard snapshot.`
-            : `Information for ${displayMonth} has been saved as a hidden draft.`,
+          description: `Snapshot for ${displayMonth} has been persisted to the database.`,
         });
       })
       .catch(async (err) => {
@@ -191,7 +167,7 @@ export default function CurrentUtilityPage() {
           path: billRef.path,
           operation: 'write',
           requestResourceData: billData
-        });
+        } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
       })
       .finally(() => {
@@ -224,6 +200,7 @@ export default function CurrentUtilityPage() {
         <Card className="shadow-lg border-t-4 border-primary">
           <CardHeader>
             <CardTitle className="text-xl">Active Cycle Details</CardTitle>
+            <CardDescription>Enter values for the household and publish to the resident dashboard. Data is saved to Firestore.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -235,7 +212,7 @@ export default function CurrentUtilityPage() {
                     id="monthYear" 
                     placeholder="e.g. 04/2026"
                     value={displayMonth} 
-                    onChange={handleMonthChange} 
+                    onChange={(e) => setDisplayMonth(e.target.value)} 
                     className="pl-10" 
                     required 
                   />
