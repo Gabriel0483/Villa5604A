@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -42,7 +43,7 @@ export default function CurrentUtilityPage() {
     miscellaneous: ''
   });
 
-  const initialized = useRef(false);
+  const initializedRef = useRef(false);
 
   const userProfileRef = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -94,8 +95,9 @@ export default function CurrentUtilityPage() {
     return display;
   };
 
+  // Populate form from database only when data arrives and user hasn't started editing
   useEffect(() => {
-    if (billsLoading || initialized.current) return;
+    if (userLoading || profileLoading || billsLoading || initializedRef.current || !isSuperAdmin) return;
 
     if (activeSnapshots && activeSnapshots.length > 0) {
       const bill = activeSnapshots[0] as any;
@@ -108,9 +110,12 @@ export default function CurrentUtilityPage() {
         miscellaneous: bill.miscellaneous?.toString() || '0'
       });
       setDisplayMonth(toDisplay(sMonth));
+      initializedRef.current = true;
+    } else if (activeSnapshots && activeSnapshots.length === 0) {
+      // If we finished loading and there truly are no snapshots, mark as initialized to stop checking
+      initializedRef.current = true;
     }
-    initialized.current = true;
-  }, [activeSnapshots, billsLoading]);
+  }, [activeSnapshots, billsLoading, userLoading, profileLoading, isSuperAdmin]);
 
   useEffect(() => {
     if (!userLoading && !profileLoading) {
@@ -187,6 +192,8 @@ export default function CurrentUtilityPage() {
             : `Information for ${displayMonth} has been saved as a hidden draft.`,
         });
         setIsFormDirty(false);
+        // Reset initialization to allow refresh from saved state if needed
+        initializedRef.current = false;
       })
       .catch(async (err) => {
         const permissionError = new FirestorePermissionError({
@@ -201,7 +208,7 @@ export default function CurrentUtilityPage() {
       });
   };
 
-  if (userLoading || profileLoading) {
+  if (userLoading || profileLoading || (isSuperAdmin && billsLoading && !initializedRef.current)) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

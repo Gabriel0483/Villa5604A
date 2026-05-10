@@ -81,6 +81,7 @@ export default function Home() {
 
   const latestBillQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
+    // For general persistence, ensure we are looking for the latest snapshot
     return query(
       collection(db, 'utility_bills'), 
       where('isSnapshot', '==', true),
@@ -145,6 +146,7 @@ export default function Home() {
     }
   };
 
+  // Wait for profile, residents, and bills to load fully before rendering dashboard
   if (userLoading || (user && (profileLoading || residentsLoading || billsLoading)) || !mounted || !user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
