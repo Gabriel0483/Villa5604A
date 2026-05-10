@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useEffect, useState } from 'react';
@@ -174,7 +173,7 @@ function DashboardContent() {
                 </Card>
                 <Card className="hover:shadow-md transition-all border-primary/10 cursor-pointer" onClick={() => router.push('/utilities')}>
                   <CardHeader><CardTitle className="flex items-center gap-2 text-lg text-primary"><Zap className="h-5 w-5" /> Latest Bills</CardTitle></CardHeader>
-                  <CardContent><Button variant="outline" className="w-full">Household Consumption <ArrowRight className="ml-2 h-4 w-4" /></Button></CardContent>
+                  <CardContent><Button variant="outline" className="w-full">View Details <ArrowRight className="ml-2 h-4 w-4" /></Button></CardContent>
                 </Card>
                 <Card className="hover:shadow-md transition-all border-primary/10 cursor-pointer" onClick={() => router.push('/repairs')}>
                   <CardHeader><CardTitle className="flex items-center gap-2 text-lg text-primary"><Wrench className="h-5 w-5" /> Report Issue</CardTitle></CardHeader>
