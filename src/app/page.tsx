@@ -17,7 +17,6 @@ import {
   Cake,
   Wrench,
   BarChart,
-  Calculator,
   UserCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -158,7 +157,6 @@ function DashboardContent() {
                   { title: 'Utility Cycle', icon: <Zap className="h-5 w-5" />, path: '/utilities', label: 'Utility Management' },
                   { title: 'Shared Expenses', icon: <BarChart className="h-5 w-5" />, path: '/shared-expenses', label: 'Expense Ledger' },
                   { title: 'Billing Statements', icon: <FileText className="h-5 w-5" />, path: '/statements', label: 'Statements & Payments' },
-                  { title: 'Pro-Rata', icon: <Calculator className="h-5 w-5" />, path: '/pro-rata', label: 'Split Calculation' },
                   { title: 'Birthdays', icon: <Cake className="h-5 w-5" />, path: '/birthdays', label: 'Greet Residents' },
                 ].map(item => (
                   <Card key={item.path} className="hover:shadow-md transition-all border-primary/10 cursor-pointer" onClick={() => router.push(item.path)}>
