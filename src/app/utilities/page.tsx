@@ -63,7 +63,6 @@ export default function CurrentUtilityPage() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Fetch the latest entry regardless of snapshot status to pre-populate correctly
   const latestEntryQuery = useMemoFirebase(() => {
     if (!db || !isSuperAdmin) return null;
     return query(

@@ -146,7 +146,6 @@ export default function Home() {
     }
   };
 
-  // If not mounted or loading auth, show full page spinner
   if (!mounted || userLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-slate-50">
@@ -156,7 +155,6 @@ export default function Home() {
     );
   }
 
-  // If loading user specific data
   if (user && (profileLoading || residentsLoading || billsLoading)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
@@ -169,7 +167,6 @@ export default function Home() {
     );
   }
 
-  // Final check to prevent flash of content before redirect
   if (!user) return null;
 
   const isCurrentPaid = latestBill?.paidResidents?.includes(user.uid);
@@ -243,143 +240,141 @@ export default function Home() {
             </h1>
           </div>
 
-          {!isSuperAdmin && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="shadow-lg border-t-4 border-primary">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-xl font-bold flex items-center gap-2">
-                        <UserIcon className="h-5 w-5 text-primary" /> My Billing Snapshot
-                      </CardTitle>
-                      <CardDescription>Your personal share for the active cycle.</CardDescription>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="shadow-lg border-t-4 border-primary">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl font-bold flex items-center gap-2">
+                      <UserIcon className="h-5 w-5 text-primary" /> My Billing Snapshot
+                    </CardTitle>
+                    <CardDescription>Your personal share for the active cycle.</CardDescription>
+                  </div>
+                  {latestBill && (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-[10px]">
+                        {new Date(latestBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                      </Badge>
+                      {isCurrentPaid ? (
+                        <Badge className="bg-accent text-accent-foreground text-[10px]">PAID</Badge>
+                      ) : (
+                        <Badge variant="destructive" className="text-[10px]">PENDING</Badge>
+                      )}
                     </div>
-                    {latestBill && (
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-[10px]">
-                          {new Date(latestBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                        </Badge>
-                        {isCurrentPaid ? (
-                          <Badge className="bg-accent text-accent-foreground text-[10px]">PAID</Badge>
-                        ) : (
-                          <Badge variant="destructive" className="text-[10px]">PENDING</Badge>
-                        )}
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {latestBill && myIndividualShares ? (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-semibold uppercase mb-1">
+                          <Wifi className="h-3 w-3" /> Wifi
+                        </div>
+                        <p className="text-lg font-bold">{myIndividualShares.wifi.toFixed(3)} OMR</p>
+                      </div>
+                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-semibold uppercase mb-1">
+                          <Droplets className="h-3 w-3" /> Water
+                        </div>
+                        <p className="text-lg font-bold">{myIndividualShares.water.toFixed(3)} OMR</p>
+                      </div>
+                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-semibold uppercase mb-1">
+                          <Lightbulb className="h-3 w-3" /> Elec
+                        </div>
+                        <p className="text-lg font-bold">{myIndividualShares.electricity.toFixed(3)} OMR</p>
+                      </div>
+                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-semibold uppercase mb-1">
+                          <Plus className="h-3 w-3" /> Misc
+                        </div>
+                        <p className="text-lg font-bold">{myIndividualShares.misc.toFixed(3)} OMR</p>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t flex flex-col items-center justify-center text-center">
+                      <span className="text-sm text-muted-foreground">My Total Share</span>
+                      <p className="text-4xl font-black text-primary">{myIndividualShares.total.toFixed(3)} OMR</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="py-12 text-center text-muted-foreground italic bg-slate-50/50 rounded-lg border border-dashed">
+                    No active personal snapshot found for this period.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-lg border-t-4 border-slate-300">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl font-bold flex items-center gap-2">
+                      <Building2 className="h-5 w-5 text-slate-500" /> Household Snapshot
+                    </CardTitle>
+                    <CardDescription>Total household charges for the active cycle.</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {latestBill ? (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-semibold uppercase mb-1">
+                          <Wifi className="h-3 w-3" /> Total Wifi
+                        </div>
+                        <p className="text-lg font-bold">{(latestBill.wifi || 0).toFixed(3)} OMR</p>
+                      </div>
+                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-semibold uppercase mb-1">
+                          <Droplets className="h-3 w-3" /> Total Water
+                        </div>
+                        <p className="text-lg font-bold">{(latestBill.water || 0).toFixed(3)} OMR</p>
+                      </div>
+                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-semibold uppercase mb-1">
+                          <Lightbulb className="h-3 w-3" /> Total Elec
+                        </div>
+                        <p className="text-lg font-bold">{(latestBill.electricity || 0).toFixed(3)} OMR</p>
+                      </div>
+                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-semibold uppercase mb-1">
+                          <Plus className="h-3 w-3" /> Total Misc
+                        </div>
+                        <p className="text-lg font-bold">{(latestBill.miscellaneous || 0).toFixed(3)} OMR</p>
+                      </div>
+                    </div>
+
+                    {collectionProgress && (
+                      <div className="p-4 bg-slate-50 rounded-lg border space-y-3">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="font-bold flex items-center gap-1.5 text-slate-600">
+                            <Users className="h-3 w-3" /> Household Collection Progress
+                          </span>
+                          <span className="font-bold text-primary">
+                            {collectionProgress.paidCount} / {collectionProgress.totalCount} Paid
+                          </span>
+                        </div>
+                        <Progress value={collectionProgress.percentage} className="h-2 bg-slate-200" />
                       </div>
                     )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {latestBill && myIndividualShares ? (
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-semibold uppercase mb-1">
-                            <Wifi className="h-3 w-3" /> Wifi
-                          </div>
-                          <p className="text-lg font-bold">{myIndividualShares.wifi.toFixed(3)} OMR</p>
-                        </div>
-                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-semibold uppercase mb-1">
-                            <Droplets className="h-3 w-3" /> Water
-                          </div>
-                          <p className="text-lg font-bold">{myIndividualShares.water.toFixed(3)} OMR</p>
-                        </div>
-                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-semibold uppercase mb-1">
-                            <Lightbulb className="h-3 w-3" /> Elec
-                          </div>
-                          <p className="text-lg font-bold">{myIndividualShares.electricity.toFixed(3)} OMR</p>
-                        </div>
-                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-semibold uppercase mb-1">
-                            <Plus className="h-3 w-3" /> Misc
-                          </div>
-                          <p className="text-lg font-bold">{myIndividualShares.misc.toFixed(3)} OMR</p>
-                        </div>
-                      </div>
 
-                      <div className="pt-4 border-t flex flex-col items-center justify-center text-center">
-                        <span className="text-sm text-muted-foreground">My Total Share</span>
-                        <p className="text-4xl font-black text-primary">{myIndividualShares.total.toFixed(3)} OMR</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="py-12 text-center text-muted-foreground italic bg-slate-50/50 rounded-lg border border-dashed">
-                      No active personal snapshot found for this period.
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-lg border-t-4 border-slate-300">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-xl font-bold flex items-center gap-2">
-                        <Building2 className="h-5 w-5 text-slate-500" /> Household Snapshot
-                      </CardTitle>
-                      <CardDescription>Total household charges for the active cycle.</CardDescription>
+                    <div className="pt-4 border-t flex flex-col items-center justify-center text-center">
+                      <span className="text-sm text-muted-foreground">Household Total</span>
+                      <p className="text-4xl font-black text-slate-900">{(latestBill.total || 0).toFixed(3)} OMR</p>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  {latestBill ? (
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-semibold uppercase mb-1">
-                            <Wifi className="h-3 w-3" /> Total Wifi
-                          </div>
-                          <p className="text-lg font-bold">{(latestBill.wifi || 0).toFixed(3)} OMR</p>
-                        </div>
-                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-semibold uppercase mb-1">
-                            <Droplets className="h-3 w-3" /> Total Water
-                          </div>
-                          <p className="text-lg font-bold">{(latestBill.water || 0).toFixed(3)} OMR</p>
-                        </div>
-                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-semibold uppercase mb-1">
-                            <Lightbulb className="h-3 w-3" /> Total Elec
-                          </div>
-                          <p className="text-lg font-bold">{(latestBill.electricity || 0).toFixed(3)} OMR</p>
-                        </div>
-                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-semibold uppercase mb-1">
-                            <Plus className="h-3 w-3" /> Total Misc
-                          </div>
-                          <p className="text-lg font-bold">{(latestBill.miscellaneous || 0).toFixed(3)} OMR</p>
-                        </div>
-                      </div>
-
-                      {collectionProgress && (
-                        <div className="p-4 bg-slate-50 rounded-lg border space-y-3">
-                          <div className="flex items-center justify-between text-[10px]">
-                            <span className="font-bold flex items-center gap-1.5 text-slate-600">
-                              <Users className="h-3 w-3" /> Household Collection Progress
-                            </span>
-                            <span className="font-bold text-primary">
-                              {collectionProgress.paidCount} / {collectionProgress.totalCount} Paid
-                            </span>
-                          </div>
-                          <Progress value={collectionProgress.percentage} className="h-2 bg-slate-200" />
-                        </div>
-                      )}
-
-                      <div className="pt-4 border-t flex flex-col items-center justify-center text-center">
-                        <span className="text-sm text-muted-foreground">Household Total</span>
-                        <p className="text-4xl font-black text-slate-900">{(latestBill.total || 0).toFixed(3)} OMR</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="py-12 text-center text-muted-foreground italic bg-slate-50/50 rounded-lg border border-dashed">
-                      No active household snapshot found.
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          )}
+                ) : (
+                  <div className="py-12 text-center text-muted-foreground italic bg-slate-50/50 rounded-lg border border-dashed">
+                    No active household snapshot found.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {isSuperAdmin ? (
