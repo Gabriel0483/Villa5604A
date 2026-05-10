@@ -25,13 +25,14 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // Allow all signed-in users to read profiles for billing transparency and registry access
+      // Allow all signed-in users to read profiles for billing transparency and pro-rata calculations
       allow read: if isSignedIn();
+      allow list: if isSignedIn();
       allow write: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
     }
 
     match /utility_bills/{billId} {
-      // Residents must be able to view household utility totals as a dashboard snapshot.
+      // Residents must be able to view released utility records
       allow read: if isSignedIn();
       allow write: if isSuperAdmin();
     }

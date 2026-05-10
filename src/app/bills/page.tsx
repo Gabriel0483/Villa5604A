@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Receipt, 
@@ -15,7 +15,6 @@ import {
   CheckCircle2,
   Clock,
   Users,
-  Info,
   CalendarRange
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -78,6 +77,13 @@ export default function MyBillsPage() {
 
   const [selectedBill, setSelectedBill] = useState<any>(null);
 
+  // Access check
+  useEffect(() => {
+    if (!userLoading && !user) {
+      router.replace('/login');
+    }
+  }, [user, userLoading, router]);
+
   const userProfileRef = useMemoFirebase(() => {
     if (!db || !user) return null;
     return doc(db, 'users', user.uid);
@@ -85,6 +91,7 @@ export default function MyBillsPage() {
 
   const { data: profile, loading: profileLoading } = useDoc(userProfileRef);
 
+  // Fetch only Released bills
   const billsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
@@ -96,6 +103,7 @@ export default function MyBillsPage() {
 
   const { data: bills, loading: billsLoading } = useCollection(billsQuery);
 
+  // Fetch residents for pro-rata calculation (Requires 'list' permission in rules)
   const residentsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(collection(db, 'users'), where('role', '==', 'Resident'));
@@ -118,7 +126,7 @@ export default function MyBillsPage() {
     if (!selectedBill || !residents || residents.length === 0) return null;
 
     const numResidents = residents.length;
-    const wifiTotal = selectedBill.wifi;
+    const wifiTotal = selectedBill.wifi || 0;
     const miscTotal = selectedBill.miscellaneous || 0;
     
     const totalManDays = residents.reduce((acc, r) => acc + (r.billingDays ?? 30), 0);
@@ -184,7 +192,7 @@ export default function MyBillsPage() {
             <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Dashboard
           </Link>
           <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
-            <Receipt className="h-8 w-8 text-primary" /> Billing & Consumption
+            <Receipt className="h-8 w-8 text-primary" /> View Bills
           </h1>
         </div>
 
@@ -287,19 +295,21 @@ export default function MyBillsPage() {
               );
             })
           ) : (
-            <Card className="p-12 text-center border-dashed">
+            <Card className="p-12 text-center border-dashed bg-white">
               <ReceiptIcon className="h-12 w-12 mx-auto text-slate-200 mb-4" />
-              <h3 className="text-lg font-semibold text-slate-900">No Bills Found</h3>
+              <h3 className="text-lg font-semibold text-slate-900">No Released Bills Found</h3>
+              <p className="text-sm text-muted-foreground">Statements appear here once released by management.</p>
             </Card>
           )}
         </div>
 
         <Dialog open={!!selectedBill} onOpenChange={(open) => !open && setSelectedBill(null)}>
-          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col p-0">
+          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col p-0 border-none shadow-2xl">
             {selectedBill && (
               <>
-                <DialogHeader className="p-6 border-b sr-only">
-                  <DialogTitle>
+                <DialogHeader className="p-6 border-b bg-slate-50">
+                  <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+                    <Calendar className="h-6 w-6 text-primary" />
                     {new Date(selectedBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                   </DialogTitle>
                 </DialogHeader>
@@ -320,7 +330,7 @@ export default function MyBillsPage() {
                     <TabsContent value="personal" className="p-6 animate-in fade-in slide-in-from-top-2 focus-visible:ring-0">
                       {calculatedStatement?.myEntry ? (
                         <div className="space-y-6">
-                          <Card className="shadow-2xl overflow-hidden border">
+                          <Card className="shadow-xl overflow-hidden border">
                             <div className="p-8 bg-slate-50 text-slate-900 flex justify-between border-b">
                               <div className="space-y-4">
                                 <div className="flex items-center gap-2">
