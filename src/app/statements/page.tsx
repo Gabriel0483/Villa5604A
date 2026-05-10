@@ -125,8 +125,8 @@ export default function StatementsPage() {
       toast({
         title: newStatus === 'Released' ? "Bill Released" : "Status Reverted",
         description: newStatus === 'Released' 
-          ? `Utility statement for ${selectedBill.monthYear} is now visible to all residents.`
-          : `Utility statement for ${selectedBill.monthYear} has been set back to Draft.`,
+          ? `Utility statement is now visible to all residents.`
+          : `Utility statement has been set back to Draft.`,
       });
     })
     .catch((err) => {
@@ -170,6 +170,12 @@ export default function StatementsPage() {
     .finally(() => {
       setIsUpdatingPayment(null);
     });
+  };
+
+  const formatDateRange = (start?: string, end?: string) => {
+    if (!start || !end) return "Select billing range...";
+    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
+    return `${new Date(start).toLocaleDateString('en-US', options)} - ${new Date(end).toLocaleDateString('en-US', options)}`;
   };
 
   const statementResults = useMemo(() => {
@@ -237,12 +243,6 @@ export default function StatementsPage() {
     };
   }, [statementResults]);
 
-  const formatDateRange = (start?: string, end?: string) => {
-    if (!start || !end) return null;
-    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
-    return `${new Date(start).toLocaleDateString('en-US', options)} - ${new Date(end).toLocaleDateString('en-US', options)}`;
-  };
-
   const individualStatement = useMemo(() => {
     if (!statementResults || selectedResidentId === 'all') return null;
     return statementResults.find(s => s.residentId === selectedResidentId);
@@ -269,7 +269,7 @@ export default function StatementsPage() {
             <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
               <FileText className="h-8 w-8 text-primary" /> Billing Statements
             </h1>
-            <p className="text-muted-foreground">Generate reports and manage resident payment statuses.</p>
+            <p className="text-muted-foreground">Statements identified exclusively by active billing date range.</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" className="gap-2" onClick={() => window.print()} disabled={!selectedBill}>
@@ -295,14 +295,14 @@ export default function StatementsPage() {
           <div className="space-y-6 print:hidden">
             <Card className="shadow-lg border-t-4 border-primary">
               <CardHeader>
-                <CardTitle className="text-lg">Statement Settings</CardTitle>
+                <CardTitle className="text-lg">Billing Cycle</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Billing Period</Label>
+                  <Label>Select Period Range</Label>
                   <Select value={selectedBillId} onValueChange={setSelectedBillId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a bill..." />
+                      <SelectValue placeholder="Choose a range..." />
                     </SelectTrigger>
                     <SelectContent>
                       {billsLoading ? (
@@ -310,29 +310,29 @@ export default function StatementsPage() {
                       ) : bills && bills.length > 0 ? (
                         bills.map((bill: any) => (
                           <SelectItem key={bill.id} value={bill.id}>
-                            {new Date(bill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                            {formatDateRange(bill.startDate, bill.endDate)}
                           </SelectItem>
                         ))
                       ) : (
-                        <div className="p-2 text-center text-xs text-muted-foreground">No bills found</div>
+                        <div className="p-2 text-center text-xs text-muted-foreground">No records found</div>
                       )}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>View Mode</Label>
+                  <Label>View Type</Label>
                   <Tabs value={viewMode} onValueChange={(v: any) => setViewMode(v)}>
                     <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="general">General</TabsTrigger>
-                      <TabsTrigger value="individual">Individual</TabsTrigger>
+                      <TabsTrigger value="general">Summary</TabsTrigger>
+                      <TabsTrigger value="individual">Detailed</TabsTrigger>
                     </TabsList>
                   </Tabs>
                 </div>
 
                 {viewMode === 'individual' && (
                   <div className="space-y-2 animate-in slide-in-from-top-2">
-                    <Label>Resident</Label>
+                    <Label>Target Resident</Label>
                     <Select value={selectedResidentId} onValueChange={setSelectedResidentId}>
                       <SelectTrigger>
                         <SelectValue placeholder="Choose resident..." />
@@ -347,19 +347,6 @@ export default function StatementsPage() {
                 )}
               </CardContent>
             </Card>
-
-            {selectedBill && (
-              <Card className="shadow-md">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Bill Status</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Badge className={selectedBill.status === 'Released' ? 'bg-accent' : 'bg-slate-500'}>
-                    {selectedBill.status || 'Draft'}
-                  </Badge>
-                </CardContent>
-              </Card>
-            )}
           </div>
 
           <div className="lg:col-span-3 space-y-6">
@@ -367,26 +354,17 @@ export default function StatementsPage() {
               <Card className="shadow-md border-none bg-white print:hidden">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-primary" /> Collection Overview
+                    <TrendingUp className="h-5 w-5 text-primary" /> Range Statistics
                   </CardTitle>
                   <CardDescription>
-                    Summary for {new Date(selectedBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.
+                    Tracking collection for {formatDateRange(selectedBill.startDate, selectedBill.endDate)}.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {selectedBill.startDate && selectedBill.endDate && (
-                    <div className="p-3 bg-slate-50 rounded-lg border flex items-center gap-2 mb-4">
-                      <CalendarRange className="h-4 w-4 text-primary" />
-                      <span className="text-xs font-bold text-slate-700">
-                        Active Billing Range: {formatDateRange(selectedBill.startDate, selectedBill.endDate)}
-                      </span>
-                    </div>
-                  )}
-                  
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm mb-1">
                       <span className="font-medium text-slate-600">Progress: {collectionStats.percentCollected.toFixed(1)}%</span>
-                      <span className="font-bold text-primary">{collectionStats.paidCount} of {collectionStats.totalCount} Residents Paid</span>
+                      <span className="font-bold text-primary">{collectionStats.paidCount} of {collectionStats.totalCount} Paid</span>
                     </div>
                     <Progress value={collectionStats.percentCollected} className="h-3 bg-slate-100" />
                   </div>
@@ -418,7 +396,7 @@ export default function StatementsPage() {
             {!selectedBill ? (
               <Card className="h-full min-h-[400px] border-dashed flex flex-col items-center justify-center text-center p-8 text-muted-foreground bg-slate-50/50">
                 <FileText className="h-16 w-16 mb-4 opacity-10" />
-                <h3 className="text-xl font-semibold mb-2">No Statement Selected</h3>
+                <h3 className="text-xl font-semibold mb-2">Select Active Date Range</h3>
               </Card>
             ) : viewMode === 'general' ? (
               <Card className="shadow-xl border-none print:border">
@@ -426,17 +404,12 @@ export default function StatementsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2 text-2xl font-bold">
-                        <Building2 className="h-6 w-6" /> General Statement
+                        <Building2 className="h-6 w-6" /> Period Summary
                       </div>
                       <div className="flex flex-col mt-1">
-                        <CardDescription className="text-primary-foreground/80">
-                          {new Date(selectedBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                        <CardDescription className="text-primary-foreground/80 flex items-center gap-1">
+                          <CalendarRange className="h-3.5 w-3.5" /> {formatDateRange(selectedBill.startDate, selectedBill.endDate)}
                         </CardDescription>
-                        {selectedBill.startDate && selectedBill.endDate && (
-                          <span className="text-[10px] font-bold text-primary-foreground/60 print:text-slate-500 flex items-center gap-1">
-                            <CalendarRange className="h-3 w-3" /> {formatDateRange(selectedBill.startDate, selectedBill.endDate)}
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -447,7 +420,7 @@ export default function StatementsPage() {
                       <TableRow>
                         <TableHead>Resident (Unit)</TableHead>
                         <TableHead className="text-right">Total OMR</TableHead>
-                        <TableHead className="text-center">Payment Status</TableHead>
+                        <TableHead className="text-center">Status</TableHead>
                         <TableHead className="text-right print:hidden">Action</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -477,7 +450,7 @@ export default function StatementsPage() {
                               disabled={isUpdatingPayment === s.residentId}
                               onClick={() => togglePaymentStatus(s.residentId, s.isPaid)}
                             >
-                              {isUpdatingPayment === s.residentId ? <Loader2 className="h-3 w-3 animate-spin" /> : (s.isPaid ? 'Undo Paid' : 'Mark Paid')}
+                              {isUpdatingPayment === s.residentId ? <Loader2 className="h-3 w-3 animate-spin" /> : (s.isPaid ? 'Reset' : 'Mark Paid')}
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -495,21 +468,20 @@ export default function StatementsPage() {
                       <span className="text-2xl font-black tracking-tight text-primary">VILLA 5604</span>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-sm font-bold text-slate-900">{new Date(selectedBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
                       <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                        <CalendarRange className="h-3 w-3" /> {formatDateRange(selectedBill.startDate, selectedBill.endDate)}
+                        <CalendarRange className="h-3.5 w-3.5" /> {formatDateRange(selectedBill.startDate, selectedBill.endDate)}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-1">Bill To</p>
+                    <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-1">Statement For</p>
                     <h2 className="text-2xl font-bold text-slate-900">{individualStatement.residentName}</h2>
                     <p className="text-sm font-medium text-muted-foreground">Unit {individualStatement.roomUnit}</p>
                     <div className="mt-4">
                       {individualStatement.isPaid ? (
                         <Badge className="bg-accent text-accent-foreground">PAID</Badge>
                       ) : (
-                        <Badge variant="destructive">PENDING PAYMENT</Badge>
+                        <Badge variant="destructive">UNPAID</Badge>
                       )}
                     </div>
                   </div>
@@ -532,7 +504,7 @@ export default function StatementsPage() {
                   </div>
 
                   <div className="bg-slate-50 p-6 rounded-xl flex justify-between items-center border">
-                    <span className="font-black text-slate-500 uppercase tracking-tighter">Total Due</span>
+                    <span className="font-black text-slate-500 uppercase tracking-tighter">Amount Due</span>
                     <span className="text-4xl font-black text-primary">{individualStatement.totalDue.toFixed(3)} OMR</span>
                   </div>
                 </CardContent>

@@ -45,14 +45,6 @@ export default function CurrentUtilityPage() {
     miscellaneous: '0'
   });
 
-  // Handle hydration
-  useEffect(() => {
-    setFormData(prev => ({
-      ...prev,
-      monthYear: new Date().toISOString().substring(0, 7)
-    }));
-  }, []);
-
   const userProfileRef = useMemoFirebase(() => {
     if (!db || !user) return null;
     return doc(db, 'users', user.uid);
@@ -67,7 +59,17 @@ export default function CurrentUtilityPage() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Synchronize form with Firestore when month changes
+  // Derive monthYear ID from startDate automatically
+  useEffect(() => {
+    if (formData.startDate) {
+      const derivedId = formData.startDate.substring(0, 7); // YYYY-MM
+      if (derivedId !== formData.monthYear) {
+        setFormData(prev => ({ ...prev, monthYear: derivedId }));
+      }
+    }
+  }, [formData.startDate, formData.monthYear]);
+
+  // Synchronize form with Firestore when monthYear (derived from startDate) changes
   useEffect(() => {
     if (!db || !isSuperAdmin || !formData.monthYear) return;
 
@@ -86,17 +88,6 @@ export default function CurrentUtilityPage() {
             water: data.water?.toString() || '',
             electricity: data.electricity?.toString() || '',
             miscellaneous: data.miscellaneous?.toString() || '0'
-          }));
-        } else {
-          // Reset for new month entry
-          setFormData(prev => ({
-            ...prev,
-            startDate: '',
-            endDate: '',
-            wifi: '',
-            water: '',
-            electricity: '',
-            miscellaneous: '0'
           }));
         }
       } catch (error) {
@@ -118,11 +109,11 @@ export default function CurrentUtilityPage() {
     e.preventDefault();
     if (!db || !isSuperAdmin) return;
 
-    if (!formData.monthYear || !formData.startDate || !formData.endDate) {
+    if (!formData.startDate || !formData.endDate) {
       toast({ 
         variant: "destructive", 
         title: "Missing Dates", 
-        description: "Billing range (Start and End) is the source of truth and must be defined." 
+        description: "Billing range (Start and End) is the single source of truth and must be defined." 
       });
       return;
     }
@@ -152,7 +143,7 @@ export default function CurrentUtilityPage() {
       .then(() => {
         toast({ 
           title: isPublished ? "Bill Released" : "Draft Saved", 
-          description: `Records for ${formData.monthYear} using the active range ${formData.startDate} to ${formData.endDate} have been updated.` 
+          description: `Records for the period starting ${formData.startDate} have been updated.` 
         });
       })
       .catch((err) => {
@@ -195,33 +186,9 @@ export default function CurrentUtilityPage() {
           )}
           <CardHeader>
             <CardTitle className="text-xl">Active Cycle Details</CardTitle>
-            <CardDescription>Select a month to manage utility records. The Start and End dates are the single source of truth for the billing period.</CardDescription>
+            <CardDescription>Define the billing period using Start and End dates. These dates are the single source of truth for the utility cycle.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label>Billing Month Identifier</Label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    type="month" 
-                    name="monthYear" 
-                    value={formData.monthYear} 
-                    onChange={handleInputChange} 
-                    className="pl-10 font-bold border-primary/30" 
-                    required 
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Wifi Total (OMR)</Label>
-                <div className="relative">
-                  <Wifi className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input name="wifi" type="number" step="0.001" value={formData.wifi} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
-                </div>
-              </div>
-            </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
@@ -249,7 +216,24 @@ export default function CurrentUtilityPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <div className="space-y-2">
+                <Label>Wifi Total (OMR)</Label>
+                <div className="relative">
+                  <Wifi className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input name="wifi" type="number" step="0.001" value={formData.wifi} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Miscellaneous (OMR)</Label>
+                <div className="relative">
+                  <Plus className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input name="miscellaneous" type="number" step="0.001" value={formData.miscellaneous} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label>Water (OMR)</Label>
                 <div className="relative">
@@ -262,13 +246,6 @@ export default function CurrentUtilityPage() {
                 <div className="relative">
                   <Lightbulb className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input name="electricity" type="number" step="0.001" value={formData.electricity} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Miscellaneous (OMR)</Label>
-                <div className="relative">
-                  <Plus className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input name="miscellaneous" type="number" step="0.001" value={formData.miscellaneous} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
                 </div>
               </div>
             </div>

@@ -17,7 +17,7 @@ import {
   Plus as PlusIcon,
   Edit2,
   Trash2,
-  AlertCircle
+  CalendarRange
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,6 +55,8 @@ export default function SharedExpensesPage() {
 
   const [formData, setFormData] = useState({
     monthYear: '',
+    startDate: '',
+    endDate: '',
     wifi: '',
     water: '',
     electricity: '',
@@ -110,6 +112,11 @@ export default function SharedExpensesPage() {
     e.preventDefault();
     if (!db || !isSuperAdmin) return;
 
+    if (!formData.startDate || !formData.endDate) {
+      toast({ variant: "destructive", title: "Missing Dates", description: "Start and End dates are required." });
+      return;
+    }
+
     setIsSaving(true);
 
     const wifi = parseFloat(formData.wifi) || 0;
@@ -118,8 +125,13 @@ export default function SharedExpensesPage() {
     const misc = parseFloat(formData.miscellaneous) || 0;
     const total = wifi + water + electricity + misc;
 
+    // Standardize ID based on startDate
+    const derivedMonthYear = formData.startDate.substring(0, 7);
+
     const billData = {
-      monthYear: formData.monthYear,
+      monthYear: derivedMonthYear,
+      startDate: formData.startDate,
+      endDate: formData.endDate,
       wifi,
       water,
       electricity,
@@ -129,16 +141,16 @@ export default function SharedExpensesPage() {
       status: 'Released'
     };
 
-    const billRef = doc(db, 'utility_bills', formData.monthYear);
+    const billRef = doc(db, 'utility_bills', derivedMonthYear);
 
     setDoc(billRef, billData, { merge: true })
       .then(() => {
         toast({
           title: "Expense Recorded",
-          description: `Historical data for ${formData.monthYear} has been saved and released.`,
+          description: `Data for the period starting ${formData.startDate} has been saved.`,
         });
         setIsAddingNew(false);
-        setFormData({ monthYear: '', wifi: '', water: '', electricity: '', miscellaneous: '' });
+        setFormData({ monthYear: '', startDate: '', endDate: '', wifi: '', water: '', electricity: '', miscellaneous: '' });
       })
       .catch(async (err) => {
         const permissionError = new FirestorePermissionError({
@@ -156,6 +168,8 @@ export default function SharedExpensesPage() {
   const handleEditBill = (bill: any) => {
     setFormData({
       monthYear: bill.monthYear,
+      startDate: bill.startDate || '',
+      endDate: bill.endDate || '',
       wifi: bill.wifi.toString(),
       water: bill.water.toString(),
       electricity: bill.electricity.toString(),
@@ -190,6 +204,12 @@ export default function SharedExpensesPage() {
       });
   };
 
+  const formatDateRange = (start?: string, end?: string) => {
+    if (!start || !end) return null;
+    const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
+    return `${new Date(start).toLocaleDateString('en-US', opts)} - ${new Date(end).toLocaleDateString('en-US', opts)}`;
+  };
+
   if (userLoading || profileLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -211,40 +231,52 @@ export default function SharedExpensesPage() {
             <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
               <BarChart className="h-8 w-8 text-primary" /> Shared Expenses Ledger
             </h1>
-            <p className="text-muted-foreground">Historical records for Water and Electricity consumption trends.</p>
+            <p className="text-muted-foreground">Historical records managed by Billing Start and End dates.</p>
           </div>
           
           <Button onClick={() => setIsAddingNew(!isAddingNew)} className="gap-2 shadow-sm">
             {isAddingNew ? <History className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-            {isAddingNew ? "View History" : "Record Month"}
+            {isAddingNew ? "View Ledger" : "Record New Period"}
           </Button>
         </div>
 
         {isAddingNew ? (
           <Card className="shadow-lg border-t-4 border-primary">
             <CardHeader>
-              <CardTitle className="text-xl">Record Utility Data</CardTitle>
-              <CardDescription>Enter values for Jan-Mar 2026 or any billing period.</CardDescription>
+              <CardTitle className="text-xl">Record Period Expenses</CardTitle>
+              <CardDescription>The active billing range is the primary identifier for this record.</CardDescription>
             </CardHeader>
             <form onSubmit={handleSaveBill}>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
                   <div className="space-y-2">
-                    <Label htmlFor="monthYear">Select Month</Label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        id="monthYear" 
-                        name="monthYear" 
-                        type="month" 
-                        value={formData.monthYear} 
-                        onChange={handleInputChange} 
-                        className="pl-10" 
-                        required 
-                      />
-                    </div>
+                    <Label className="flex items-center gap-2">
+                      <CalendarRange className="h-4 w-4 text-primary" /> Bill Start Date
+                    </Label>
+                    <Input 
+                      type="date" 
+                      name="startDate" 
+                      value={formData.startDate} 
+                      onChange={handleInputChange} 
+                      required 
+                    />
                   </div>
                   <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <CalendarRange className="h-4 w-4 text-primary" /> Bill End Date
+                    </Label>
+                    <Input 
+                      type="date" 
+                      name="endDate" 
+                      value={formData.endDate} 
+                      onChange={handleInputChange} 
+                      required 
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div className="space-y-2">
                     <Label htmlFor="wifi">Wifi (OMR)</Label>
                     <div className="relative">
                       <Wifi className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -261,9 +293,16 @@ export default function SharedExpensesPage() {
                       />
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="miscellaneous">Misc (OMR)</Label>
+                    <div className="relative">
+                      <PlusIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input id="miscellaneous" name="miscellaneous" type="number" step="0.001" value={formData.miscellaneous} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="water">Water (OMR)</Label>
                     <div className="relative">
@@ -276,13 +315,6 @@ export default function SharedExpensesPage() {
                     <div className="relative">
                       <Lightbulb className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input id="electricity" name="electricity" type="number" step="0.001" value={formData.electricity} onChange={handleInputChange} className="pl-10" placeholder="0.000" required />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="miscellaneous">Misc (OMR)</Label>
-                    <div className="relative">
-                      <PlusIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input id="miscellaneous" name="miscellaneous" type="number" step="0.001" value={formData.miscellaneous} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
                     </div>
                   </div>
                 </div>
@@ -302,11 +334,11 @@ export default function SharedExpensesPage() {
           <Card className="shadow-lg border-none overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between pb-7">
               <div>
-                <CardTitle>Expense History</CardTitle>
-                <CardDescription>Records recorded for consumption tracking.</CardDescription>
+                <CardTitle>Expense Ledger</CardTitle>
+                <CardDescription>Historical utility records identified by billing range.</CardDescription>
               </div>
               <Badge variant="outline" className="text-primary font-semibold">
-                {bills?.length || 0} Months
+                {bills?.length || 0} Records
               </Badge>
             </CardHeader>
             <CardContent>
@@ -314,7 +346,7 @@ export default function SharedExpensesPage() {
                 <Table>
                   <TableHeader className="bg-slate-50">
                     <TableRow>
-                      <TableHead>Month</TableHead>
+                      <TableHead>Billing Range</TableHead>
                       <TableHead>Wifi</TableHead>
                       <TableHead>Water</TableHead>
                       <TableHead>Elec</TableHead>
@@ -333,7 +365,10 @@ export default function SharedExpensesPage() {
                       bills.map((bill: any) => (
                         <TableRow key={bill.id} className="hover:bg-slate-50/50 transition-colors">
                           <TableCell className="font-medium">
-                            {new Date(bill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                            <div className="flex flex-col">
+                              <span>{formatDateRange(bill.startDate, bill.endDate)}</span>
+                              <span className="text-[10px] text-muted-foreground uppercase font-bold">{new Date(bill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                            </div>
                           </TableCell>
                           <TableCell>{bill.wifi.toFixed(3)}</TableCell>
                           <TableCell>{bill.water.toFixed(3)}</TableCell>
@@ -369,7 +404,7 @@ export default function SharedExpensesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Expense Record?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove the data for {billToDelete}. Residents will no longer see this in their consumption trends.
+              This will remove the data for this billing period. This action is permanent.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

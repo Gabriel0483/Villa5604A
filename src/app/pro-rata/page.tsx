@@ -11,7 +11,8 @@ import {
   Receipt, 
   CheckCircle2, 
   ChevronRight,
-  Download
+  Download,
+  CalendarRange
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,11 +54,7 @@ export default function ProRataPage() {
 
   const isSuperAdmin = useMemo(() => {
     if (!user) return false;
-    const adminEmails = [
-      'rielmagpantay@gmail.com', 
-      'rielmagpantay@gmail.com@villa5604.app',
-      'room101@villa5604.app'
-    ];
+    const adminEmails = ['rielmagpantay@gmail.com', 'rielmagpantay@gmail.com@villa5604.app', 'room101@villa5604.app'];
     if (adminEmails.includes(user.email?.toLowerCase() || '')) return true;
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
@@ -66,11 +63,7 @@ export default function ProRataPage() {
     if (!userLoading && !profileLoading) {
       if (!user) router.push('/login');
       else if (!isSuperAdmin) {
-        toast({
-          variant: "destructive",
-          title: "Access Denied",
-          description: "You do not have permission to access the Pro-Rata module."
-        });
+        toast({ variant: "destructive", title: "Access Denied", description: "You do not have permission to access the Pro-Rata module." });
         router.push('/');
       }
     }
@@ -93,13 +86,15 @@ export default function ProRataPage() {
     return bills?.find(b => b.id === selectedBillId);
   }, [bills, selectedBillId]);
 
+  const formatDateRange = (start?: string, end?: string) => {
+    if (!start || !end) return "Select billing range...";
+    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
+    return `${new Date(start).toLocaleDateString('en-US', options)} - ${new Date(end).toLocaleDateString('en-US', options)}`;
+  };
+
   const handleCalculate = () => {
     if (!selectedBill || !residents || residents.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "Missing Information",
-        description: "Please ensure you have a bill selected and active residents in the registry."
-      });
+      toast({ variant: "destructive", title: "Missing Information", description: "Ensure you have a record selected and active residents." });
       return;
     }
 
@@ -131,12 +126,8 @@ export default function ProRataPage() {
           
           const resTotalShare = resWifiShare + resMainUsageShare + resMiscShare;
 
-          let explanation = `Wifi: ${resWifiShare.toFixed(3)} OMR. Usage: ${resMainUsageShare.toFixed(3)} OMR.`;
-          if (isMisc && miscTotal > 0) {
-            explanation += ` Misc: ${resMiscShare.toFixed(3)} OMR.`;
-          } else if (miscTotal > 0) {
-            explanation += ` Misc: 0.000 OMR (Exempt).`;
-          }
+          let explanation = `Wifi: ${resWifiShare.toFixed(3)}. Usage: ${resMainUsageShare.toFixed(3)}.`;
+          if (isMisc && miscTotal > 0) explanation += ` Misc: ${resMiscShare.toFixed(3)}.`;
 
           return {
             residentName: `${r.firstName} ${r.lastName}`,
@@ -148,16 +139,12 @@ export default function ProRataPage() {
         const totalAllocated = allocations.reduce((acc, curr) => acc + curr.amount, 0);
 
         setAllocationResults({
-          methodology: "Standard split: Wifi divided equally. Water & Electricity split by total household billing days. Miscellaneous split ONLY among applicable residents based on their billing days.",
+          methodology: "Calculated by total household billing days within the selected active date range.",
           allocations: allocations,
           totalAllocated: totalAllocated
         });
       } catch (error) {
-        toast({
-          variant: "destructive",
-          title: "Calculation Error",
-          description: "An error occurred while processing the allocation."
-        });
+        toast({ variant: "destructive", title: "Calculation Error", description: "An error occurred while processing." });
       } finally {
         setIsCalculating(false);
       }
@@ -192,14 +179,14 @@ export default function ProRataPage() {
           <div className="space-y-6">
             <Card className="shadow-lg border-t-4 border-primary">
               <CardHeader>
-                <CardTitle className="text-lg">Step 1: Select Bill</CardTitle>
+                <CardTitle className="text-lg">Active Range Selection</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Billing Period</Label>
                   <Select value={selectedBillId} onValueChange={setSelectedBillId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a bill..." />
+                      <SelectValue placeholder="Select active range..." />
                     </SelectTrigger>
                     <SelectContent>
                       {billsLoading ? (
@@ -207,28 +194,15 @@ export default function ProRataPage() {
                       ) : bills && bills.length > 0 ? (
                         bills.map((bill: any) => (
                           <SelectItem key={bill.id} value={bill.id}>
-                            {new Date(bill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} - {bill.total.toFixed(3)} OMR
+                            {formatDateRange(bill.startDate, bill.endDate)}
                           </SelectItem>
                         ))
                       ) : (
-                        <div className="p-2 text-center text-xs text-muted-foreground">No bills found</div>
+                        <div className="p-2 text-center text-xs text-muted-foreground">No records found</div>
                       )}
                     </SelectContent>
                   </Select>
                 </div>
-
-                {selectedBill && (
-                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Total to Distribute:</span>
-                      <span className="font-bold text-primary">{selectedBill.total.toFixed(3)} OMR</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Total Residents:</span>
-                      <span className="font-bold">{residents?.length || 0}</span>
-                    </div>
-                  </div>
-                )}
 
                 <Button 
                   className="w-full gap-2 shadow-sm" 
@@ -236,7 +210,7 @@ export default function ProRataPage() {
                   onClick={handleCalculate}
                 >
                   {isCalculating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calculator className="h-4 w-4" />}
-                  Calculate Allocation
+                  Generate Split
                 </Button>
               </CardContent>
             </Card>
@@ -246,7 +220,7 @@ export default function ProRataPage() {
             {!allocationResults ? (
               <Card className="h-full min-h-[400px] border-dashed flex flex-col items-center justify-center text-center p-8 text-muted-foreground bg-slate-50/50">
                 <Calculator className="h-16 w-16 mb-4 opacity-10" />
-                <h3 className="text-xl font-semibold mb-2">No Calculation Active</h3>
+                <h3 className="text-xl font-semibold mb-2">No Generation Active</h3>
               </Card>
             ) : (
               <div className="space-y-6 animate-in fade-in duration-700">
@@ -255,10 +229,10 @@ export default function ProRataPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <CardTitle className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5" /> Calculated Distribution
+                          <CheckCircle2 className="h-5 w-5" /> Distribution Results
                         </CardTitle>
-                        <CardDescription className="text-primary-foreground/70">
-                          Period: {new Date(selectedBill!.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                        <CardDescription className="text-primary-foreground/70 flex items-center gap-1">
+                          <CalendarRange className="h-3.5 w-3.5" /> {formatDateRange(selectedBill!.startDate, selectedBill!.endDate)}
                         </CardDescription>
                       </div>
                       <Badge variant="secondary" className="text-lg px-4 py-1">
@@ -292,11 +266,6 @@ export default function ProRataPage() {
                       </Table>
                     </div>
                   </CardContent>
-                  <CardFooter className="bg-slate-50 border-t py-4 justify-end gap-3">
-                    <Button variant="outline" className="gap-2 text-xs" onClick={() => window.print()}>
-                      <Download className="h-4 w-4" /> Export/Print
-                    </Button>
-                  </CardFooter>
                 </Card>
               </div>
             )}
