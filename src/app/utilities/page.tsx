@@ -12,7 +12,6 @@ import {
   ArrowLeft, 
   Loader2, 
   Save, 
-  Calendar,
   CalendarRange
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -35,7 +34,6 @@ export default function CurrentUtilityPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingRecord, setIsLoadingRecord] = useState(false);
   const [formData, setFormData] = useState({
-    monthYear: '', 
     startDate: '',
     endDate: '',
     wifi: '',
@@ -58,30 +56,22 @@ export default function CurrentUtilityPage() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Derive monthYear ID from startDate automatically
+  // Synchronize form with Firestore based on the selected Start Date
   useEffect(() => {
-    if (formData.startDate) {
-      const derivedId = formData.startDate.substring(0, 7); // YYYY-MM
-      if (derivedId !== formData.monthYear) {
-        setFormData(prev => ({ ...prev, monthYear: derivedId }));
-      }
-    }
-  }, [formData.startDate, formData.monthYear]);
-
-  // Synchronize form with Firestore when monthYear (derived from startDate) changes
-  useEffect(() => {
-    if (!db || !isSuperAdmin || !formData.monthYear) return;
+    if (!db || !isSuperAdmin || !formData.startDate) return;
 
     const fetchRecord = async () => {
       setIsLoadingRecord(true);
-      const docRef = doc(db, 'utility_bills', formData.monthYear);
+      // Derive the stable period ID (YYYY-MM) from the start date
+      const periodId = formData.startDate.substring(0, 7);
+      const docRef = doc(db, 'utility_bills', periodId);
+      
       try {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
           setFormData(prev => ({
             ...prev,
-            startDate: data.startDate || '',
             endDate: data.endDate || '',
             wifi: data.wifi?.toString() || '',
             water: data.water?.toString() || '',
@@ -97,7 +87,7 @@ export default function CurrentUtilityPage() {
     };
 
     fetchRecord();
-  }, [db, isSuperAdmin, formData.monthYear]);
+  }, [db, isSuperAdmin, formData.startDate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -123,8 +113,11 @@ export default function CurrentUtilityPage() {
     const electricity = parseFloat(formData.electricity) || 0;
     const misc = parseFloat(formData.miscellaneous) || 0;
     
+    // Derive period identifier for sorting and ordering
+    const periodId = formData.startDate.substring(0, 7);
+
     const billData = {
-      monthYear: formData.monthYear,
+      monthYear: periodId,
       startDate: formData.startDate,
       endDate: formData.endDate,
       wifi, 
@@ -133,16 +126,16 @@ export default function CurrentUtilityPage() {
       miscellaneous: misc,
       total: wifi + water + electricity + misc,
       updatedAt: serverTimestamp(),
-      status: 'Released' // Automatically released upon saving
+      status: 'Released' // Ensure the status is always Released so residents can see it
     };
 
-    const billRef = doc(db, 'utility_bills', formData.monthYear);
+    const billRef = doc(db, 'utility_bills', periodId);
     
     setDoc(billRef, billData, { merge: true })
       .then(() => {
         toast({ 
-          title: "Record Saved", 
-          description: `Utility data for the period starting ${formData.startDate} has been updated and released.` 
+          title: "Record Saved & Released", 
+          description: `Utility data for the period starting ${formData.startDate} is now live for all residents.` 
         });
       })
       .catch((err) => {
@@ -154,6 +147,10 @@ export default function CurrentUtilityPage() {
       })
       .finally(() => setIsSaving(false));
   };
+
+  const calculatedTotal = useMemo(() => {
+    return (parseFloat(formData.wifi || '0') + parseFloat(formData.water || '0') + parseFloat(formData.electricity || '0') + parseFloat(formData.miscellaneous || '0')).toFixed(3);
+  }, [formData]);
 
   if (userLoading || profileLoading) {
     return (
@@ -185,7 +182,7 @@ export default function CurrentUtilityPage() {
           )}
           <CardHeader>
             <CardTitle className="text-xl">Active Cycle Details</CardTitle>
-            <CardDescription>Define the billing period using Start and End dates. These dates are the single source of truth for the utility cycle.</CardDescription>
+            <CardDescription>Define the billing period using Start and End dates. These dates are the single source of truth.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
@@ -253,7 +250,7 @@ export default function CurrentUtilityPage() {
               <div className="text-center md:text-left">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Calculated Total</p>
                 <p className="text-3xl font-black text-primary">
-                  {(parseFloat(formData.wifi || '0') + parseFloat(formData.water || '0') + parseFloat(formData.electricity || '0') + parseFloat(formData.miscellaneous || '0')).toFixed(3)} OMR
+                  {calculatedTotal} OMR
                 </p>
               </div>
               <Button className="w-full md:w-auto min-w-[150px] gap-2" onClick={handleSaveBill} disabled={isSaving || isLoadingRecord}>

@@ -91,7 +91,7 @@ export default function MyBillsPage() {
 
   const { data: profile, loading: profileLoading } = useDoc(userProfileRef);
 
-  // Fetch only Released bills
+  // Fetch only Released bills ordered by the derived month identifier
   const billsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
@@ -116,7 +116,7 @@ export default function MyBillsPage() {
     return [...bills]
       .sort((a: any, b: any) => a.monthYear.localeCompare(b.monthYear))
       .map((bill: any) => ({
-        month: new Date(bill.monthYear + '-01').toLocaleDateString('en-US', { month: 'short' }),
+        month: new Date(bill.startDate).toLocaleDateString('en-US', { month: 'short' }),
         water: bill.water,
         electricity: bill.electricity,
       }));
@@ -193,7 +193,7 @@ export default function MyBillsPage() {
             <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Dashboard
           </Link>
           <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
-            <Receipt className="h-8 w-8 text-primary" /> View Bills
+            <Receipt className="h-8 w-8 text-primary" /> My Bills
           </h1>
         </div>
 
@@ -201,7 +201,7 @@ export default function MyBillsPage() {
           <Card className="shadow-lg border-none">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" /> Household Consumption Trends
+                <TrendingUp className="h-5 w-5 text-primary" /> Consumption Trends
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -250,7 +250,7 @@ export default function MyBillsPage() {
 
         <div className="grid grid-cols-1 gap-4">
           <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 px-1 pt-4">
-            <ReceiptIcon className="h-5 w-5 text-slate-400" /> Statement History
+            <ReceiptIcon className="h-5 w-5 text-slate-400" /> Released Statements
           </h2>
           
           {billsLoading ? (
@@ -266,14 +266,14 @@ export default function MyBillsPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                          <Calendar className="h-6 w-6" />
+                          <CalendarRange className="h-6 w-6" />
                         </div>
                         <div>
                           <h3 className="text-lg font-bold">
-                            {new Date(bill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                            {formatDateRange(bill.startDate, bill.endDate)}
                           </h3>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <CalendarRange className="h-3 w-3" /> {formatDateRange(bill.startDate, bill.endDate) || 'N/A'}
+                          <p className="text-xs text-muted-foreground">
+                            Billing Reference: {bill.id}
                           </p>
                           <p className="text-sm font-bold text-primary mt-1">Household Total: {bill.total.toFixed(3)} OMR</p>
                         </div>
@@ -299,7 +299,7 @@ export default function MyBillsPage() {
             <Card className="p-12 text-center border-dashed bg-white">
               <ReceiptIcon className="h-12 w-12 mx-auto text-slate-200 mb-4" />
               <h3 className="text-lg font-semibold text-slate-900">No Released Bills Found</h3>
-              <p className="text-sm text-muted-foreground">Statements appear here once released by management.</p>
+              <p className="text-sm text-muted-foreground">Statements appear here once saved by management.</p>
             </Card>
           )}
         </div>
@@ -310,8 +310,8 @@ export default function MyBillsPage() {
               <>
                 <DialogHeader className="p-6 border-b bg-slate-50">
                   <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-                    <Calendar className="h-6 w-6 text-primary" />
-                    {new Date(selectedBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                    <CalendarRange className="h-6 w-6 text-primary" />
+                    {formatDateRange(selectedBill.startDate, selectedBill.endDate)}
                   </DialogTitle>
                 </DialogHeader>
                 
@@ -339,9 +339,6 @@ export default function MyBillsPage() {
                                   <span className="text-2xl font-black tracking-tight text-primary">VILLA 5604</span>
                                 </div>
                                 <div className="space-y-1">
-                                  <p className="text-sm font-bold text-slate-900">
-                                    {new Date(selectedBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                                  </p>
                                   <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                                     <CalendarRange className="h-3 w-3" /> {formatDateRange(selectedBill.startDate, selectedBill.endDate)}
                                   </p>
