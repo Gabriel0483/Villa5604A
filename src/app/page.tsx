@@ -116,11 +116,14 @@ export default function Home() {
     const electricitySharePerDay = totalManDays > 0 ? (latestBill.electricity || 0) / totalManDays : 0;
     const miscUsagePerDay = totalMiscManDays > 0 ? miscTotal / totalMiscManDays : 0;
 
+    // Logic: If Admin, show the share of the first resident as a "Preview" for verification
     const myProfile = residents.find(r => r.id === user.uid);
-    if (!myProfile) return null;
+    const targetProfile = myProfile || residents[0];
+    
+    if (!targetProfile) return null;
 
-    const resDays = myProfile.billingDays ?? 30;
-    const isMisc = myProfile.isMiscApplicable !== false;
+    const resDays = targetProfile.billingDays ?? 30;
+    const isMisc = targetProfile.isMiscApplicable !== false;
 
     const myWifi = wifiSharePerPerson;
     const myWater = waterSharePerDay * resDays;
@@ -133,7 +136,9 @@ export default function Home() {
       electricity: myElec,
       misc: myMisc,
       total: myWifi + myWater + myElec + myMisc,
-      days: resDays
+      days: resDays,
+      isResident: !!myProfile,
+      targetName: targetProfile.firstName
     };
   }, [latestBill, residents, user]);
 
@@ -246,19 +251,28 @@ export default function Home() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-xl font-bold flex items-center gap-2">
-                      <UserIcon className="h-5 w-5 text-primary" /> My Billing Snapshot
+                      <UserIcon className="h-5 w-5 text-primary" /> {myIndividualShares?.isResident ? "My Billing Snapshot" : "Resident Share Preview"}
                     </CardTitle>
-                    <CardDescription>Your personal share for the active cycle.</CardDescription>
+                    <CardDescription>
+                      {myIndividualShares?.isResident 
+                        ? "Your personal share for the active cycle." 
+                        : `Showing share preview for ${myIndividualShares?.targetName}.`}
+                    </CardDescription>
                   </div>
                   {latestBill && (
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary" className="text-[10px]">
                         {new Date(latestBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                       </Badge>
-                      {isCurrentPaid ? (
-                        <Badge className="bg-accent text-accent-foreground text-[10px]">PAID</Badge>
-                      ) : (
-                        <Badge variant="destructive" className="text-[10px]">PENDING</Badge>
+                      {myIndividualShares?.isResident && (
+                        isCurrentPaid ? (
+                          <Badge className="bg-accent text-accent-foreground text-[10px]">PAID</Badge>
+                        ) : (
+                          <Badge variant="destructive" className="text-[10px]">PENDING</Badge>
+                        )
+                      )}
+                      {!myIndividualShares?.isResident && isSuperAdmin && (
+                        <Badge variant="outline" className="text-[10px]">ADMIN VIEW</Badge>
                       )}
                     </div>
                   )}
@@ -295,13 +309,13 @@ export default function Home() {
                     </div>
 
                     <div className="pt-4 border-t flex flex-col items-center justify-center text-center">
-                      <span className="text-sm text-muted-foreground">My Total Share</span>
+                      <span className="text-sm text-muted-foreground">Calculated Share</span>
                       <p className="text-4xl font-black text-primary">{myIndividualShares.total.toFixed(3)} OMR</p>
                     </div>
                   </div>
                 ) : (
                   <div className="py-12 text-center text-muted-foreground italic bg-slate-50/50 rounded-lg border border-dashed">
-                    No active personal snapshot found for this period.
+                    No active published snapshot found for this period.
                   </div>
                 )}
               </CardContent>
@@ -369,7 +383,7 @@ export default function Home() {
                   </div>
                 ) : (
                   <div className="py-12 text-center text-muted-foreground italic bg-slate-50/50 rounded-lg border border-dashed">
-                    No active household snapshot found.
+                    No active household snapshot published.
                   </div>
                 )}
               </CardContent>

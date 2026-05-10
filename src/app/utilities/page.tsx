@@ -21,7 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, query, doc, setDoc, serverTimestamp, orderBy, limit, where } from 'firebase/firestore';
+import { collection, query, doc, setDoc, serverTimestamp, orderBy, limit, getDoc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 import Link from 'next/link';
@@ -93,6 +93,7 @@ export default function CurrentUtilityPage() {
     return null;
   };
 
+  // Improved initialization: Pre-populate from the most recent record
   useEffect(() => {
     if (billsLoading || userLoading || profileLoading || !isSuperAdmin || initializedRef.current) return;
 
@@ -110,6 +111,27 @@ export default function CurrentUtilityPage() {
       initializedRef.current = true;
     }
   }, [latestEntries, billsLoading, userLoading, profileLoading, isSuperAdmin]);
+
+  // Robust month switching: If admin types a valid month, try to fetch it
+  useEffect(() => {
+    const storageMonth = toStorage(displayMonth);
+    if (!storageMonth || !db || !isSuperAdmin) return;
+
+    const fetchSpecificMonth = async () => {
+      const billRef = doc(db, 'utility_bills', storageMonth);
+      const snap = await getDoc(billRef);
+      if (snap.exists()) {
+        const bill = snap.data();
+        setFormData({
+          wifi: bill.wifi?.toString() || '',
+          water: bill.water?.toString() || '',
+          electricity: bill.electricity?.toString() || '',
+          miscellaneous: bill.miscellaneous?.toString() || '0'
+        });
+      }
+    };
+    fetchSpecificMonth();
+  }, [displayMonth, db, isSuperAdmin]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -151,10 +173,11 @@ export default function CurrentUtilityPage() {
 
     const billRef = doc(db, 'utility_bills', storageMonth);
 
+    // Using merge to preserve existing data while updating the specific snapshot
     setDoc(billRef, billData, { merge: true })
       .then(() => {
         toast({
-          title: showOnDashboard ? "Current Billing Month Updated" : "Draft Saved",
+          title: showOnDashboard ? "Current Billing Month Published" : "Draft Saved",
           description: `Snapshot for ${displayMonth} has been persisted to Firestore.`,
         });
       })
