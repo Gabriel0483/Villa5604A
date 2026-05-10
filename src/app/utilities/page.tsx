@@ -41,7 +41,7 @@ export default function CurrentUtilityPage() {
     miscellaneous: ''
   });
 
-  const hasLoadedFromDb = useRef(false);
+  const initialized = useRef(false);
 
   const userProfileRef = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -76,7 +76,8 @@ export default function CurrentUtilityPage() {
   const { data: activeSnapshots, loading: billsLoading } = useCollection(activeSnapshotQuery);
 
   useEffect(() => {
-    if (billsLoading || hasLoadedFromDb.current || isFormDirty) return;
+    // Only initialize once when data arrives
+    if (billsLoading || initialized.current) return;
 
     if (activeSnapshots && activeSnapshots.length > 0) {
       const bill = activeSnapshots[0] as any;
@@ -87,17 +88,20 @@ export default function CurrentUtilityPage() {
         electricity: bill.electricity?.toString() || '',
         miscellaneous: bill.miscellaneous?.toString() || '0'
       });
-      hasLoadedFromDb.current = true;
+      initialized.current = true;
     } else if (!billsLoading) {
-      const now = new Date();
-      const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      setFormData(prev => ({
-        ...prev,
-        monthYear: prev.monthYear || defaultMonth
-      }));
-      hasLoadedFromDb.current = true;
+      // If no snapshot exists, only set a default IF the form is currently empty
+      if (!formData.monthYear) {
+        const now = new Date();
+        const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        setFormData(prev => ({
+          ...prev,
+          monthYear: defaultMonth
+        }));
+      }
+      initialized.current = true;
     }
-  }, [activeSnapshots, billsLoading, isFormDirty]);
+  }, [activeSnapshots, billsLoading, formData.monthYear]);
 
   useEffect(() => {
     if (!userLoading && !profileLoading) {
@@ -153,7 +157,6 @@ export default function CurrentUtilityPage() {
             : `Information for ${formData.monthYear} has been saved as a hidden draft.`,
         });
         setIsFormDirty(false);
-        hasLoadedFromDb.current = false;
       })
       .catch(async (err) => {
         const permissionError = new FirestorePermissionError({
