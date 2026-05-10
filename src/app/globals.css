@@ -4,34 +4,34 @@
 
 @layer base {
   :root {
-    --background: 210 20% 99%;
+    --background: 210 40% 99%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 215 25% 12%;
+    --primary: 238 83% 66%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 25%;
-    --accent: 226 70% 45%;
+    --muted: 210 40% 94%;
+    --muted-foreground: 215.4 16.3% 15%;
+    --accent: 330 81% 60%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 226 70% 45%;
-    --radius: 0.75rem;
+    --ring: 238 83% 66%;
+    --radius: 1rem;
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 222.2 47.4% 11.2%;
-    --sidebar-primary: 226 70% 45%;
+    --sidebar-primary: 238 83% 66%;
     --sidebar-primary-foreground: 210 40% 98%;
     --sidebar-accent: 210 40% 96.1%;
-    --sidebar-accent-foreground: 226 70% 45%;
+    --sidebar-accent-foreground: 238 83% 66%;
     --sidebar-border: 214.3 31.8% 91.4%;
-    --sidebar-ring: 226 70% 45%;
+    --sidebar-ring: 238 83% 66%;
   }
 }
 
@@ -43,6 +43,6 @@
     @apply bg-background text-foreground font-body;
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-headline font-semibold text-primary;
+    @apply font-headline font-bold text-slate-900;
   }
 }

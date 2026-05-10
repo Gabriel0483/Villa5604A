@@ -30,6 +30,7 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const { user, loading: userLoading } = useUser();
@@ -47,7 +48,7 @@ export default function Home() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-slate-50">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-sm font-medium text-muted-foreground animate-pulse">Initializing Portal...</p>
+        <p className="text-sm font-bold text-slate-800 animate-pulse uppercase tracking-widest">Initializing Portal...</p>
       </div>
     );
   }
@@ -95,49 +96,92 @@ function DashboardContent() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-sm font-medium text-muted-foreground animate-pulse">Syncing Portal Data...</p>
+        <p className="text-sm font-bold text-slate-800 animate-pulse uppercase tracking-widest">Syncing Portal Data...</p>
       </div>
     );
   }
 
+  const adminModules = [
+    { title: 'Tenant Registry', icon: <UserCheck className="h-6 w-6" />, path: '/tenants', label: 'Manage Residents', color: 'blue' },
+    { title: 'Latest Bills', icon: <Zap className="h-6 w-6" />, path: '/utilities', label: 'View Latest Records', color: 'amber' },
+    { title: 'Birthdays', icon: <Cake className="h-6 w-6" />, path: '/birthdays', label: 'Greet Residents', color: 'rose' },
+    { title: 'Manage Issues', icon: <Wrench className="h-6 w-6" />, path: '/repairs', label: 'View Maintenance', color: 'orange' },
+  ];
+
+  const residentModules = [
+    { title: 'My Bills', icon: <FileText className="h-6 w-6" />, path: '/bills', label: 'View Details', color: 'indigo' },
+    { title: 'Latest Bills', icon: <Zap className="h-6 w-6" />, path: '/utilities', label: 'View Details', color: 'amber' },
+    { title: 'Report Issue', icon: <Wrench className="h-6 w-6" />, path: '/repairs', label: 'Maintenance Request', color: 'orange' },
+    { title: 'My Profile', icon: <UserIcon className="h-6 w-6" />, path: '/profile', label: 'Personal Details', color: 'blue' },
+  ];
+
+  const getColorClasses = (color: string) => {
+    switch (color) {
+      case 'blue': return 'bg-blue-50 text-blue-600 border-blue-100 group-hover:bg-blue-600 group-hover:text-white';
+      case 'amber': return 'bg-amber-50 text-amber-600 border-amber-100 group-hover:bg-amber-600 group-hover:text-white';
+      case 'rose': return 'bg-rose-50 text-rose-600 border-rose-100 group-hover:bg-rose-600 group-hover:text-white';
+      case 'orange': return 'bg-orange-50 text-orange-600 border-orange-100 group-hover:bg-orange-600 group-hover:text-white';
+      case 'indigo': return 'bg-indigo-50 text-indigo-600 border-indigo-100 group-hover:bg-indigo-600 group-hover:text-white';
+      default: return 'bg-primary/10 text-primary border-primary/10';
+    }
+  };
+
+  const getBorderClasses = (color: string) => {
+    switch (color) {
+      case 'blue': return 'hover:border-blue-400 border-t-blue-500';
+      case 'amber': return 'hover:border-amber-400 border-t-amber-500';
+      case 'rose': return 'hover:border-rose-400 border-t-rose-500';
+      case 'orange': return 'hover:border-orange-400 border-t-orange-500';
+      case 'indigo': return 'hover:border-indigo-400 border-t-indigo-500';
+      default: return 'hover:border-primary border-t-primary';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="container mx-auto px-4 h-20 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="p-1.5 bg-primary/10 rounded-lg">
-                <Building2 className="h-5 w-5 text-primary" />
+            <Link href="/" className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-xl shadow-inner">
+                <Building2 className="h-7 w-7 text-primary" />
               </div>
-              <span className="font-bold text-xl text-primary tracking-tight">Villa 5604</span>
+              <div className="flex flex-col">
+                <span className="font-black text-2xl text-primary tracking-tighter leading-none">Villa 5604</span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Portal Management</span>
+              </div>
             </Link>
           </div>
 
           <div className="flex items-center gap-4">
             <div className="hidden md:flex flex-col items-end mr-1 text-right">
-              <span className="text-sm font-medium text-slate-900">
+              <span className="text-sm font-black text-slate-900">
                 {profile?.firstName ? `${profile.firstName} ${profile.lastName}` : (user?.email?.split('@')[0])}
               </span>
-              <span className="text-[10px] text-muted-foreground flex items-center gap-1 justify-end">
+              <span className="text-[10px] text-slate-600 font-bold flex items-center gap-1 justify-end uppercase tracking-tighter">
                 {isSuperAdmin ? <><ShieldCheck className="h-3.5 w-3.5 text-primary" /> SuperAdmin</> : <><UserIcon className="h-3.5 w-3.5" /> Resident</>}
               </span>
             </div>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full ring-primary/10 hover:ring-2 transition-all">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <UserIcon className="h-4 w-4 text-primary" />
+                <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full ring-primary/10 hover:ring-4 transition-all bg-slate-50">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <UserIcon className="h-5 w-5 text-primary" />
                   </div>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuContent align="end" className="w-64 p-2 shadow-2xl border-none">
+                <DropdownMenuLabel className="font-black text-slate-900 px-4 py-3">My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <Link href="/profile"><DropdownMenuItem className="cursor-pointer gap-2"><Settings className="h-4 w-4" /> Profile</DropdownMenuItem></Link>
+                <Link href="/profile">
+                  <DropdownMenuItem className="cursor-pointer gap-3 p-3 font-bold text-slate-700 hover:text-primary rounded-lg">
+                    <Settings className="h-5 w-5" /> Profile Settings
+                  </DropdownMenuItem>
+                </Link>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive gap-2" onClick={handleLogout}>
-                  <LogOut className="h-4 w-4" /> Sign Out
+                <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive gap-3 p-3 font-bold rounded-lg" onClick={handleLogout}>
+                  <LogOut className="h-5 w-5" /> Sign Out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -147,50 +191,58 @@ function DashboardContent() {
 
       <main className="flex-1 container mx-auto p-4 md:p-8 max-w-7xl">
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
-            {isSuperAdmin ? (
-              <>
-                {[
-                  { title: 'Tenant Registry', icon: <UserCheck className="h-5 w-5" />, path: '/tenants', label: 'Manage Residents' },
-                  { title: 'Latest Bills', icon: <Zap className="h-5 w-5" />, path: '/utilities', label: 'View Latest Records' },
-                  { title: 'Birthdays', icon: <Cake className="h-5 w-5" />, path: '/birthdays', label: 'Greet Residents' },
-                ].map(item => (
-                  <Card key={item.path} className="hover:shadow-md transition-all border-primary/10 cursor-pointer" onClick={() => router.push(item.path)}>
-                    <CardHeader><CardTitle className="flex items-center gap-2 text-lg text-primary">{item.icon} {item.title}</CardTitle></CardHeader>
-                    <CardContent><Button variant="outline" className="w-full">{item.label} <ArrowRight className="ml-2 h-4 w-4" /></Button></CardContent>
-                  </Card>
-                ))}
-                <Card className="hover:shadow-md transition-all border-destructive/10 cursor-pointer" onClick={() => router.push('/repairs')}>
-                  <CardHeader><CardTitle className="flex items-center gap-2 text-lg text-destructive"><Wrench className="h-5 w-5" /> Manage Issues</CardTitle></CardHeader>
-                  <CardContent><Button variant="outline" className="w-full">View Maintenance <ArrowRight className="ml-2 h-4 w-4" /></Button></CardContent>
-                </Card>
-              </>
-            ) : (
-              <>
-                <Card className="hover:shadow-md transition-all border-primary/10 cursor-pointer" onClick={() => router.push('/bills')}>
-                  <CardHeader><CardTitle className="flex items-center gap-2 text-lg text-primary"><FileText className="h-5 w-5" /> My Bills</CardTitle></CardHeader>
-                  <CardContent><Button variant="outline" className="w-full">View Details <ArrowRight className="ml-2 h-4 w-4" /></Button></CardContent>
-                </Card>
-                <Card className="hover:shadow-md transition-all border-primary/10 cursor-pointer" onClick={() => router.push('/utilities')}>
-                  <CardHeader><CardTitle className="flex items-center gap-2 text-lg text-primary"><Zap className="h-5 w-5" /> Latest Bills</CardTitle></CardHeader>
-                  <CardContent><Button variant="outline" className="w-full">View Details <ArrowRight className="ml-2 h-4 w-4" /></Button></CardContent>
-                </Card>
-                <Card className="hover:shadow-md transition-all border-primary/10 cursor-pointer" onClick={() => router.push('/repairs')}>
-                  <CardHeader><CardTitle className="flex items-center gap-2 text-lg text-primary"><Wrench className="h-5 w-5" /> Report Issue</CardTitle></CardHeader>
-                  <CardContent><Button variant="outline" className="w-full">Maintenance Request <ArrowRight className="ml-2 h-4 w-4" /></Button></CardContent>
-                </Card>
-                <Card className="hover:shadow-md transition-all border-primary/10 cursor-pointer" onClick={() => router.push('/profile')}>
-                  <CardHeader><CardTitle className="flex items-center gap-2 text-lg text-primary"><UserIcon className="h-5 w-5" /> My Profile</CardTitle></CardHeader>
-                  <CardContent><Button variant="outline" className="w-full">Personal Details <ArrowRight className="ml-2 h-4 w-4" /></Button></CardContent>
-                </Card>
-              </>
-            )}
+          <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
+            <div className="relative z-10 space-y-2">
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight">Welcome Home, {profile?.firstName || 'Resident'}!</h2>
+              <p className="text-slate-600 font-bold max-w-lg">Everything you need to manage your villa experience, from utility consumption to celebration greetings.</p>
+            </div>
+            <div className="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-primary/5 to-transparent pointer-events-none" />
+            <div className="relative z-10">
+              <Badge variant="outline" className="px-4 py-2 border-primary/20 text-primary font-black uppercase text-xs tracking-tighter bg-primary/5">
+                Current Role: {isSuperAdmin ? 'Administrator' : 'Resident'}
+              </Badge>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {(isSuperAdmin ? adminModules : residentModules).map(item => (
+              <Card 
+                key={item.path} 
+                className={cn(
+                  "group hover:shadow-2xl transition-all duration-300 border-t-8 cursor-pointer overflow-hidden transform hover:-translate-y-1",
+                  getBorderClasses(item.color)
+                )} 
+                onClick={() => router.push(item.path)}
+              >
+                <CardHeader className="pb-4">
+                  <div className={cn(
+                    "h-14 w-14 rounded-2xl flex items-center justify-center mb-2 transition-colors duration-300 border",
+                    getColorClasses(item.color)
+                  )}>
+                    {item.icon}
+                  </div>
+                  <CardTitle className="text-xl font-black text-slate-900 group-hover:text-primary transition-colors">
+                    {item.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Button variant="ghost" className="w-full justify-between font-black text-xs uppercase tracking-widest text-slate-700 p-0 hover:bg-transparent hover:text-primary">
+                    {item.label} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </main>
 
-      <footer className="mt-auto py-6 text-center text-[10px] text-muted-foreground border-t bg-white uppercase tracking-widest font-bold">
-        Villa 5604 © 2026
+      <footer className="mt-auto py-8 text-center border-t bg-white">
+        <div className="container mx-auto px-4 flex flex-col items-center gap-2">
+          <span className="text-[11px] text-slate-500 uppercase tracking-[0.2em] font-black">
+            Villa 5604 Portal © 2026
+          </span>
+          <div className="h-1 w-12 bg-primary/20 rounded-full" />
+        </div>
       </footer>
     </div>
   )
