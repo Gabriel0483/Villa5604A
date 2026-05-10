@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Zap, 
@@ -14,8 +14,7 @@ import {
   Save, 
   Calendar,
   Send,
-  CalendarRange,
-  Search
+  CalendarRange
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,7 +36,7 @@ export default function CurrentUtilityPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingRecord, setIsLoadingRecord] = useState(false);
   const [formData, setFormData] = useState({
-    monthYear: new Date().toISOString().substring(0, 7), // Default to current month YYYY-MM
+    monthYear: '', // Will be set in useEffect to avoid hydration mismatch
     startDate: '',
     endDate: '',
     wifi: '',
@@ -45,6 +44,14 @@ export default function CurrentUtilityPage() {
     electricity: '',
     miscellaneous: '0'
   });
+
+  // Handle initialization to avoid hydration mismatch with new Date()
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      monthYear: new Date().toISOString().substring(0, 7)
+    }));
+  }, []);
 
   const userProfileRef = useMemoFirebase(() => {
     if (!db || !user) return null;

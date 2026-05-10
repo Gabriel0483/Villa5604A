@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
@@ -41,14 +41,16 @@ import { Badge } from '@/components/ui/badge';
 export default function Home() {
   const { user, loading: userLoading } = useUser();
   const router = useRouter();
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
     if (!userLoading && !user) {
+      setIsRedirecting(true);
       router.replace('/login');
     }
   }, [user, userLoading, router]);
 
-  if (userLoading) {
+  if (userLoading || isRedirecting) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-slate-50">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -101,7 +103,7 @@ function DashboardContent() {
   const { data: bills, loading: billsLoading } = useCollection(latestBillQuery);
   const activeBill = bills && bills.length > 0 ? bills[0] : null;
 
-  // Fetch all residents for share calculation (Residents can read but not list all details, but we only need basic metrics)
+  // Fetch all residents for share calculation
   const residentsQuery = useMemoFirebase(() => {
     if (!db) return null;
     return query(collection(db, 'users'), where('role', '==', 'Resident'));
@@ -171,7 +173,7 @@ function DashboardContent() {
               <div className="p-1.5 bg-primary/10 rounded-lg">
                 <Building2 className="h-5 w-5 text-primary" />
               </div>
-              <span className="font-bold text-xl text-primary tracking-tight">Villa 5604 Portal</span>
+              <span className="font-bold text-xl text-primary tracking-tight">Villa 5604</span>
             </Link>
           </div>
 
@@ -329,7 +331,7 @@ function DashboardContent() {
       </main>
 
       <footer className="mt-auto py-6 text-center text-[10px] text-muted-foreground border-t bg-white uppercase tracking-widest font-bold">
-        Villa 5604 Portal © 2026
+        Villa 5604 © 2026
       </footer>
     </div>
   )
