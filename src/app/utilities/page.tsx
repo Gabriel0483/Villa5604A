@@ -21,7 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, query, doc, setDoc, serverTimestamp, orderBy, limit, getDoc } from 'firebase/firestore';
+import { collection, query, doc, setDoc, serverTimestamp, orderBy, limit } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 import Link from 'next/link';
@@ -121,10 +121,13 @@ export default function CurrentUtilityPage() {
     
     const billData = {
       monthYear: storageMonth,
-      wifi, water, electricity, miscellaneous: misc,
+      wifi, 
+      water, 
+      electricity, 
+      miscellaneous: misc,
       total: wifi + water + electricity + misc,
       updatedAt: serverTimestamp(),
-      isSnapshot: showOnDashboard,
+      isSnapshot: showOnDashboard === true, // Force boolean true/false
       status: 'Released'
     };
 
@@ -132,6 +135,8 @@ export default function CurrentUtilityPage() {
     setDoc(billRef, billData, { merge: true })
       .then(() => {
         toast({ title: showOnDashboard ? "Snapshot Published" : "Draft Saved", description: `Record for ${displayMonth} successfully persistent.` });
+        // Close initialization ref to allow refresh if needed
+        initializedRef.current = false;
       })
       .catch((err) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: billRef.path, operation: 'write', requestResourceData: billData }));

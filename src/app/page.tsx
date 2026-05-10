@@ -46,7 +46,6 @@ export default function Home() {
   const { user, loading: userLoading } = useUser();
   const router = useRouter();
 
-  // STRICTOR LANDING PAGE REDIRECT
   useEffect(() => {
     if (!userLoading && !user) {
       router.replace('/login');
@@ -92,8 +91,8 @@ function DashboardContent() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Query for the active household snapshot
-  const latestBillQuery = useMemoFirebase(() => {
+  // Query for the active household snapshot (prioritize isSnapshot: true)
+  const snapshotQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
       collection(db, 'utility_bills'), 
@@ -103,8 +102,26 @@ function DashboardContent() {
     );
   }, [db, user]);
 
-  const { data: latestBills, loading: billsLoading } = useCollection(latestBillQuery);
-  const latestBill = latestBills?.[0] as any;
+  const { data: snapshotBills, loading: snapshotLoading } = useCollection(snapshotQuery);
+
+  // Fallback query: Just get the latest released bill if no snapshot is flagged
+  const latestReleasedQuery = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return query(
+      collection(db, 'utility_bills'), 
+      where('status', '==', 'Released'),
+      orderBy('monthYear', 'desc'), 
+      limit(1)
+    );
+  }, [db, user]);
+
+  const { data: latestReleasedBills, loading: latestLoading } = useCollection(latestReleasedQuery);
+
+  const latestBill = useMemo(() => {
+    if (snapshotBills && snapshotBills.length > 0) return snapshotBills[0] as any;
+    if (latestReleasedBills && latestReleasedBills.length > 0) return latestReleasedBills[0] as any;
+    return null;
+  }, [snapshotBills, latestReleasedBills]);
 
   // Query all residents for calculations
   const residentsQuery = useMemoFirebase(() => {
@@ -158,7 +175,7 @@ function DashboardContent() {
     }
   };
 
-  if (profileLoading || residentsLoading || billsLoading) {
+  if (profileLoading || residentsLoading || snapshotLoading || latestLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -231,7 +248,7 @@ function DashboardContent() {
                       <Receipt className="h-5 w-5 text-primary" /> {myIndividualShares?.isResident ? "My Billing Snapshot" : "Resident Share Preview"}
                     </CardTitle>
                     <CardDescription>
-                      {myIndividualShares?.isResident ? "Your personal share for the active cycle." : `Preview calculation for ${myIndividualShares?.targetName}.`}
+                      {myIndividualShares?.isResident ? "Your personal share for the active cycle." : `Preview calculation for ${myIndividualShares?.targetName || 'Registry'}.`}
                     </CardDescription>
                   </div>
                   {latestBill && (
