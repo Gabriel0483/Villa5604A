@@ -140,35 +140,35 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
-        <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+      <header className="bg-white border-b sticky top-0 z-20 shadow-sm">
+        <div className="container mx-auto px-4 h-16 md:h-20 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-xl shadow-inner">
-                <Building2 className="h-7 w-7 text-primary" />
+            <Link href="/" className="flex items-center gap-2 md:gap-3">
+              <div className="p-1.5 md:p-2 bg-primary/10 rounded-xl shadow-inner">
+                <Building2 className="h-5 w-5 md:h-7 md:w-7 text-primary" />
               </div>
               <div className="flex flex-col">
-                <span className="font-black text-2xl text-primary tracking-tighter leading-none">Villa 5604</span>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Portal Management</span>
+                <span className="font-black text-lg md:text-2xl text-primary tracking-tighter leading-none">Villa 5604</span>
+                <span className="text-[8px] md:text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 md:mt-1">Portal Management</span>
               </div>
             </Link>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex flex-col items-end mr-1 text-right">
-              <span className="text-sm font-black text-slate-900">
+          <div className="flex items-center gap-2 md:gap-4">
+            <div className="hidden sm:flex flex-col items-end mr-1 text-right">
+              <span className="text-xs md:text-sm font-black text-slate-900">
                 {profile?.firstName ? `${profile.firstName} ${profile.lastName}` : (user?.email?.split('@')[0])}
               </span>
-              <span className="text-[10px] text-slate-600 font-bold flex items-center gap-1 justify-end uppercase tracking-tighter">
-                {isSuperAdmin ? <><ShieldCheck className="h-3.5 w-3.5 text-primary" /> SuperAdmin</> : <><UserIcon className="h-3.5 w-3.5" /> Resident</>}
+              <span className="text-[9px] md:text-[10px] text-slate-600 font-bold flex items-center gap-1 justify-end uppercase tracking-tighter">
+                {isSuperAdmin ? <><ShieldCheck className="h-3 w-3 md:h-3.5 md:w-3.5 text-primary" /> Admin</> : <><UserIcon className="h-3 w-3 md:h-3.5 md:w-3.5" /> Resident</>}
               </span>
             </div>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full ring-primary/10 hover:ring-4 transition-all bg-slate-50">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <UserIcon className="h-5 w-5 text-primary" />
+                <Button variant="ghost" size="icon" className="h-10 w-10 md:h-12 md:w-12 rounded-full ring-primary/10 hover:ring-4 transition-all bg-slate-50">
+                  <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <UserIcon className="h-4 w-4 md:h-5 md:w-5 text-primary" />
                   </div>
                 </Button>
               </DropdownMenuTrigger>
@@ -191,43 +191,43 @@ function DashboardContent() {
       </header>
 
       <main className="flex-1 container mx-auto p-4 md:p-8 max-w-7xl">
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
-            <div className="relative z-10 space-y-2">
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight">Welcome Home, {profile?.firstName || 'Resident'}!</h2>
-              <p className="text-slate-600 font-bold max-w-lg">Everything you need to manage your villa experience, from tracking utility bills to reporting maintenance issues.</p>
+        <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
+            <div className="relative z-10 space-y-2 text-center md:text-left">
+              <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-tight">Welcome Home, {profile?.firstName || 'Resident'}!</h2>
+              <p className="text-slate-600 font-bold text-sm md:text-base max-w-lg">Everything you need to track utility bills and report maintenance issues efficiently.</p>
             </div>
-            <div className="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-primary/5 to-transparent pointer-events-none" />
+            <div className="hidden md:block absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-primary/5 to-transparent pointer-events-none" />
             <div className="relative z-10">
-              <Badge variant="outline" className="px-4 py-2 border-primary/20 text-primary font-black uppercase text-xs tracking-tighter bg-primary/5">
+              <Badge variant="outline" className="px-4 py-2 border-primary/20 text-primary font-black uppercase text-[10px] md:text-xs tracking-tighter bg-primary/5">
                 Current Role: {isSuperAdmin ? 'Administrator' : 'Resident'}
               </Badge>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {(isSuperAdmin ? adminModules : residentModules).map(item => (
               <Card 
                 key={item.path} 
                 className={cn(
-                  "group hover:shadow-2xl transition-all duration-300 border-t-8 cursor-pointer overflow-hidden transform hover:-translate-y-1",
+                  "group hover:shadow-2xl transition-all duration-300 border-t-8 cursor-pointer overflow-hidden transform hover:-translate-y-1 active:scale-95",
                   getBorderClasses(item.color)
                 )} 
                 onClick={() => router.push(item.path)}
               >
                 <CardHeader className="pb-4">
                   <div className={cn(
-                    "h-14 w-14 rounded-2xl flex items-center justify-center mb-2 transition-colors duration-300 border",
+                    "h-12 w-12 md:h-14 md:w-14 rounded-2xl flex items-center justify-center mb-2 transition-colors duration-300 border",
                     getColorClasses(item.color)
                   )}>
                     {item.icon}
                   </div>
-                  <CardTitle className="text-xl font-black text-slate-900 group-hover:text-primary transition-colors">
+                  <CardTitle className="text-lg md:text-xl font-black text-slate-900 group-hover:text-primary transition-colors">
                     {item.title}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Button variant="ghost" className="w-full justify-between font-black text-xs uppercase tracking-widest text-slate-700 p-0 hover:bg-transparent hover:text-primary">
+                  <Button variant="ghost" className="w-full justify-between font-black text-[10px] md:text-xs uppercase tracking-widest text-slate-700 p-0 hover:bg-transparent hover:text-primary">
                     {item.label} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </Button>
                 </CardContent>
@@ -237,9 +237,9 @@ function DashboardContent() {
         </div>
       </main>
 
-      <footer className="mt-auto py-8 text-center border-t bg-white">
+      <footer className="mt-auto py-6 md:py-8 text-center border-t bg-white">
         <div className="container mx-auto px-4 flex flex-col items-center gap-2">
-          <span className="text-[11px] text-slate-500 uppercase tracking-[0.2em] font-black">
+          <span className="text-[10px] md:text-[11px] text-slate-500 uppercase tracking-[0.2em] font-black">
             Villa 5604 Portal © 2026
           </span>
           <div className="h-1 w-12 bg-primary/20 rounded-full" />

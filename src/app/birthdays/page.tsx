@@ -12,7 +12,6 @@ import {
   User as UserIcon,
   Download,
   Search,
-  ChevronRight,
   Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -43,7 +42,6 @@ export default function BirthdaysPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedCard, setGeneratedCard] = useState<BirthdayCardOutput | null>(null);
 
-  // Access Control check
   const userProfileRef = useMemoFirebase(() => {
     if (!db || !user) return null;
     return doc(db, 'users', user.uid);
@@ -58,7 +56,6 @@ export default function BirthdaysPage() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Fetch residents
   const residentsQuery = useMemoFirebase(() => {
     if (!db || !isSuperAdmin) return null;
     return query(collection(db, 'users'), where('role', '==', 'Resident'));
@@ -66,7 +63,6 @@ export default function BirthdaysPage() {
 
   const { data: residents, loading: residentsLoading } = useCollection(residentsQuery);
 
-  // Calculate upcoming birthdays
   const birthdayList = useMemo(() => {
     if (!residents) return [];
     
@@ -80,7 +76,6 @@ export default function BirthdaysPage() {
         const dob = new Date(r.dob);
         const birthdayThisYear = new Date(now.getFullYear(), dob.getMonth(), dob.getDate());
         
-        // If birthday has passed this year, set to next year
         if (birthdayThisYear < now && (dob.getMonth() !== currentMonth || dob.getDate() !== currentDay)) {
           birthdayThisYear.setFullYear(now.getFullYear() + 1);
         }
@@ -120,9 +115,8 @@ export default function BirthdaysPage() {
       toast({
         variant: "destructive",
         title: "Generation Failed",
-        description: error.message || "Could not generate the birthday card. Please try again."
+        description: error.message || "Could not generate the birthday card."
       });
-      // Ensure dialog closes on error
       setIsGenerating(false);
       setSelectedResident(null);
     } finally {
@@ -141,31 +135,31 @@ export default function BirthdaysPage() {
   if (!isSuperAdmin) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4">
-      <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="min-h-screen bg-slate-50 py-6 md:py-8 px-4">
+      <div className="max-w-6xl mx-auto space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
-            <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors group">
+            <Link href="/" className="inline-flex items-center text-xs text-muted-foreground hover:text-primary transition-colors group">
               <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Dashboard
             </Link>
-            <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
-              <Cake className="h-8 w-8 text-primary" /> Birthday Greetings
+            <h1 className="text-2xl md:text-3xl font-bold text-primary tracking-tight flex items-center gap-2 md:gap-3">
+              <Cake className="h-6 w-6 md:h-8 md:w-8 text-primary" /> Birthday Greetings
             </h1>
-            <p className="text-muted-foreground">Celebrate your residents' special days with AI-powered cards.</p>
+            <p className="text-xs md:text-sm text-muted-foreground">Celebrate special days with AI-powered cards.</p>
           </div>
           
           <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
               placeholder="Search residents..." 
-              className="pl-9 w-[250px] bg-white"
+              className="pl-9 w-full md:w-[250px] bg-white h-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {residentsLoading ? (
             Array(3).fill(0).map((_, i) => (
               <Card key={i} className="animate-pulse">
@@ -175,22 +169,22 @@ export default function BirthdaysPage() {
             ))
           ) : filteredBirthdays.length > 0 ? (
             filteredBirthdays.map((resident: any) => (
-              <Card key={resident.id} className="hover:shadow-md transition-all border-none shadow-sm relative overflow-hidden group">
+              <Card key={resident.id} className="hover:shadow-md transition-all border-none shadow-sm relative overflow-hidden group active:scale-98">
                 {resident.daysUntil <= 7 && (
                   <div className="absolute top-0 right-0 p-2">
-                    <Badge className="bg-accent text-accent-foreground animate-bounce">
+                    <Badge className="bg-accent text-accent-foreground animate-bounce text-[8px] md:text-[10px]">
                       Soon!
                     </Badge>
                   </div>
                 )}
                 <CardHeader className="pb-2">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
                       <UserIcon className="h-5 w-5" />
                     </div>
-                    <div>
-                      <CardTitle className="text-lg font-bold">{resident.firstName} {resident.lastName}</CardTitle>
-                      <CardDescription className="flex items-center gap-1.5">
+                    <div className="min-w-0">
+                      <CardTitle className="text-base md:text-lg font-bold truncate">{resident.firstName} {resident.lastName}</CardTitle>
+                      <CardDescription className="flex items-center gap-1.5 text-xs truncate">
                         <Calendar className="h-3 w-3" /> {new Date(resident.dob).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
                       </CardDescription>
                     </div>
@@ -198,16 +192,16 @@ export default function BirthdaysPage() {
                 </CardHeader>
                 <CardContent className="pb-4">
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between text-xs md:text-sm">
                       <span className="text-muted-foreground">Next Birthday</span>
                       <span className="font-semibold">{resident.nextBirthday.toLocaleDateString()}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between text-xs md:text-sm">
                       <span className="text-muted-foreground">Turning</span>
-                      <Badge variant="outline" className="font-bold text-primary">{resident.turningAge} years old</Badge>
+                      <Badge variant="outline" className="font-bold text-primary text-[10px] md:text-xs">{resident.turningAge} years old</Badge>
                     </div>
                     <div className="pt-2">
-                      <p className="text-xs text-muted-foreground font-medium">
+                      <p className="text-[10px] md:text-xs text-muted-foreground font-medium">
                         {resident.daysUntil === 0 ? "Today is the big day!" : `${resident.daysUntil} days to go`}
                       </p>
                     </div>
@@ -215,71 +209,70 @@ export default function BirthdaysPage() {
                 </CardContent>
                 <CardFooter>
                   <Button 
-                    className="w-full gap-2 group-hover:bg-primary group-hover:text-white transition-colors" 
+                    className="w-full gap-2 group-hover:bg-primary group-hover:text-white transition-colors h-10 text-xs font-bold" 
                     variant="outline"
                     onClick={() => handleGenerateCard(resident)}
                   >
-                    <PartyPopper className="h-4 w-4" /> Generate Birthday Card
+                    <PartyPopper className="h-4 w-4" /> Generate Card
                   </Button>
                 </CardFooter>
               </Card>
             ))
           ) : (
-            <div className="col-span-full py-12 text-center text-muted-foreground italic bg-white rounded-lg border border-dashed">
+            <div className="col-span-full py-12 text-center text-muted-foreground italic bg-white rounded-lg border border-dashed text-sm">
               No birthdays found in the registry.
             </div>
           )}
         </div>
 
-        {/* Card Generation Modal */}
         <Dialog open={isGenerating || !!generatedCard} onOpenChange={(open) => {
           if (!open) {
             setGeneratedCard(null);
             setSelectedResident(null);
           }
         }}>
-          <DialogContent className="sm:max-w-[500px] overflow-hidden p-0 border-none shadow-2xl">
+          <DialogContent className="w-[95vw] sm:max-w-[500px] overflow-hidden p-0 border-none shadow-2xl rounded-2xl">
             <DialogHeader className="sr-only">
-              <DialogTitle>Birthday Card Generation for {selectedResident?.firstName || 'Resident'}</DialogTitle>
+              <DialogTitle>Birthday Card Generation</DialogTitle>
               <DialogDescription>AI-powered celebration card generation.</DialogDescription>
             </DialogHeader>
             {isGenerating ? (
-              <div className="p-12 flex flex-col items-center justify-center gap-6 text-center">
+              <div className="p-8 md:p-12 flex flex-col items-center justify-center gap-6 text-center">
                 <div className="relative">
-                  <Loader2 className="h-16 w-16 animate-spin text-primary" />
-                  <Sparkles className="h-6 w-6 text-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                  <Loader2 className="h-12 w-12 md:h-16 md:w-16 animate-spin text-primary" />
+                  <Sparkles className="h-5 w-5 text-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-primary">Creating Magic...</h3>
-                  <p className="text-muted-foreground">Using GenAI to personalize a birthday greeting and festive image for {selectedResident?.firstName}.</p>
+                  <h3 className="text-lg md:text-xl font-bold text-primary">Creating Magic...</h3>
+                  <p className="text-xs md:text-sm text-muted-foreground max-w-xs mx-auto">Personalizing a festive greeting for {selectedResident?.firstName}.</p>
                 </div>
               </div>
             ) : generatedCard ? (
-              <div className="animate-in zoom-in-95 duration-500">
-                <div className="relative h-[250px] w-full">
+              <div className="animate-in zoom-in-95 duration-500 overflow-y-auto max-h-[90vh]">
+                <div className="relative h-[200px] md:h-[250px] w-full">
                   <img 
                     src={generatedCard.imageUrl} 
                     alt="Birthday Celebration" 
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6">
-                    <h2 className="text-white text-3xl font-black italic tracking-tighter">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4 md:p-6">
+                    <h2 className="text-white text-2xl md:text-3xl font-black italic tracking-tighter">
                       HAPPY BIRTHDAY!
                     </h2>
                   </div>
                 </div>
-                <div className="p-8 space-y-6 bg-white">
+                <div className="p-6 md:p-8 space-y-6 bg-white">
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-primary font-bold uppercase text-xs tracking-widest">
+                    <div className="flex items-center gap-2 text-primary font-bold uppercase text-[9px] md:text-xs tracking-widest">
                       <Gift className="h-4 w-4" /> Personalized Message
                     </div>
-                    <p className="text-lg leading-relaxed text-slate-700 italic font-medium">
+                    <p className="text-base md:text-lg leading-relaxed text-slate-700 italic font-medium">
                       "{generatedCard.greeting}"
                     </p>
                   </div>
                   
-                  <div className="flex flex-col gap-3">
-                    <Button className="w-full gap-2" onClick={() => window.print()}>
+                  <div className="flex flex-col gap-2">
+                    <Button className="w-full gap-2 font-bold h-11" onClick={() => window.print()}>
                       <Download className="h-4 w-4" /> Save / Export Card
                     </Button>
                     <Button variant="ghost" className="w-full text-xs text-muted-foreground" onClick={() => setGeneratedCard(null)}>
