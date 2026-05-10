@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -133,12 +132,11 @@ export default function MyBillsPage() {
     return `${new Date(start).toLocaleDateString('en-US', options)} - ${new Date(end).toLocaleDateString('en-US', options)}`;
   };
 
-  // Improved loading state to prevent flickering "No bills" message
   if (userLoading || profileLoading || (billsLoading && bills === null)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-slate-50">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-sm font-medium text-muted-foreground">Fetching Released Bills...</p>
+        <p className="text-sm font-bold text-slate-800">Fetching Released Bills...</p>
       </div>
     );
   }
@@ -147,7 +145,7 @@ export default function MyBillsPage() {
     <div className="min-h-screen bg-slate-50 py-8 px-4">
       <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="space-y-1">
-          <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors group">
+          <Link href="/" className="inline-flex items-center text-sm font-bold text-slate-700 hover:text-primary transition-colors group">
             <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1" /> Back to Dashboard
           </Link>
           <h1 className="text-3xl font-bold text-primary flex items-center gap-3">
@@ -160,7 +158,7 @@ export default function MyBillsPage() {
             {bills.map((bill: any) => {
               const isPaid = bill.paidResidents?.includes(user?.uid);
               return (
-                <Card key={bill.id} className="hover:shadow-md transition-all cursor-pointer group bg-white" onClick={() => setSelectedBill(bill)}>
+                <Card key={bill.id} className="hover:shadow-md transition-all cursor-pointer group bg-white border-slate-200" onClick={() => setSelectedBill(bill)}>
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
@@ -168,21 +166,21 @@ export default function MyBillsPage() {
                           <CalendarRange className="h-6 w-6" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-bold">{formatDateRange(bill.startDate, bill.endDate)}</h3>
-                          <p className="text-sm font-bold text-primary mt-1">Household Total: {(bill.total || 0).toFixed(3)} OMR</p>
+                          <h3 className="text-lg font-bold text-slate-900">{formatDateRange(bill.startDate, bill.endDate)}</h3>
+                          <p className="text-sm font-black text-primary mt-1">Household Total: {(bill.total || 0).toFixed(3)} OMR</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         {isPaid ? (
-                          <Badge className="bg-accent text-accent-foreground gap-1">
+                          <Badge className="bg-accent text-accent-foreground font-bold gap-1">
                             <CheckCircle2 className="h-3 w-3" /> Paid
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="text-muted-foreground gap-1">
+                          <Badge variant="outline" className="text-slate-900 border-slate-400 font-bold gap-1">
                             <Clock className="h-3 w-3" /> Pending
                           </Badge>
                         )}
-                        <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-primary" />
+                        <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-primary" />
                       </div>
                     </div>
                   </CardContent>
@@ -191,10 +189,10 @@ export default function MyBillsPage() {
             })}
           </div>
         ) : (
-          <Card className="p-16 text-center border-dashed bg-white shadow-sm">
-            <ReceiptIcon className="h-16 w-16 mx-auto text-slate-200 mb-6" />
-            <h3 className="text-xl font-semibold text-slate-900">No Released Bills Found</h3>
-            <p className="text-sm text-muted-foreground max-w-sm mx-auto mt-2">
+          <Card className="p-16 text-center border-dashed bg-white shadow-sm border-slate-300">
+            <ReceiptIcon className="h-16 w-16 mx-auto text-slate-300 mb-6" />
+            <h3 className="text-xl font-bold text-slate-900">No Released Bills Found</h3>
+            <p className="text-sm text-slate-700 font-medium max-w-sm mx-auto mt-2">
               Statements will appear here automatically once released by management for the current billing cycle.
             </p>
           </Card>
@@ -204,7 +202,7 @@ export default function MyBillsPage() {
           <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col p-0 border-none shadow-2xl">
             {selectedBill && (
               <>
-                <DialogHeader className="p-6 border-b bg-slate-50">
+                <DialogHeader className="p-6 border-b bg-slate-100">
                   <DialogTitle className="text-2xl font-bold flex items-center gap-2 text-primary">
                     <CalendarRange className="h-6 w-6" />
                     {formatDateRange(selectedBill.startDate, selectedBill.endDate)}
@@ -214,22 +212,22 @@ export default function MyBillsPage() {
                   <Tabs defaultValue="personal" className="w-full">
                     <div className="px-6 pt-4 bg-white border-b sticky top-0 z-10">
                       <TabsList className="grid w-full grid-cols-2 mb-4">
-                        <TabsTrigger value="personal" className="gap-2"><ReceiptIcon className="h-4 w-4" /> My Statement</TabsTrigger>
-                        <TabsTrigger value="community" className="gap-2"><Users className="h-4 w-4" /> Community View</TabsTrigger>
+                        <TabsTrigger value="personal" className="gap-2 font-bold"><ReceiptIcon className="h-4 w-4" /> My Statement</TabsTrigger>
+                        <TabsTrigger value="community" className="gap-2 font-bold"><Users className="h-4 w-4" /> Community View</TabsTrigger>
                       </TabsList>
                     </div>
                     <TabsContent value="personal" className="p-6">
                       {calculatedStatement?.myEntry ? (
-                        <Card className="shadow-lg overflow-hidden border">
-                          <div className="p-8 bg-slate-50 flex justify-between border-b">
+                        <Card className="shadow-lg overflow-hidden border border-slate-200">
+                          <div className="p-8 bg-slate-50 flex justify-between border-b border-slate-200">
                             <div className="space-y-4">
                               <div className="text-2xl font-black text-primary">VILLA 5604</div>
-                              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{formatDateRange(selectedBill.startDate, selectedBill.endDate)}</p>
+                              <p className="text-xs font-bold text-slate-800 uppercase tracking-wider">{formatDateRange(selectedBill.startDate, selectedBill.endDate)}</p>
                             </div>
                             <div className="text-right">
-                              <h2 className="text-2xl font-bold">{calculatedStatement.myEntry.name}</h2>
-                              <p className="text-sm font-medium text-muted-foreground">Unit {calculatedStatement.myEntry.room}</p>
-                              <div className="mt-4">{calculatedStatement.myEntry.isPaid ? <Badge className="bg-accent text-accent-foreground">PAID</Badge> : <Badge variant="destructive">PENDING</Badge>}</div>
+                              <h2 className="text-2xl font-bold text-slate-900">{calculatedStatement.myEntry.name}</h2>
+                              <p className="text-sm font-bold text-slate-700">Unit {calculatedStatement.myEntry.room}</p>
+                              <div className="mt-4">{calculatedStatement.myEntry.isPaid ? <Badge className="bg-accent text-accent-foreground font-black">PAID</Badge> : <Badge variant="destructive" className="font-black">PENDING</Badge>}</div>
                             </div>
                           </div>
                           <CardContent className="p-8">
@@ -241,35 +239,35 @@ export default function MyBillsPage() {
                                 { label: 'Electricity Share', val: calculatedStatement.myEntry.electricity },
                                 { label: 'Misc Share', val: calculatedStatement.myEntry.misc },
                               ].map(item => (
-                                <div key={item.label} className="flex justify-between border-b pb-2">
-                                  <span className="text-slate-600 font-medium">{item.label}</span>
-                                  <span className="font-mono font-bold text-slate-900">{item.val.toFixed(3)} OMR</span>
+                                <div key={item.label} className="flex justify-between border-b border-slate-100 pb-2">
+                                  <span className="text-slate-900 font-bold">{item.label}</span>
+                                  <span className="font-mono font-black text-slate-900">{item.val.toFixed(3)} OMR</span>
                                 </div>
                               ))}
                             </div>
-                            <div className="bg-primary/5 p-6 rounded-xl flex justify-between items-center border border-primary/10">
-                              <span className="font-black text-primary/60 uppercase tracking-tighter">Total Due</span>
+                            <div className="bg-primary/5 p-6 rounded-xl flex justify-between items-center border border-primary/20">
+                              <span className="font-black text-primary/80 uppercase tracking-tighter">Total Due</span>
                               <span className="text-4xl font-black text-primary">{calculatedStatement.myEntry.total.toFixed(3)} OMR</span>
                             </div>
                           </CardContent>
                         </Card>
                       ) : (
-                        <div className="p-12 text-center bg-slate-50 rounded-lg border border-dashed">
-                          <AlertCircle className="h-10 w-10 mx-auto text-slate-400 mb-4" />
-                          <p className="text-muted-foreground">No individual statement found for your account in this period.</p>
+                        <div className="p-12 text-center bg-slate-50 rounded-lg border border-dashed border-slate-300">
+                          <AlertCircle className="h-10 w-10 mx-auto text-slate-500 mb-4" />
+                          <p className="text-slate-900 font-bold">No individual statement found for your account in this period.</p>
                         </div>
                       )}
                     </TabsContent>
                     <TabsContent value="community" className="p-6">
-                      <div className="rounded-md border overflow-hidden bg-white">
+                      <div className="rounded-md border border-slate-200 overflow-hidden bg-white">
                         <Table>
-                          <TableHeader className="bg-slate-50"><TableRow><TableHead>Resident</TableHead><TableHead>Room</TableHead><TableHead className="text-right">Share (OMR)</TableHead></TableRow></TableHeader>
+                          <TableHeader className="bg-slate-100"><TableRow><TableHead className="font-black text-slate-900">Resident</TableHead><TableHead className="font-black text-slate-900">Room</TableHead><TableHead className="text-right font-black text-slate-900">Share (OMR)</TableHead></TableRow></TableHeader>
                           <TableBody>
                             {calculatedStatement?.list.map((s, idx) => (
-                              <TableRow key={idx} className={s.isMe ? "bg-primary/5" : ""}>
-                                <TableCell className="font-medium">{s.name} {s.isMe && <Badge variant="outline" className="ml-1 text-[10px] text-primary">You</Badge>}</TableCell>
-                                <TableCell>{s.room}</TableCell>
-                                <TableCell className="text-right font-bold text-primary">{s.total.toFixed(3)}</TableCell>
+                              <TableRow key={idx} className={s.isMe ? "bg-primary/10" : ""}>
+                                <TableCell className="font-bold text-slate-900">{s.name} {s.isMe && <Badge variant="outline" className="ml-1 text-[10px] text-primary border-primary font-black">You</Badge>}</TableCell>
+                                <TableCell className="font-medium text-slate-800">{s.room}</TableCell>
+                                <TableCell className="text-right font-black text-primary">{s.total.toFixed(3)}</TableCell>
                               </TableRow>
                             ))}
                           </TableBody>

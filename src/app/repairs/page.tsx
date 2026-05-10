@@ -205,19 +205,19 @@ export default function RepairsPage() {
 
   const getUrgencyBadge = (urgency: string) => {
     switch (urgency) {
-      case 'Emergency': return <Badge variant="destructive" className="animate-pulse">Emergency</Badge>;
-      case 'High': return <Badge className="bg-orange-500">High</Badge>;
-      case 'Medium': return <Badge className="bg-yellow-500">Medium</Badge>;
-      default: return <Badge variant="secondary">Low</Badge>;
+      case 'Emergency': return <Badge variant="destructive" className="animate-pulse font-black">Emergency</Badge>;
+      case 'High': return <Badge className="bg-orange-600 font-black">High</Badge>;
+      case 'Medium': return <Badge className="bg-yellow-600 font-black">Medium</Badge>;
+      default: return <Badge variant="secondary" className="font-black text-slate-900">Low</Badge>;
     }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'Resolved': return <Badge className="bg-accent text-accent-foreground"><CheckCircle2 className="h-3 w-3 mr-1" /> Resolved</Badge>;
-      case 'In Progress': return <Badge className="bg-blue-500"><Clock className="h-3 w-3 mr-1" /> In Progress</Badge>;
-      case 'Cancelled': return <Badge variant="outline" className="opacity-50">Cancelled</Badge>;
-      default: return <Badge variant="outline"><AlertTriangle className="h-3 w-3 mr-1" /> Pending</Badge>;
+      case 'Resolved': return <Badge className="bg-accent text-accent-foreground font-black"><CheckCircle2 className="h-3 w-3 mr-1" /> Resolved</Badge>;
+      case 'In Progress': return <Badge className="bg-blue-600 font-black text-white"><Clock className="h-3 w-3 mr-1" /> In Progress</Badge>;
+      case 'Cancelled': return <Badge variant="outline" className="opacity-70 border-slate-400 font-bold">Cancelled</Badge>;
+      default: return <Badge variant="outline" className="border-slate-400 text-slate-900 font-bold"><AlertTriangle className="h-3 w-3 mr-1" /> Pending</Badge>;
     }
   };
 
@@ -226,7 +226,7 @@ export default function RepairsPage() {
       <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
-            <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors group">
+            <Link href="/" className="inline-flex items-center text-sm font-bold text-slate-700 hover:text-primary transition-colors group">
               <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Dashboard
             </Link>
             <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
@@ -235,12 +235,12 @@ export default function RepairsPage() {
           </div>
           
           {!isSuperAdmin && (
-            <div className="flex bg-white rounded-lg border p-1 shadow-sm">
+            <div className="flex bg-white rounded-lg border border-slate-200 p-1 shadow-sm">
               <Button 
                 variant={activeTab === 'new' ? 'default' : 'ghost'} 
                 size="sm" 
                 onClick={() => setActiveTab('new')}
-                className="gap-2"
+                className="gap-2 font-bold"
               >
                 <Plus className="h-4 w-4" /> New Request
               </Button>
@@ -248,7 +248,7 @@ export default function RepairsPage() {
                 variant={activeTab === 'history' ? 'default' : 'ghost'} 
                 size="sm" 
                 onClick={() => setActiveTab('history')}
-                className="gap-2"
+                className="gap-2 font-bold"
               >
                 <History className="h-4 w-4" /> My History
               </Button>
@@ -259,11 +259,11 @@ export default function RepairsPage() {
         <div className="grid grid-cols-1 gap-8">
           {(isSuperAdmin || activeTab === 'history') && (
             <Card className="shadow-lg border-none overflow-hidden">
-              <CardHeader className="bg-white border-b flex flex-row items-center justify-between">
+              <CardHeader className="bg-white border-b border-slate-200 flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle>{isSuperAdmin ? 'Resident Requests' : 'My Requests'}</CardTitle>
+                  <CardTitle className="text-slate-900 font-bold">{isSuperAdmin ? 'Resident Requests' : 'My Requests'}</CardTitle>
                 </div>
-                <Badge variant="outline" className="font-mono">
+                <Badge variant="outline" className="font-black border-slate-300 text-slate-900">
                   {requests?.length || 0} Total
                 </Badge>
               </CardHeader>
@@ -271,7 +271,7 @@ export default function RepairsPage() {
                 {requestsLoading ? (
                   <div className="p-12 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /></div>
                 ) : requests && requests.length > 0 ? (
-                  <div className="divide-y">
+                  <div className="divide-y divide-slate-200">
                     {requests.map((req: any) => (
                       <div key={req.id} className="p-6 hover:bg-slate-50 transition-colors group">
                         <div className="flex flex-col md:flex-row justify-between gap-4">
@@ -279,19 +279,19 @@ export default function RepairsPage() {
                             <div className="flex items-center gap-2 flex-wrap">
                               {getStatusBadge(req.status)}
                               {getUrgencyBadge(req.urgency)}
-                              <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10">
+                              <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 font-bold">
                                 {req.category}
                               </Badge>
                               {isSuperAdmin && (
-                                <span className="text-xs font-bold text-slate-500 uppercase tracking-tight">
+                                <span className="text-xs font-black text-slate-700 uppercase tracking-tight">
                                   {req.residentName} (Unit {req.roomUnit})
                                 </span>
                               )}
                             </div>
-                            <p className="text-slate-700 leading-relaxed font-medium">
+                            <p className="text-slate-900 leading-relaxed font-bold">
                               {req.description}
                             </p>
-                            <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                            <div className="text-[10px] text-slate-700 font-bold flex items-center gap-1">
                               <Clock className="h-3 w-3" /> 
                               {req.createdAt?.toDate ? req.createdAt.toDate().toLocaleString() : 'Just now'}
                             </div>
@@ -301,13 +301,13 @@ export default function RepairsPage() {
                             <div className="flex items-start gap-2">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="outline" size="sm" className="gap-2">
+                                  <Button variant="outline" size="sm" className="gap-2 font-bold border-slate-300">
                                     Action <MoreVertical className="h-4 w-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
+                                <DropdownMenuContent align="end" className="font-bold">
                                   <DropdownMenuItem className="gap-2 cursor-pointer" onSelect={() => handleUpdateStatus(req.id, 'In Progress')}>
-                                    <Construction className="h-4 w-4 text-blue-500" /> Mark In Progress
+                                    <Construction className="h-4 w-4 text-blue-600" /> Mark In Progress
                                   </DropdownMenuItem>
                                   <DropdownMenuItem className="gap-2 cursor-pointer" onSelect={() => handleUpdateStatus(req.id, 'Resolved')}>
                                     <Check className="h-4 w-4 text-accent" /> Mark Resolved
@@ -317,7 +317,7 @@ export default function RepairsPage() {
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem 
-                                    className="gap-2 text-destructive font-bold cursor-pointer bg-destructive/5 hover:bg-destructive hover:text-white transition-colors" 
+                                    className="gap-2 text-destructive font-black cursor-pointer bg-destructive/5 hover:bg-destructive hover:text-white transition-colors" 
                                     onSelect={() => setRequestToDelete(req.id)}
                                   >
                                     <Trash2 className="h-4 w-4" /> Delete Request
@@ -331,7 +331,7 @@ export default function RepairsPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="p-12 text-center text-muted-foreground italic">
+                  <div className="p-12 text-center text-slate-700 font-bold italic">
                     "No maintenance requests found."
                   </div>
                 )}
@@ -343,18 +343,18 @@ export default function RepairsPage() {
             <div className="max-w-2xl mx-auto w-full">
               <Card className="shadow-xl border-t-4 border-primary">
                 <CardHeader>
-                  <CardTitle className="text-xl">Report a Problem</CardTitle>
+                  <CardTitle className="text-xl text-primary font-bold">Report a Problem</CardTitle>
                 </CardHeader>
                 <form onSubmit={handleSubmitRequest}>
                   <CardContent className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label>Category</Label>
+                        <Label className="font-bold text-slate-900">Category</Label>
                         <Select value={formData.category} onValueChange={(v) => handleSelectChange('category', v)} required>
-                          <SelectTrigger>
+                          <SelectTrigger className="border-slate-300 font-medium">
                             <SelectValue placeholder="Select type" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="font-medium">
                             <SelectItem value="Plumbing">Plumbing</SelectItem>
                             <SelectItem value="Electrical">Electrical</SelectItem>
                             <SelectItem value="Structural">Structural</SelectItem>
@@ -363,12 +363,12 @@ export default function RepairsPage() {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label>Urgency</Label>
+                        <Label className="font-bold text-slate-900">Urgency</Label>
                         <Select value={formData.urgency} onValueChange={(v) => handleSelectChange('urgency', v)} required>
-                          <SelectTrigger>
+                          <SelectTrigger className="border-slate-300 font-medium">
                             <SelectValue placeholder="Select level" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="font-medium">
                             <SelectItem value="Low">Low (Few days)</SelectItem>
                             <SelectItem value="Medium">Medium (Next 24h)</SelectItem>
                             <SelectItem value="High">High (Immediate attention)</SelectItem>
@@ -379,20 +379,20 @@ export default function RepairsPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="description">Issue Description</Label>
+                      <Label htmlFor="description" className="font-bold text-slate-900">Issue Description</Label>
                       <Textarea 
                         id="description" 
                         name="description" 
                         placeholder="e.g. Water leaking from the sink in Room 101..." 
-                        className="min-h-[150px] resize-none"
+                        className="min-h-[150px] resize-none border-slate-300 font-medium"
                         value={formData.description}
                         onChange={handleInputChange}
                         required
                       />
                     </div>
                   </CardContent>
-                  <CardFooter className="bg-slate-50 border-t py-4 justify-end">
-                    <Button type="submit" className="gap-2" disabled={isSubmitting}>
+                  <CardFooter className="bg-slate-100 border-t border-slate-200 py-4 justify-end">
+                    <Button type="submit" className="gap-2 font-bold" disabled={isSubmitting}>
                       {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                       Submit Request
                     </Button>
@@ -407,19 +407,19 @@ export default function RepairsPage() {
       <AlertDialog open={!!requestToDelete} onOpenChange={(open) => !open && !isDeleting && setRequestToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="font-bold">Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-700 font-medium">
               This action cannot be undone. This will permanently delete the maintenance request from the registry.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting} className="font-bold">Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={(e) => {
                 e.preventDefault();
                 confirmDeleteRequest();
               }} 
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 font-bold"
               disabled={isDeleting}
             >
               {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}

@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -96,11 +95,13 @@ export default function CurrentUtilityPage() {
 
   if (!user) return null;
 
+  const viewOnlyInputClass = "pl-10 disabled:opacity-100 disabled:text-slate-900 disabled:font-bold disabled:cursor-default border-slate-300";
+
   return (
     <div className="min-h-screen bg-slate-50 py-8 px-4">
       <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="space-y-1">
-          <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors group">
+          <Link href="/" className="inline-flex items-center text-sm font-semibold text-slate-700 hover:text-primary transition-colors group">
             <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Dashboard
           </Link>
           <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
@@ -116,12 +117,12 @@ export default function CurrentUtilityPage() {
           )}
           <CardHeader>
             <CardTitle className="text-xl">Active Cycle Details</CardTitle>
-            <CardDescription>View current billing range and expense totals.</CardDescription>
+            <CardDescription className="text-slate-700 font-medium">View current billing range and expense totals.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-100 rounded-lg border border-slate-300">
               <div className="space-y-2">
-                <Label className="flex items-center gap-2">
+                <Label className="flex items-center gap-2 font-bold text-slate-900">
                   <CalendarRange className="h-4 w-4 text-primary" /> Bill Start Date
                 </Label>
                 <Input 
@@ -130,10 +131,11 @@ export default function CurrentUtilityPage() {
                   value={formData.startDate} 
                   onChange={handleInputChange} 
                   disabled
+                  className="disabled:opacity-100 disabled:text-slate-900 disabled:font-bold border-slate-400"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="flex items-center gap-2">
+                <Label className="flex items-center gap-2 font-bold text-slate-900">
                   <CalendarRange className="h-4 w-4 text-primary" /> Bill End Date
                 </Label>
                 <Input 
@@ -142,48 +144,49 @@ export default function CurrentUtilityPage() {
                   value={formData.endDate} 
                   onChange={handleInputChange} 
                   disabled
+                  className="disabled:opacity-100 disabled:text-slate-900 disabled:font-bold border-slate-400"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                <div className="space-y-2">
-                <Label>Wifi Total (OMR)</Label>
+                <Label className="font-bold text-slate-900">Wifi Total (OMR)</Label>
                 <div className="relative">
-                  <Wifi className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input name="wifi" type="number" step="0.001" value={formData.wifi} onChange={handleInputChange} className="pl-10" placeholder="0.000" disabled />
+                  <Wifi className="absolute left-3 top-2.5 h-4 w-4 text-primary" />
+                  <Input name="wifi" type="number" step="0.001" value={formData.wifi} onChange={handleInputChange} className={viewOnlyInputClass} placeholder="0.000" disabled />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Miscellaneous (OMR)</Label>
+                <Label className="font-bold text-slate-900">Miscellaneous (OMR)</Label>
                 <div className="relative">
-                  <Plus className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input name="miscellaneous" type="number" step="0.001" value={formData.miscellaneous} onChange={handleInputChange} className="pl-10" placeholder="0.000" disabled />
+                  <Plus className="absolute left-3 top-2.5 h-4 w-4 text-primary" />
+                  <Input name="miscellaneous" type="number" step="0.001" value={formData.miscellaneous} onChange={handleInputChange} className={viewOnlyInputClass} placeholder="0.000" disabled />
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label>Water (OMR)</Label>
+                <Label className="font-bold text-slate-900">Water (OMR)</Label>
                 <div className="relative">
-                  <Droplets className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input name="water" type="number" step="0.001" value={formData.water} onChange={handleInputChange} className="pl-10" placeholder="0.000" disabled />
+                  <Droplets className="absolute left-3 top-2.5 h-4 w-4 text-primary" />
+                  <Input name="water" type="number" step="0.001" value={formData.water} onChange={handleInputChange} className={viewOnlyInputClass} placeholder="0.000" disabled />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Electricity (OMR)</Label>
+                <Label className="font-bold text-slate-900">Electricity (OMR)</Label>
                 <div className="relative">
-                  <Lightbulb className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input name="electricity" type="number" step="0.001" value={formData.electricity} onChange={handleInputChange} className="pl-10" placeholder="0.000" disabled />
+                  <Lightbulb className="absolute left-3 top-2.5 h-4 w-4 text-primary" />
+                  <Input name="electricity" type="number" step="0.001" value={formData.electricity} onChange={handleInputChange} className={viewOnlyInputClass} placeholder="0.000" disabled />
                 </div>
               </div>
             </div>
             
-            <div className="bg-primary/5 p-6 rounded-xl border border-primary/10 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="bg-primary/10 p-6 rounded-xl border border-primary/20 flex flex-col md:flex-row justify-between items-center gap-4">
               <div className="text-center md:text-left">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Household Total</p>
-                <p className="text-3xl font-black text-primary">
+                <p className="text-[10px] font-black uppercase tracking-wider text-primary">Household Total</p>
+                <p className="text-4xl font-black text-primary">
                   {calculatedTotal} OMR
                 </p>
               </div>
