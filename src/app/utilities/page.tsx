@@ -93,7 +93,7 @@ export default function CurrentUtilityPage() {
     return null;
   };
 
-  // Improved initialization: Pre-populate from the most recent record
+  // Pre-populate from the most recent record found in Firestore
   useEffect(() => {
     if (billsLoading || userLoading || profileLoading || !isSuperAdmin || initializedRef.current) return;
 
@@ -112,7 +112,7 @@ export default function CurrentUtilityPage() {
     }
   }, [latestEntries, billsLoading, userLoading, profileLoading, isSuperAdmin]);
 
-  // Robust month switching: If admin types a valid month, try to fetch it
+  // Fetch specific month data if the admin changes the input
   useEffect(() => {
     const storageMonth = toStorage(displayMonth);
     if (!storageMonth || !db || !isSuperAdmin) return;
@@ -173,12 +173,11 @@ export default function CurrentUtilityPage() {
 
     const billRef = doc(db, 'utility_bills', storageMonth);
 
-    // Using merge to preserve existing data while updating the specific snapshot
     setDoc(billRef, billData, { merge: true })
       .then(() => {
         toast({
-          title: showOnDashboard ? "Current Billing Month Published" : "Draft Saved",
-          description: `Snapshot for ${displayMonth} has been persisted to Firestore.`,
+          title: showOnDashboard ? "Snapshot Published" : "Draft Saved",
+          description: `Snapshot for ${displayMonth} has been persisted.`,
         });
       })
       .catch(async (err) => {
@@ -212,14 +211,14 @@ export default function CurrentUtilityPage() {
             <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Dashboard
           </Link>
           <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
-            <Zap className="h-8 w-8 text-primary" /> Current Bill Management
+            <Zap className="h-8 w-8 text-primary" /> Active Cycle Management
           </h1>
         </div>
 
         <Card className="shadow-lg border-t-4 border-primary">
           <CardHeader>
-            <CardTitle className="text-xl">Active Cycle Details</CardTitle>
-            <CardDescription>Enter values for the household and publish to the resident dashboard. Snapshot persists in Firestore.</CardDescription>
+            <CardTitle className="text-xl">Cycle Details</CardTitle>
+            <CardDescription>Enter household values and publish them to the resident dashboard.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

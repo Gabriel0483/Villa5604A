@@ -80,6 +80,7 @@ export default function Home() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
+  // Query for the active household snapshot
   const latestBillQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
@@ -93,6 +94,7 @@ export default function Home() {
   const { data: latestBills, loading: billsLoading } = useCollection(latestBillQuery);
   const latestBill = latestBills?.[0] as any;
 
+  // Query all residents to calculate individual shares
   const residentsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(collection(db, 'users'), where('role', '==', 'Resident'));
@@ -116,7 +118,7 @@ export default function Home() {
     const electricitySharePerDay = totalManDays > 0 ? (latestBill.electricity || 0) / totalManDays : 0;
     const miscUsagePerDay = totalMiscManDays > 0 ? miscTotal / totalMiscManDays : 0;
 
-    // Logic: If Admin, show the share of the first resident as a "Preview" for verification
+    // Determine target profile: current user if they are a resident, else the first resident for preview
     const myProfile = residents.find(r => r.id === user.uid);
     const targetProfile = myProfile || residents[0];
     
@@ -241,7 +243,7 @@ export default function Home() {
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
           <div className="flex flex-col gap-1">
             <h1 className="text-3xl font-bold tracking-tight text-primary">
-              Villa 5604 Portal
+              Portal Snapshot
             </h1>
           </div>
 
@@ -251,12 +253,12 @@ export default function Home() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-xl font-bold flex items-center gap-2">
-                      <UserIcon className="h-5 w-5 text-primary" /> {myIndividualShares?.isResident ? "My Billing Snapshot" : "Resident Share Preview"}
+                      <Receipt className="h-5 w-5 text-primary" /> {myIndividualShares?.isResident ? "My Billing Snapshot" : "Resident Share Preview"}
                     </CardTitle>
                     <CardDescription>
                       {myIndividualShares?.isResident 
                         ? "Your personal share for the active cycle." 
-                        : `Showing share preview for ${myIndividualShares?.targetName}.`}
+                        : `Showing preview share calculation for ${myIndividualShares?.targetName}.`}
                     </CardDescription>
                   </div>
                   {latestBill && (
@@ -309,13 +311,13 @@ export default function Home() {
                     </div>
 
                     <div className="pt-4 border-t flex flex-col items-center justify-center text-center">
-                      <span className="text-sm text-muted-foreground">Calculated Share</span>
+                      <span className="text-sm text-muted-foreground">Calculated Individual Share</span>
                       <p className="text-4xl font-black text-primary">{myIndividualShares.total.toFixed(3)} OMR</p>
                     </div>
                   </div>
                 ) : (
                   <div className="py-12 text-center text-muted-foreground italic bg-slate-50/50 rounded-lg border border-dashed">
-                    No active published snapshot found for this period.
+                    No active published snapshot found.
                   </div>
                 )}
               </CardContent>
@@ -328,7 +330,7 @@ export default function Home() {
                     <CardTitle className="text-xl font-bold flex items-center gap-2">
                       <Building2 className="h-5 w-5 text-slate-500" /> Household Snapshot
                     </CardTitle>
-                    <CardDescription>Total household charges for the active cycle.</CardDescription>
+                    <CardDescription>Total household charges for the villa.</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -366,7 +368,7 @@ export default function Home() {
                       <div className="p-4 bg-slate-50 rounded-lg border space-y-3">
                         <div className="flex items-center justify-between text-[10px]">
                           <span className="font-bold flex items-center gap-1.5 text-slate-600">
-                            <Users className="h-3 w-3" /> Household Collection Progress
+                            <Users className="h-3 w-3" /> Household Progress
                           </span>
                           <span className="font-bold text-primary">
                             {collectionProgress.paidCount} / {collectionProgress.totalCount} Paid
@@ -400,18 +402,18 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <Button variant="outline" className="w-full">Registry <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                    <Button variant="outline" className="w-full">Manage Residents <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
 
                 <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/utilities')}>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-lg">
-                      <Zap className="h-5 w-5 text-primary" /> Current Bill
+                      <Zap className="h-5 w-5 text-primary" /> Active Cycle
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <Button variant="outline" className="w-full">Manage Snapshot <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                    <Button variant="outline" className="w-full">Utility Management <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
 
@@ -429,11 +431,11 @@ export default function Home() {
                 <Card className="hover:shadow-md transition-all border-primary/10 group cursor-pointer" onClick={() => router.push('/statements')}>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-lg">
-                      <FileText className="h-5 w-5 text-primary" /> Billing & Payments
+                      <FileText className="h-5 w-5 text-primary" /> Billing Statements
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <Button variant="outline" className="w-full">Statements <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                    <Button variant="outline" className="w-full">Statements & Payments <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
 
@@ -444,7 +446,7 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <Button variant="outline" className="w-full">Split Logic <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                    <Button variant="outline" className="w-full">Split Calculation <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
 
@@ -455,7 +457,7 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <Button variant="outline" className="w-full">View Dates <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                    <Button variant="outline" className="w-full">Greet Residents <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
 
@@ -466,7 +468,7 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <Button variant="outline" className="w-full">View Issues <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                    <Button variant="outline" className="w-full">View Maintenance <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
               </>
@@ -490,7 +492,7 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <Button variant="outline" className="w-full">Report Problem <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                    <Button variant="outline" className="w-full">Maintenance Request <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
                 
@@ -501,7 +503,7 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <Button variant="outline" className="w-full">Manage Profile <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                    <Button variant="outline" className="w-full">Personal Details <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </CardContent>
                 </Card>
               </>
