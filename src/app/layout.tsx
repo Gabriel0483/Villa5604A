@@ -1,12 +1,11 @@
-
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
-  title: 'LeaseLink - Property Management',
-  description: 'Efficient property management for head tenants.',
+  title: 'Villa 5604 Portal',
+  description: 'Central management hub for residents and administrators of Villa 5604.',
 };
 
 export default function RootLayout({

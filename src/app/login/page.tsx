@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState } from 'react';
@@ -35,7 +34,6 @@ export default function LoginPage() {
       router.push('/');
     } catch (err: any) {
       // Map Firebase error codes to user-friendly messages
-      // We avoid console.error() to prevent triggering the development error overlay
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
         setError("Invalid user code or password. Please check your credentials.");
       } else if (err.code === 'auth/too-many-requests') {
@@ -57,8 +55,8 @@ export default function LoginPage() {
               <Building2 className="h-8 w-8 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">Villa 5604</CardTitle>
-          <CardDescription>Enter your credentials to access the portal</CardDescription>
+          <CardTitle className="text-2xl font-bold text-primary">Villa 5604 Portal</CardTitle>
+          <CardDescription>Enter your credentials to access your account</CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>
           <CardContent className="space-y-4">

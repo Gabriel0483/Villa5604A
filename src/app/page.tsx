@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -138,7 +137,7 @@ export default function Home() {
               <div className="p-1.5 bg-primary/10 rounded-lg">
                 <Building2 className="h-5 w-5 text-primary" />
               </div>
-              <span className="font-bold text-xl text-primary tracking-tight">Villa 5604</span>
+              <span className="font-bold text-xl text-primary tracking-tight">Villa 5604 Portal</span>
             </Link>
           </div>
 
@@ -465,7 +464,7 @@ export default function Home() {
       <footer className="mt-auto py-6 text-center text-sm text-muted-foreground border-t bg-white">
         <div className="flex justify-center items-center gap-2">
           <Building2 className="h-4 w-4 text-primary/50" /> 
-          <span className="font-medium">Villa 5604 Admin Portal 2026</span>
+          <span className="font-medium">Villa 5604 Portal 2026</span>
         </div>
       </footer>
     </div>
