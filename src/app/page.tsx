@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -24,7 +25,8 @@ import {
   History,
   Calculator,
   BarChart3,
-  TrendingUp
+  TrendingUp,
+  Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -98,6 +100,45 @@ export default function Home() {
   }, [db, user]);
 
   const { data: residents, loading: residentsLoading } = useCollection(residentsQuery);
+
+  // Calculate the individual share for the resident dashboard
+  const myIndividualShares = useMemo(() => {
+    if (!latestBill || !residents || residents.length === 0 || !user) return null;
+
+    const numResidents = residents.length;
+    const wifiTotal = latestBill.wifi;
+    const usageTotal = (latestBill.water || 0) + (latestBill.electricity || 0);
+    const miscTotal = latestBill.miscellaneous || 0;
+    
+    const totalManDays = residents.reduce((acc, r) => acc + (r.billingDays ?? 30), 0);
+    const miscApplicableResidents = residents.filter(r => r.isMiscApplicable !== false);
+    const totalMiscManDays = miscApplicableResidents.reduce((acc, r) => acc + (r.billingDays ?? 30), 0);
+
+    const wifiSharePerPerson = wifiTotal / numResidents;
+    const waterSharePerDay = totalManDays > 0 ? (latestBill.water || 0) / totalManDays : 0;
+    const electricitySharePerDay = totalManDays > 0 ? (latestBill.electricity || 0) / totalManDays : 0;
+    const miscUsagePerDay = totalMiscManDays > 0 ? miscTotal / totalMiscManDays : 0;
+
+    const myProfile = residents.find(r => r.id === user.uid);
+    if (!myProfile) return null;
+
+    const resDays = myProfile.billingDays ?? 30;
+    const isMisc = myProfile.isMiscApplicable !== false;
+
+    const myWifi = wifiSharePerPerson;
+    const myWater = waterSharePerDay * resDays;
+    const myElec = electricitySharePerDay * resDays;
+    const myMisc = isMisc ? (miscUsagePerDay * resDays) : 0;
+
+    return {
+      wifi: myWifi,
+      water: myWater,
+      electricity: myElec,
+      misc: myMisc,
+      total: myWifi + myWater + myElec + myMisc,
+      days: resDays
+    };
+  }, [latestBill, residents, user]);
 
   const handleLogout = async () => {
     try {
@@ -195,8 +236,9 @@ export default function Home() {
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="text-xl font-bold flex items-center gap-2">
-                        <Receipt className="h-5 w-5 text-primary" /> Current Bill Snapshot
+                        <Receipt className="h-5 w-5 text-primary" /> My Billing Snapshot
                       </CardTitle>
+                      <CardDescription>Your individual share for the current active period.</CardDescription>
                     </div>
                     {latestBill && (
                       <div className="flex items-center gap-2">
@@ -215,32 +257,32 @@ export default function Home() {
                 <CardContent>
                   {billsLoading ? (
                     <div className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
-                  ) : latestBill ? (
+                  ) : latestBill && myIndividualShares ? (
                     <div className="space-y-6">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
                           <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase mb-1">
-                            <Wifi className="h-3 w-3" /> Wifi
+                            <Wifi className="h-3 w-3" /> My Wifi
                           </div>
-                          <p className="text-lg font-bold">{latestBill.wifi.toFixed(3)} OMR</p>
+                          <p className="text-lg font-bold">{myIndividualShares.wifi.toFixed(3)} OMR</p>
                         </div>
                         <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
                           <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase mb-1">
-                            <Droplets className="h-3 w-3" /> Water
+                            <Droplets className="h-3 w-3" /> My Water
                           </div>
-                          <p className="text-lg font-bold">{latestBill.water.toFixed(3)} OMR</p>
+                          <p className="text-lg font-bold">{myIndividualShares.water.toFixed(3)} OMR</p>
                         </div>
                         <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
                           <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase mb-1">
-                            <Lightbulb className="h-3 w-3" /> Electricity
+                            <Lightbulb className="h-3 w-3" /> My Elec
                           </div>
-                          <p className="text-lg font-bold">{latestBill.electricity.toFixed(3)} OMR</p>
+                          <p className="text-lg font-bold">{myIndividualShares.electricity.toFixed(3)} OMR</p>
                         </div>
                         <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
                           <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase mb-1">
-                            <Plus className="h-3 w-3" /> Misc
+                            <Plus className="h-3 w-3" /> My Misc
                           </div>
-                          <p className="text-lg font-bold">{(latestBill.miscellaneous || 0).toFixed(3)} OMR</p>
+                          <p className="text-lg font-bold">{myIndividualShares.misc.toFixed(3)} OMR</p>
                         </div>
                       </div>
 
@@ -260,12 +302,21 @@ export default function Home() {
 
                       <div className="pt-4 border-t flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="space-y-1">
-                          <span className="text-sm text-muted-foreground">Household Total</span>
-                          <p className="text-3xl font-black text-primary">{latestBill.total.toFixed(3)} OMR</p>
+                          <span className="text-sm text-muted-foreground">My Total Share</span>
+                          <p className="text-3xl font-black text-primary">{myIndividualShares.total.toFixed(3)} OMR</p>
                         </div>
-                        <Button className="gap-2" onClick={() => router.push('/bills')}>
-                          <History className="h-4 w-4" /> View My Bills
-                        </Button>
+                        <div className="flex gap-2">
+                           <Button variant="outline" className="gap-2" onClick={() => router.push('/bills')}>
+                            <History className="h-4 w-4" /> My Statement History
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-50 p-3 rounded-lg border border-dashed flex items-center gap-2">
+                        <Info className="h-4 w-4 text-slate-400" />
+                        <p className="text-[10px] text-muted-foreground">
+                          Share calculated based on {myIndividualShares.days} residency days. Wifi is split equally.
+                        </p>
                       </div>
                     </div>
                   ) : (

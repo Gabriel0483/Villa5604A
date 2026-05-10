@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState } from 'react';
@@ -13,7 +14,8 @@ import {
   TrendingUp,
   CheckCircle2,
   Clock,
-  Users
+  Users,
+  Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -111,7 +113,8 @@ export default function MyBillsPage() {
       }));
   }, [bills]);
 
-  const communityStatement = useMemo(() => {
+  // Calculate detailed shares for the community view and personal statement
+  const calculatedStatement = useMemo(() => {
     if (!selectedBill || !residents || residents.length === 0) return null;
 
     const numResidents = residents.length;
@@ -127,18 +130,36 @@ export default function MyBillsPage() {
     const mainUsagePerDay = totalManDays > 0 ? usageTotal / totalManDays : 0;
     const miscUsagePerDay = totalMiscManDays > 0 ? miscTotal / totalMiscManDays : 0;
 
-    return residents.map(r => {
+    const waterSharePerDay = totalManDays > 0 ? (selectedBill.water || 0) / totalManDays : 0;
+    const electricitySharePerDay = totalManDays > 0 ? (selectedBill.electricity || 0) / totalManDays : 0;
+
+    const list = residents.map(r => {
       const resDays = r.billingDays ?? 30;
       const isMisc = r.isMiscApplicable !== false;
-      const share = wifiSharePerPerson + (mainUsagePerDay * resDays) + (isMisc ? (miscUsagePerDay * resDays) : 0);
+      
+      const wifiShare = wifiSharePerPerson;
+      const waterShare = waterSharePerDay * resDays;
+      const electricityShare = electricitySharePerDay * resDays;
+      const miscShare = isMisc ? (miscUsagePerDay * resDays) : 0;
+      
+      const totalShare = wifiShare + waterShare + electricityShare + miscShare;
       
       return {
+        id: r.id,
         name: `${r.firstName} ${r.lastName}`,
         room: r.roomUnit || 'N/A',
-        total: share,
+        wifi: wifiShare,
+        water: waterShare,
+        electricity: electricityShare,
+        misc: miscShare,
+        total: totalShare,
         isMe: r.id === user?.uid
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
+
+    const myEntry = list.find(l => l.isMe);
+
+    return { list, myEntry };
   }, [selectedBill, residents, user]);
 
   if (userLoading || profileLoading) {
@@ -165,7 +186,7 @@ export default function MyBillsPage() {
           <Card className="shadow-lg border-none">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" /> Consumption Trends
+                <TrendingUp className="h-5 w-5 text-primary" /> Household Consumption Trends
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -294,29 +315,44 @@ export default function MyBillsPage() {
                     </TabsList>
                     
                     <TabsContent value="personal" className="space-y-6 animate-in fade-in slide-in-from-top-2">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 rounded-lg bg-slate-50 border">
-                          <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Wifi</div>
-                          <p className="text-lg font-bold">{selectedBill.wifi.toFixed(3)} OMR</p>
-                        </div>
-                        <div className="p-4 rounded-lg bg-slate-50 border">
-                          <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Water</div>
-                          <p className="text-lg font-bold">{selectedBill.water.toFixed(3)} OMR</p>
-                        </div>
-                        <div className="p-4 rounded-lg bg-slate-50 border">
-                          <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Electricity</div>
-                          <p className="text-lg font-bold">{selectedBill.electricity.toFixed(3)} OMR</p>
-                        </div>
-                        <div className="p-4 rounded-lg bg-slate-50 border">
-                          <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Misc</div>
-                          <p className="text-lg font-bold">{(selectedBill.miscellaneous || 0).toFixed(3)} OMR</p>
-                        </div>
-                      </div>
+                      {calculatedStatement?.myEntry ? (
+                        <>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="p-4 rounded-lg bg-slate-50 border">
+                              <div className="text-xs font-bold text-muted-foreground uppercase mb-1">My Wifi Share</div>
+                              <p className="text-lg font-bold">{calculatedStatement.myEntry.wifi.toFixed(3)} OMR</p>
+                            </div>
+                            <div className="p-4 rounded-lg bg-slate-50 border">
+                              <div className="text-xs font-bold text-muted-foreground uppercase mb-1">My Water Share</div>
+                              <p className="text-lg font-bold">{calculatedStatement.myEntry.water.toFixed(3)} OMR</p>
+                            </div>
+                            <div className="p-4 rounded-lg bg-slate-50 border">
+                              <div className="text-xs font-bold text-muted-foreground uppercase mb-1">My Electricity Share</div>
+                              <p className="text-lg font-bold">{calculatedStatement.myEntry.electricity.toFixed(3)} OMR</p>
+                            </div>
+                            <div className="p-4 rounded-lg bg-slate-50 border">
+                              <div className="text-xs font-bold text-muted-foreground uppercase mb-1">My Misc Share</div>
+                              <p className="text-lg font-bold">{calculatedStatement.myEntry.misc.toFixed(3)} OMR</p>
+                            </div>
+                          </div>
 
-                      <div className="p-6 rounded-xl bg-primary text-primary-foreground text-center space-y-1">
-                        <span className="text-xs uppercase font-bold opacity-80">Household Total Bill</span>
-                        <h2 className="text-4xl font-black">{selectedBill.total.toFixed(3)} OMR</h2>
-                      </div>
+                          <div className="p-6 rounded-xl bg-primary text-primary-foreground text-center space-y-1">
+                            <span className="text-xs uppercase font-bold opacity-80">My Total Share Due</span>
+                            <h2 className="text-4xl font-black">{calculatedStatement.myEntry.total.toFixed(3)} OMR</h2>
+                          </div>
+                          
+                          <div className="bg-slate-50 p-4 rounded-lg border border-dashed flex items-start gap-3">
+                            <Info className="h-5 w-5 text-slate-400 shrink-0 mt-0.5" />
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                              This share is calculated based on household consumption. Wifi is split equally, while Water and Electricity are split by residency days. Miscellaneous is split among applicable residents.
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="p-8 text-center text-muted-foreground italic">
+                          No personal share data found for this period.
+                        </div>
+                      )}
                     </TabsContent>
                     
                     <TabsContent value="community" className="animate-in fade-in slide-in-from-top-2">
@@ -336,7 +372,7 @@ export default function MyBillsPage() {
                                   <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                                 </TableCell>
                               </TableRow>
-                            ) : communityStatement?.map((s, idx) => (
+                            ) : calculatedStatement?.list.map((s, idx) => (
                               <TableRow key={idx} className={s.isMe ? "bg-primary/5" : ""}>
                                 <TableCell className="font-medium">
                                   {s.name} {s.isMe && <Badge variant="outline" className="ml-1 text-[10px] h-4">You</Badge>}
