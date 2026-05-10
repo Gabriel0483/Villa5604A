@@ -36,6 +36,7 @@ export default function CurrentUtilityPage() {
   const { toast } = useToast();
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isFormDirty, setIsFormDirty] = useState(false);
   const [formData, setFormData] = useState({
     monthYear: '',
     wifi: '',
@@ -44,8 +45,8 @@ export default function CurrentUtilityPage() {
     miscellaneous: ''
   });
 
-  // Ref to prevent automatic resets to current month once initialized
-  const hasInitialized = useRef(false);
+  // Ref to track if we have successfully loaded data from the database
+  const hasLoadedFromDb = useRef(false);
 
   const userProfileRef = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -62,7 +63,8 @@ export default function CurrentUtilityPage() {
       'room101@villa5604.app',
       'admin001@villa5604.app'
     ];
-    if (adminEmails.includes(user.email?.toLowerCase() || '')) return true;
+    const email = user.email?.toLowerCase() || '';
+    if (adminEmails.includes(email)) return true;
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
@@ -78,9 +80,9 @@ export default function CurrentUtilityPage() {
 
   const { data: activeSnapshots, loading: billsLoading } = useCollection(activeSnapshotQuery);
 
+  // Synchronization effect: Populate form from database
   useEffect(() => {
-    // Only initialize from database once data is loaded and we haven't locked initialization
-    if (billsLoading || hasInitialized.current) return;
+    if (billsLoading || hasLoadedFromDb.current || isFormDirty) return;
 
     if (activeSnapshots && activeSnapshots.length > 0) {
       const bill = activeSnapshots[0] as any;
@@ -91,18 +93,18 @@ export default function CurrentUtilityPage() {
         electricity: bill.electricity?.toString() || '',
         miscellaneous: bill.miscellaneous?.toString() || '0'
       });
-      hasInitialized.current = true;
+      hasLoadedFromDb.current = true;
     } else if (!billsLoading) {
-      // If no active snapshot exists yet, default to current month ONLY ONCE
+      // If no snapshot exists in DB, set a default once
       const now = new Date();
       const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       setFormData(prev => ({
         ...prev,
-        monthYear: defaultMonth
+        monthYear: prev.monthYear || defaultMonth
       }));
-      hasInitialized.current = true;
+      hasLoadedFromDb.current = true;
     }
-  }, [activeSnapshots, billsLoading]);
+  }, [activeSnapshots, billsLoading, isFormDirty]);
 
   useEffect(() => {
     if (!userLoading && !profileLoading) {
@@ -120,6 +122,7 @@ export default function CurrentUtilityPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    setIsFormDirty(true);
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -148,9 +151,6 @@ export default function CurrentUtilityPage() {
 
     const billRef = doc(db, 'utility_bills', formData.monthYear);
 
-    // If we are setting this as a snapshot, we want subsequent loads to respect this month
-    // so we don't reset the initialization lock here, but the activeSnapshots query will update.
-    
     setDoc(billRef, billData, { merge: true })
       .then(() => {
         toast({
@@ -159,6 +159,9 @@ export default function CurrentUtilityPage() {
             ? `Active cycle for ${formData.monthYear} is now the primary dashboard snapshot.`
             : `Information for ${formData.monthYear} has been saved as a hidden draft.`,
         });
+        // After successful save, we can consider the form clean and synced with DB
+        setIsFormDirty(false);
+        hasLoadedFromDb.current = false; // Allow re-sync from DB if query updates
       })
       .catch(async (err) => {
         const permissionError = new FirestorePermissionError({
@@ -265,7 +268,7 @@ export default function CurrentUtilityPage() {
                     Save Draft
                   </Button>
                   <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90" onClick={(e) => handleSaveBill(e, true)} disabled={isSaving}>
-                    <Send className="h-4 w-4" /> Set as Current Snapshot
+                    <Send className="h-4 w-4" /> Publish to Dashboard
                   </Button>
                 </div>
               </div>
@@ -274,7 +277,7 @@ export default function CurrentUtilityPage() {
           <CardFooter className="bg-slate-50 border-t py-4 justify-between items-center">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <AlertCircle className="h-4 w-4" />
-              The "Current Snapshot" is purely for dashboard awareness.
+              The "Dashboard Snapshot" is purely for resident awareness.
             </div>
           </CardFooter>
         </Card>
