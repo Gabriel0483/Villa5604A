@@ -195,7 +195,7 @@ function DashboardContent() {
           <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
             <div className="relative z-10 space-y-2">
               <h2 className="text-3xl font-black text-slate-900 tracking-tight">Welcome Home, {profile?.firstName || 'Resident'}!</h2>
-              <p className="text-slate-600 font-bold max-w-lg">Everything you need to manage your villa experience, from utility consumption to celebration greetings.</p>
+              <p className="text-slate-600 font-bold max-w-lg">Everything you need to manage your villa experience, from tracking utility bills to reporting maintenance issues.</p>
             </div>
             <div className="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-primary/5 to-transparent pointer-events-none" />
             <div className="relative z-10">
