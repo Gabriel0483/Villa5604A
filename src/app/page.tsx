@@ -169,7 +169,7 @@ function DashboardContent() {
               <>
                 <Card className="hover:shadow-md transition-all border-primary/10 cursor-pointer" onClick={() => router.push('/bills')}>
                   <CardHeader><CardTitle className="flex items-center gap-2 text-lg text-primary"><FileText className="h-5 w-5" /> My Bills</CardTitle></CardHeader>
-                  <CardContent><Button variant="outline" className="w-full">View Bills <ArrowRight className="ml-2 h-4 w-4" /></Button></CardContent>
+                  <CardContent><Button variant="outline" className="w-full">View Details <ArrowRight className="ml-2 h-4 w-4" /></Button></CardContent>
                 </Card>
                 <Card className="hover:shadow-md transition-all border-primary/10 cursor-pointer" onClick={() => router.push('/utilities')}>
                   <CardHeader><CardTitle className="flex items-center gap-2 text-lg text-primary"><Zap className="h-5 w-5" /> Latest Bills</CardTitle></CardHeader>
