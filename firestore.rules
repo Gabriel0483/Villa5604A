@@ -8,7 +8,7 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // sync-trigger: v10-final-index-sync
+    // sync-trigger: v11-transparency-update
 
     // Comprehensive SuperAdmin check
     function isSuperAdmin() {
@@ -27,7 +27,9 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read, write: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
+      // Allow all signed-in users to read basic profile info for billing transparency
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
     }
 
     match /utility_bills/{billId} {

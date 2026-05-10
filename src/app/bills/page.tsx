@@ -17,7 +17,9 @@ import {
   Plus,
   TrendingUp,
   CheckCircle2,
-  Clock
+  Clock,
+  Users,
+  Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,6 +47,20 @@ import {
   ResponsiveContainer,
   Legend
 } from "recharts";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import Link from 'next/link';
 
 const chartConfig = {
@@ -83,6 +99,14 @@ export default function MyBillsPage() {
 
   const { data: bills, loading: billsLoading } = useCollection(billsQuery);
 
+  // Fetch all residents for comparison view
+  const residentsQuery = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return query(collection(db, 'users'), where('role', '==', 'Resident'));
+  }, [db, user]);
+
+  const { data: residents, loading: residentsLoading } = useCollection(residentsQuery);
+
   const chartData = useMemo(() => {
     if (!bills) return [];
     return [...bills]
@@ -93,6 +117,37 @@ export default function MyBillsPage() {
         electricity: bill.electricity,
       }));
   }, [bills]);
+
+  // Calculate distribution for the selected bill
+  const communityStatement = useMemo(() => {
+    if (!selectedBill || !residents || residents.length === 0) return null;
+
+    const numResidents = residents.length;
+    const wifiTotal = selectedBill.wifi;
+    const usageTotal = (selectedBill.water || 0) + (selectedBill.electricity || 0);
+    const miscTotal = selectedBill.miscellaneous || 0;
+    
+    const totalManDays = residents.reduce((acc, r) => acc + (r.billingDays ?? 30), 0);
+    const miscApplicableResidents = residents.filter(r => r.isMiscApplicable !== false);
+    const totalMiscManDays = miscApplicableResidents.reduce((acc, r) => acc + (r.billingDays ?? 30), 0);
+
+    const wifiSharePerPerson = wifiTotal / numResidents;
+    const mainUsagePerDay = totalManDays > 0 ? usageTotal / totalManDays : 0;
+    const miscUsagePerDay = totalMiscManDays > 0 ? miscTotal / totalMiscManDays : 0;
+
+    return residents.map(r => {
+      const resDays = r.billingDays ?? 30;
+      const isMisc = r.isMiscApplicable !== false;
+      const share = wifiSharePerPerson + (mainUsagePerDay * resDays) + (isMisc ? (miscUsagePerDay * resDays) : 0);
+      
+      return {
+        name: `${r.firstName} ${r.lastName}`,
+        room: r.roomUnit || 'N/A',
+        total: share,
+        isMe: r.id === user?.uid
+      };
+    }).sort((a, b) => a.name.localeCompare(b.name));
+  }, [selectedBill, residents, user]);
 
   if (userLoading || profileLoading) {
     return (
@@ -112,7 +167,7 @@ export default function MyBillsPage() {
           <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
             <Receipt className="h-8 w-8 text-primary" /> Billing & Consumption
           </h1>
-          <p className="text-muted-foreground">Track released utility statements and consumption trends for Villa 5604.</p>
+          <p className="text-muted-foreground">Track released utility statements and community consumption trends.</p>
         </div>
 
         {bills && bills.length > 0 && (
@@ -220,10 +275,10 @@ export default function MyBillsPage() {
         </div>
 
         <Dialog open={!!selectedBill} onOpenChange={(open) => !open && setSelectedBill(null)}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col p-0">
             {selectedBill && (
-              <div className="space-y-6">
-                <DialogHeader>
+              <>
+                <DialogHeader className="p-6 border-b">
                   <DialogTitle className="flex items-center justify-between">
                     <span className="flex items-center gap-2 text-2xl">
                       <Building2 className="h-6 w-6 text-primary" /> 
@@ -237,32 +292,86 @@ export default function MyBillsPage() {
                   </DialogTitle>
                 </DialogHeader>
                 
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 rounded-lg bg-slate-50 border">
-                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Wifi</div>
-                      <p className="text-lg font-bold">{selectedBill.wifi.toFixed(3)} OMR</p>
-                    </div>
-                    <div className="p-4 rounded-lg bg-slate-50 border">
-                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Water</div>
-                      <p className="text-lg font-bold">{selectedBill.water.toFixed(3)} OMR</p>
-                    </div>
-                    <div className="p-4 rounded-lg bg-slate-50 border">
-                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Electricity</div>
-                      <p className="text-lg font-bold">{selectedBill.electricity.toFixed(3)} OMR</p>
-                    </div>
-                    <div className="p-4 rounded-lg bg-slate-50 border">
-                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Misc</div>
-                      <p className="text-lg font-bold">{(selectedBill.miscellaneous || 0).toFixed(3)} OMR</p>
-                    </div>
-                  </div>
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  <Tabs defaultValue="personal" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 mb-6">
+                      <TabsTrigger value="personal" className="gap-2">
+                        <ReceiptIcon className="h-4 w-4" /> My Statement
+                      </TabsTrigger>
+                      <TabsTrigger value="community" className="gap-2">
+                        <Users className="h-4 w-4" /> Community View
+                      </TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="personal" className="space-y-6 animate-in fade-in slide-in-from-top-2">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="p-4 rounded-lg bg-slate-50 border">
+                          <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Wifi</div>
+                          <p className="text-lg font-bold">{selectedBill.wifi.toFixed(3)} OMR</p>
+                        </div>
+                        <div className="p-4 rounded-lg bg-slate-50 border">
+                          <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Water</div>
+                          <p className="text-lg font-bold">{selectedBill.water.toFixed(3)} OMR</p>
+                        </div>
+                        <div className="p-4 rounded-lg bg-slate-50 border">
+                          <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Electricity</div>
+                          <p className="text-lg font-bold">{selectedBill.electricity.toFixed(3)} OMR</p>
+                        </div>
+                        <div className="p-4 rounded-lg bg-slate-50 border">
+                          <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Misc</div>
+                          <p className="text-lg font-bold">{(selectedBill.miscellaneous || 0).toFixed(3)} OMR</p>
+                        </div>
+                      </div>
 
-                  <div className="p-6 rounded-xl bg-primary text-primary-foreground text-center">
-                    <span className="text-xs uppercase font-bold opacity-80">Household Total Bill</span>
-                    <h2 className="text-4xl font-black">{selectedBill.total.toFixed(3)} OMR</h2>
-                  </div>
+                      <div className="p-6 rounded-xl bg-primary text-primary-foreground text-center space-y-1">
+                        <span className="text-xs uppercase font-bold opacity-80">Household Total Bill</span>
+                        <h2 className="text-4xl font-black">{selectedBill.total.toFixed(3)} OMR</h2>
+                      </div>
+                      
+                      <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg flex gap-3 text-xs text-amber-800 italic">
+                        <Info className="h-4 w-4 shrink-0" />
+                        Your specific share is calculated based on household billing days and applicable charges. Switch to "Community View" to see the full breakdown.
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="community" className="animate-in fade-in slide-in-from-top-2">
+                      <div className="rounded-md border overflow-hidden">
+                        <Table>
+                          <TableHeader className="bg-slate-50">
+                            <TableRow>
+                              <TableHead>Resident</TableHead>
+                              <TableHead>Room</TableHead>
+                              <TableHead className="text-right">Share (OMR)</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {residentsLoading ? (
+                              <TableRow>
+                                <TableCell colSpan={3} className="text-center py-8">
+                                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                                </TableCell>
+                              </TableRow>
+                            ) : communityStatement?.map((s, idx) => (
+                              <TableRow key={idx} className={s.isMe ? "bg-primary/5" : ""}>
+                                <TableCell className="font-medium">
+                                  {s.name} {s.isMe && <Badge variant="outline" className="ml-1 text-[10px] h-4">You</Badge>}
+                                </TableCell>
+                                <TableCell>{s.room}</TableCell>
+                                <TableCell className="text-right font-bold text-primary">
+                                  {s.total.toFixed(3)}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                      <p className="mt-4 text-[10px] text-muted-foreground text-center italic">
+                        Shares are calculated fairly based on wifi (equal split) and usage (man-days).
+                      </p>
+                    </TabsContent>
+                  </Tabs>
                 </div>
-              </div>
+              </>
             )}
           </DialogContent>
         </Dialog>
