@@ -124,6 +124,7 @@ export default function CurrentUtilityPage() {
     setDoc(billRef, billData, { merge: true })
       .then(() => {
         toast({ title: showOnDashboard ? "Snapshot Published" : "Draft Saved", description: `Record for ${formData.monthYear} successfully persistent.` });
+        // After saving, reset initialized so we can potentially re-sync if needed, though state is already updated
         initializedRef.current = false;
       })
       .catch((err) => {

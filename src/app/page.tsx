@@ -92,35 +92,25 @@ function DashboardContent() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  const snapshotQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
-    return query(
-      collection(db, 'utility_bills'), 
-      where('isSnapshot', '==', true),
-      orderBy('monthYear', 'desc'), 
-      limit(1)
-    );
-  }, [db, user]);
-
-  const { data: snapshotBills, loading: snapshotLoading } = useCollection(snapshotQuery);
-
-  const latestReleasedQuery = useMemoFirebase(() => {
+  // Robust query: Get the 5 most recent released bills to find the snapshot or fallback to the latest
+  const billsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
       collection(db, 'utility_bills'), 
       where('status', '==', 'Released'),
       orderBy('monthYear', 'desc'), 
-      limit(1)
+      limit(5)
     );
   }, [db, user]);
 
-  const { data: latestReleasedBills, loading: latestLoading } = useCollection(latestReleasedQuery);
+  const { data: bills, loading: billsLoading } = useCollection(billsQuery);
 
   const latestBill = useMemo(() => {
-    if (snapshotBills && snapshotBills.length > 0) return snapshotBills[0] as any;
-    if (latestReleasedBills && latestReleasedBills.length > 0) return latestReleasedBills[0] as any;
-    return null;
-  }, [snapshotBills, latestReleasedBills]);
+    if (!bills || bills.length === 0) return null;
+    // Prefer the one explicitly marked as a dashboard snapshot
+    const snapshot = bills.find((b: any) => b.isSnapshot === true);
+    return snapshot || bills[0];
+  }, [bills]);
 
   const residentsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -146,6 +136,7 @@ function DashboardContent() {
     const miscUsagePerDay = totalMiscManDays > 0 ? miscTotal / totalMiscManDays : 0;
 
     const myProfile = residents.find(r => r.id === user.uid);
+    // If Admin, preview with the first resident in the list
     const targetProfile = myProfile || residents[0];
     
     if (!targetProfile) return null;
@@ -179,7 +170,7 @@ function DashboardContent() {
     return `${new Date(start).toLocaleDateString('en-US', options)} - ${new Date(end).toLocaleDateString('en-US', options)}`;
   };
 
-  if (profileLoading || residentsLoading || snapshotLoading || latestLoading) {
+  if (profileLoading || residentsLoading || billsLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />

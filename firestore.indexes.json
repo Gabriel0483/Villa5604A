@@ -30,20 +30,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "isSnapshot",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "monthYear",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "utility_bills",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
           "fieldPath": "status",
           "order": "ASCENDING"
         },
