@@ -119,7 +119,6 @@ export default function MyBillsPage() {
 
     const numResidents = residents.length;
     const wifiTotal = selectedBill.wifi;
-    const usageTotal = (selectedBill.water || 0) + (selectedBill.electricity || 0);
     const miscTotal = selectedBill.miscellaneous || 0;
     
     const totalManDays = residents.reduce((acc, r) => acc + (r.billingDays ?? 30), 0);
@@ -127,11 +126,9 @@ export default function MyBillsPage() {
     const totalMiscManDays = miscApplicableResidents.reduce((acc, r) => acc + (r.billingDays ?? 30), 0);
 
     const wifiSharePerPerson = wifiTotal / numResidents;
-    const mainUsagePerDay = totalManDays > 0 ? usageTotal / totalManDays : 0;
-    const miscUsagePerDay = totalMiscManDays > 0 ? miscTotal / totalMiscManDays : 0;
-
     const waterSharePerDay = totalManDays > 0 ? (selectedBill.water || 0) / totalManDays : 0;
     const electricitySharePerDay = totalManDays > 0 ? (selectedBill.electricity || 0) / totalManDays : 0;
+    const miscUsagePerDay = totalMiscManDays > 0 ? miscTotal / totalMiscManDays : 0;
 
     const list = residents.map(r => {
       const resDays = r.billingDays ?? 30;
@@ -141,19 +138,22 @@ export default function MyBillsPage() {
       const waterShare = waterSharePerDay * resDays;
       const electricityShare = electricitySharePerDay * resDays;
       const miscShare = isMisc ? (miscUsagePerDay * resDays) : 0;
+      const baseRent = r.monthlyRent || 0;
       
-      const totalShare = wifiShare + waterShare + electricityShare + miscShare;
+      const totalShare = baseRent + wifiShare + waterShare + electricityShare + miscShare;
       
       return {
         id: r.id,
         name: `${r.firstName} ${r.lastName}`,
         room: r.roomUnit || 'N/A',
+        baseRent,
         wifi: wifiShare,
         water: waterShare,
         electricity: electricityShare,
         misc: miscShare,
         total: totalShare,
-        isMe: r.id === user?.uid
+        isMe: r.id === user?.uid,
+        isPaid: selectedBill.paidResidents?.includes(r.id)
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
 
@@ -286,68 +286,79 @@ export default function MyBillsPage() {
         </div>
 
         <Dialog open={!!selectedBill} onOpenChange={(open) => !open && setSelectedBill(null)}>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col p-0">
+          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col p-0">
             {selectedBill && (
               <>
-                <DialogHeader className="p-6 border-b">
-                  <DialogTitle className="flex items-center justify-between">
-                    <span className="flex items-center gap-2 text-2xl">
-                      <Building2 className="h-6 w-6 text-primary" /> 
-                      {new Date(selectedBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                    </span>
-                    {selectedBill.paidResidents?.includes(user?.uid) ? (
-                      <Badge className="bg-accent">PAID</Badge>
-                    ) : (
-                      <Badge variant="outline">PENDING</Badge>
-                    )}
+                <DialogHeader className="p-6 border-b sr-only">
+                  <DialogTitle>
+                    {new Date(selectedBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                   </DialogTitle>
                 </DialogHeader>
                 
-                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                <div className="flex-1 overflow-y-auto p-0 flex flex-col">
                   <Tabs defaultValue="personal" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 mb-6">
-                      <TabsTrigger value="personal" className="gap-2">
-                        <ReceiptIcon className="h-4 w-4" /> My Statement
-                      </TabsTrigger>
-                      <TabsTrigger value="community" className="gap-2">
-                        <Users className="h-4 w-4" /> Community View
-                      </TabsTrigger>
-                    </TabsList>
+                    <div className="px-6 pt-4 bg-white border-b sticky top-0 z-10">
+                      <TabsList className="grid w-full grid-cols-2 mb-4">
+                        <TabsTrigger value="personal" className="gap-2">
+                          <ReceiptIcon className="h-4 w-4" /> My Statement
+                        </TabsTrigger>
+                        <TabsTrigger value="community" className="gap-2">
+                          <Users className="h-4 w-4" /> Community View
+                        </TabsTrigger>
+                      </TabsList>
+                    </div>
                     
-                    <TabsContent value="personal" className="space-y-6 animate-in fade-in slide-in-from-top-2">
+                    <TabsContent value="personal" className="p-6 animate-in fade-in slide-in-from-top-2 focus-visible:ring-0">
                       {calculatedStatement?.myEntry ? (
-                        <>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="p-4 rounded-lg bg-slate-50 border">
-                              <div className="text-xs font-bold text-muted-foreground uppercase mb-1">My Wifi Share</div>
-                              <p className="text-lg font-bold">{calculatedStatement.myEntry.wifi.toFixed(3)} OMR</p>
+                        <div className="space-y-6">
+                          <Card className="shadow-2xl overflow-hidden border">
+                            <div className="p-8 bg-slate-50 text-slate-900 flex justify-between border-b">
+                              <div className="space-y-4">
+                                <div className="flex items-center gap-2">
+                                  <Building2 className="h-6 w-6 text-primary" />
+                                  <span className="text-2xl font-black tracking-tight text-primary">VILLA 5604</span>
+                                </div>
+                                <p className="text-sm font-medium text-muted-foreground">
+                                  {new Date(selectedBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-1">Bill To</p>
+                                <h2 className="text-2xl font-bold text-slate-900">{calculatedStatement.myEntry.name}</h2>
+                                <p className="text-sm font-medium text-muted-foreground">Unit {calculatedStatement.myEntry.room}</p>
+                                <div className="mt-4">
+                                  {calculatedStatement.myEntry.isPaid ? (
+                                    <Badge className="bg-accent text-accent-foreground">PAID</Badge>
+                                  ) : (
+                                    <Badge variant="destructive">PENDING PAYMENT</Badge>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                            <div className="p-4 rounded-lg bg-slate-50 border">
-                              <div className="text-xs font-bold text-muted-foreground uppercase mb-1">My Water Share</div>
-                              <p className="text-lg font-bold">{calculatedStatement.myEntry.water.toFixed(3)} OMR</p>
-                            </div>
-                            <div className="p-4 rounded-lg bg-slate-50 border">
-                              <div className="text-xs font-bold text-muted-foreground uppercase mb-1">My Electricity Share</div>
-                              <p className="text-lg font-bold">{calculatedStatement.myEntry.electricity.toFixed(3)} OMR</p>
-                            </div>
-                            <div className="p-4 rounded-lg bg-slate-50 border">
-                              <div className="text-xs font-bold text-muted-foreground uppercase mb-1">My Misc Share</div>
-                              <p className="text-lg font-bold">{calculatedStatement.myEntry.misc.toFixed(3)} OMR</p>
-                            </div>
-                          </div>
 
-                          <div className="p-6 rounded-xl bg-primary text-primary-foreground text-center space-y-1">
-                            <span className="text-xs uppercase font-bold opacity-80">My Total Share Due</span>
-                            <h2 className="text-4xl font-black">{calculatedStatement.myEntry.total.toFixed(3)} OMR</h2>
-                          </div>
-                          
-                          <div className="bg-slate-50 p-4 rounded-lg border border-dashed flex items-start gap-3">
-                            <Info className="h-5 w-5 text-slate-400 shrink-0 mt-0.5" />
-                            <p className="text-xs text-muted-foreground leading-relaxed">
-                              This share is calculated based on household consumption. Wifi is split equally, while Water and Electricity are split by residency days. Miscellaneous is split among applicable residents.
-                            </p>
-                          </div>
-                        </>
+                            <CardContent className="p-8">
+                              <div className="space-y-4 mb-8">
+                                {[
+                                  { label: 'Base Rent', val: calculatedStatement.myEntry.baseRent },
+                                  { label: 'Wifi Share', val: calculatedStatement.myEntry.wifi },
+                                  { label: 'Water Share', val: calculatedStatement.myEntry.water },
+                                  { label: 'Electricity Share', val: calculatedStatement.myEntry.electricity },
+                                  { label: 'Misc Share', val: calculatedStatement.myEntry.misc },
+                                ].map(item => (
+                                  <div key={item.label} className="flex justify-between border-b pb-2">
+                                    <span className="text-slate-600">{item.label}</span>
+                                    <span className="font-mono font-bold text-slate-900">{item.val.toFixed(3)} OMR</span>
+                                  </div>
+                                ))}
+                              </div>
+
+                              <div className="bg-slate-50 p-6 rounded-xl flex justify-between items-center border">
+                                <span className="font-black text-slate-500 uppercase tracking-tighter">Total Due</span>
+                                <span className="text-4xl font-black text-primary">{calculatedStatement.myEntry.total.toFixed(3)} OMR</span>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
                       ) : (
                         <div className="p-8 text-center text-muted-foreground italic">
                           No personal share data found for this period.
@@ -355,7 +366,7 @@ export default function MyBillsPage() {
                       )}
                     </TabsContent>
                     
-                    <TabsContent value="community" className="animate-in fade-in slide-in-from-top-2">
+                    <TabsContent value="community" className="p-6 animate-in fade-in slide-in-from-top-2 focus-visible:ring-0">
                       <div className="rounded-md border overflow-hidden">
                         <Table>
                           <TableHeader className="bg-slate-50">

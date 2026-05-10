@@ -41,7 +41,8 @@ interface StatementAllocation {
   roomUnit: string;
   baseRent: number;
   wifiShare: number;
-  usageShare: number;
+  waterShare: number;
+  elecShare: number;
   miscShare: number;
   totalDue: number;
   billingDays: number;
@@ -175,15 +176,14 @@ export default function StatementsPage() {
 
     const numResidents = residents.length;
     const wifiTotal = selectedBill.wifi;
-    const mainUsageTotal = (selectedBill.water || 0) + (selectedBill.electricity || 0);
-    const miscTotal = selectedBill.miscellaneous || 0;
-    
     const totalManDays = residents.reduce((acc, r) => acc + (r.billingDays ?? 30), 0);
+    const miscTotal = selectedBill.miscellaneous || 0;
     const miscApplicableResidents = residents.filter(r => r.isMiscApplicable !== false);
     const totalMiscManDays = miscApplicableResidents.reduce((acc, r) => acc + (r.billingDays ?? 30), 0);
 
     const wifiSharePerPerson = wifiTotal / numResidents;
-    const mainUsagePerDay = totalManDays > 0 ? mainUsageTotal / totalManDays : 0;
+    const waterSharePerDay = totalManDays > 0 ? (selectedBill.water || 0) / totalManDays : 0;
+    const electricitySharePerDay = totalManDays > 0 ? (selectedBill.electricity || 0) / totalManDays : 0;
     const miscUsagePerDay = totalMiscManDays > 0 ? miscTotal / totalMiscManDays : 0;
 
     const paidList = selectedBill.paidResidents || [];
@@ -193,7 +193,8 @@ export default function StatementsPage() {
       const isMisc = r.isMiscApplicable !== false;
       
       const resWifiShare = wifiSharePerPerson;
-      const resUsageShare = mainUsagePerDay * resDays;
+      const resWaterShare = waterSharePerDay * resDays;
+      const resElecShare = electricitySharePerDay * resDays;
       const resMiscShare = isMisc ? (miscUsagePerDay * resDays) : 0;
       const baseRent = r.monthlyRent || 0;
       
@@ -203,9 +204,10 @@ export default function StatementsPage() {
         roomUnit: r.roomUnit || 'N/A',
         baseRent: baseRent,
         wifiShare: resWifiShare,
-        usageShare: resUsageShare,
+        waterShare: resWaterShare,
+        elecShare: resElecShare,
         miscShare: resMiscShare,
-        totalDue: baseRent + resWifiShare + resUsageShare + resMiscShare,
+        totalDue: baseRent + resWifiShare + resWaterShare + resElecShare + resMiscShare,
         billingDays: resDays,
         isPaid: paidList.includes(r.id)
       };
@@ -488,7 +490,8 @@ export default function StatementsPage() {
                     {[
                       { label: 'Base Rent', val: individualStatement.baseRent },
                       { label: 'Wifi Share', val: individualStatement.wifiShare },
-                      { label: 'Utilities Share', val: individualStatement.usageShare },
+                      { label: 'Water Share', val: individualStatement.waterShare },
+                      { label: 'Electricity Share', val: individualStatement.elecShare },
                       { label: 'Misc Share', val: individualStatement.miscShare },
                     ].map(item => (
                       <div key={item.label} className="flex justify-between border-b pb-2">
