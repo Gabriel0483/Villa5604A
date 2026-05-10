@@ -19,12 +19,15 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
 
   useEffect(() => {
     if (!query) {
+      // Keep loading false but data null if no query is provided
       setLoading(false);
       setData(null);
       return;
     }
 
+    // Set loading true when the query changes
     setLoading(true);
+    
     const unsubscribe = onSnapshot(
       query,
       (snapshot: QuerySnapshot<T>) => {
@@ -37,7 +40,6 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
         setError(null);
       },
       (serverError: FirestoreError) => {
-        // Only report to the global listener if it's an actual permission error
         if (serverError.code === 'permission-denied') {
           const permissionError = new FirestorePermissionError({
             path: (query as any)._query?.path?.toString() || 'unknown',

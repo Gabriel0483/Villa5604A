@@ -12,7 +12,8 @@ import {
   ArrowLeft, 
   Loader2, 
   Save, 
-  CalendarRange
+  CalendarRange,
+  CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,7 +62,6 @@ export default function CurrentUtilityPage() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // 1. Initial Load: Fetch the most recent record on mount
   useEffect(() => {
     if (!db || !isSuperAdmin) return;
 
@@ -95,19 +95,17 @@ export default function CurrentUtilityPage() {
     fetchLatest();
   }, [db, isSuperAdmin]);
 
-  // 2. Dynamic Switch: Synchronize form if the user changes the Start Date manually
   useEffect(() => {
     if (!db || !isSuperAdmin || !formData.startDate) return;
 
     const fetchRecord = async () => {
-      const periodId = formData.startDate.substring(0, 10); // Using full date as ID for precision
+      const periodId = formData.startDate.substring(0, 10);
       const docRef = doc(db, 'utility_bills', periodId);
       
       try {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
-          // Only update if dates match to avoid infinite loop or flickering during manual entry
           if (data.startDate === formData.startDate) {
             setFormData(prev => ({
               ...prev,
@@ -119,9 +117,7 @@ export default function CurrentUtilityPage() {
             }));
           }
         }
-      } catch (error) {
-        // Silent error
-      }
+      } catch (error) {}
     };
 
     fetchRecord();
@@ -139,8 +135,8 @@ export default function CurrentUtilityPage() {
     if (!formData.startDate || !formData.endDate) {
       toast({ 
         variant: "destructive", 
-        title: "Missing Dates", 
-        description: "Please define the Billing Period range." 
+        title: "Incomplete Dates", 
+        description: "Please specify both Start and End dates for the billing cycle." 
       });
       return;
     }
@@ -162,7 +158,7 @@ export default function CurrentUtilityPage() {
       miscellaneous: misc,
       total: wifi + water + electricity + misc,
       updatedAt: serverTimestamp(),
-      status: 'Released' // Auto-release to ensure residents see the update
+      status: 'Released' 
     };
 
     const billRef = doc(db, 'utility_bills', periodId);
@@ -170,22 +166,25 @@ export default function CurrentUtilityPage() {
     setDoc(billRef, billData, { merge: true })
       .then(() => {
         toast({ 
-          title: "Statement Saved", 
-          description: `Utility record for ${formData.startDate} is now live.` 
+          title: "Statement Released", 
+          description: `Utility data is now visible to all residents for the period starting ${formData.startDate}.`,
+          className: "bg-accent text-accent-foreground border-none"
         });
       })
       .catch((err) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
+        const permissionError = new FirestorePermissionError({ 
           path: billRef.path, 
           operation: 'write', 
           requestResourceData: billData 
-        }));
+        });
+        errorEmitter.emit('permission-error', permissionError);
       })
       .finally(() => setIsSaving(false));
   };
 
   const calculatedTotal = useMemo(() => {
-    return (parseFloat(formData.wifi || '0') + parseFloat(formData.water || '0') + parseFloat(formData.electricity || '0') + parseFloat(formData.miscellaneous || '0')).toFixed(3);
+    const val = (parseFloat(formData.wifi || '0') + parseFloat(formData.water || '0') + parseFloat(formData.electricity || '0') + parseFloat(formData.miscellaneous || '0'));
+    return isNaN(val) ? "0.000" : val.toFixed(3);
   }, [formData]);
 
   if (userLoading || profileLoading) {
@@ -218,7 +217,7 @@ export default function CurrentUtilityPage() {
           )}
           <CardHeader>
             <CardTitle className="text-xl">Active Cycle Details</CardTitle>
-            <CardDescription>Records are automatically released to residents upon saving.</CardDescription>
+            <CardDescription>Records are automatically released to residents upon saving to ensure immediate visibility.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
@@ -284,14 +283,14 @@ export default function CurrentUtilityPage() {
             
             <div className="bg-primary/5 p-6 rounded-xl border border-primary/10 flex flex-col md:flex-row justify-between items-center gap-4">
               <div className="text-center md:text-left">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Calculated Total</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Household Total</p>
                 <p className="text-3xl font-black text-primary">
                   {calculatedTotal} OMR
                 </p>
               </div>
-              <Button className="w-full md:w-auto min-w-[150px] gap-2" onClick={handleSaveBill} disabled={isSaving || isLoadingRecord}>
+              <Button className="w-full md:w-auto min-w-[180px] gap-2 shadow-lg" onClick={handleSaveBill} disabled={isSaving || isLoadingRecord}>
                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Save Record
+                Save & Release
               </Button>
             </div>
           </CardContent>

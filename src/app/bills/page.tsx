@@ -15,7 +15,8 @@ import {
   CheckCircle2,
   Clock,
   Users,
-  CalendarRange
+  CalendarRange,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,21 +29,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import { 
-  Line, 
-  LineChart, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  ResponsiveContainer,
-  Legend
-} from "recharts";
 import {
   Tabs,
   TabsContent,
@@ -58,17 +44,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import Link from 'next/link';
-
-const chartConfig = {
-  water: {
-    label: "Water",
-    color: "hsl(var(--primary))",
-  },
-  electricity: {
-    label: "Electricity",
-    color: "hsl(var(--accent))",
-  },
-} satisfies ChartConfig;
 
 export default function MyBillsPage() {
   const router = useRouter();
@@ -107,17 +82,6 @@ export default function MyBillsPage() {
   }, [db, user]);
 
   const { data: residents, loading: residentsLoading } = useCollection(residentsQuery);
-
-  const chartData = useMemo(() => {
-    if (!bills) return [];
-    return [...bills]
-      .sort((a: any, b: any) => a.monthYear.localeCompare(b.monthYear))
-      .map((bill: any) => ({
-        month: bill.startDate ? new Date(bill.startDate).toLocaleDateString('en-US', { month: 'short' }) : 'N/A',
-        water: bill.water || 0,
-        electricity: bill.electricity || 0,
-      }));
-  }, [bills]);
 
   const calculatedStatement = useMemo(() => {
     if (!selectedBill || !residents || residents.length === 0) return null;
@@ -169,10 +133,12 @@ export default function MyBillsPage() {
     return `${new Date(start).toLocaleDateString('en-US', options)} - ${new Date(end).toLocaleDateString('en-US', options)}`;
   };
 
-  if (userLoading || profileLoading || billsLoading) {
+  // Improved loading state to prevent flickering "No bills" message
+  if (userLoading || profileLoading || (billsLoading && bills === null)) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-slate-50">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-sm font-medium text-muted-foreground">Fetching Released Bills...</p>
       </div>
     );
   }
@@ -194,7 +160,7 @@ export default function MyBillsPage() {
             {bills.map((bill: any) => {
               const isPaid = bill.paidResidents?.includes(user?.uid);
               return (
-                <Card key={bill.id} className="hover:shadow-md transition-all cursor-pointer group" onClick={() => setSelectedBill(bill)}>
+                <Card key={bill.id} className="hover:shadow-md transition-all cursor-pointer group bg-white" onClick={() => setSelectedBill(bill)}>
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
@@ -225,20 +191,22 @@ export default function MyBillsPage() {
             })}
           </div>
         ) : (
-          <Card className="p-12 text-center border-dashed bg-white">
-            <ReceiptIcon className="h-12 w-12 mx-auto text-slate-200 mb-4" />
-            <h3 className="text-lg font-semibold text-slate-900">No Released Bills Found</h3>
-            <p className="text-sm text-muted-foreground">Statements appear here once released by management.</p>
+          <Card className="p-16 text-center border-dashed bg-white shadow-sm">
+            <ReceiptIcon className="h-16 w-16 mx-auto text-slate-200 mb-6" />
+            <h3 className="text-xl font-semibold text-slate-900">No Released Bills Found</h3>
+            <p className="text-sm text-muted-foreground max-w-sm mx-auto mt-2">
+              Statements will appear here automatically once released by management for the current billing cycle.
+            </p>
           </Card>
         )}
 
         <Dialog open={!!selectedBill} onOpenChange={(open) => !open && setSelectedBill(null)}>
-          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col p-0">
+          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col p-0 border-none shadow-2xl">
             {selectedBill && (
               <>
                 <DialogHeader className="p-6 border-b bg-slate-50">
-                  <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-                    <CalendarRange className="h-6 w-6 text-primary" />
+                  <DialogTitle className="text-2xl font-bold flex items-center gap-2 text-primary">
+                    <CalendarRange className="h-6 w-6" />
                     {formatDateRange(selectedBill.startDate, selectedBill.endDate)}
                   </DialogTitle>
                 </DialogHeader>
@@ -252,11 +220,11 @@ export default function MyBillsPage() {
                     </div>
                     <TabsContent value="personal" className="p-6">
                       {calculatedStatement?.myEntry ? (
-                        <Card className="shadow-xl overflow-hidden border">
+                        <Card className="shadow-lg overflow-hidden border">
                           <div className="p-8 bg-slate-50 flex justify-between border-b">
                             <div className="space-y-4">
                               <div className="text-2xl font-black text-primary">VILLA 5604</div>
-                              <p className="text-xs font-medium text-muted-foreground">{formatDateRange(selectedBill.startDate, selectedBill.endDate)}</p>
+                              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{formatDateRange(selectedBill.startDate, selectedBill.endDate)}</p>
                             </div>
                             <div className="text-right">
                               <h2 className="text-2xl font-bold">{calculatedStatement.myEntry.name}</h2>
@@ -274,27 +242,32 @@ export default function MyBillsPage() {
                                 { label: 'Misc Share', val: calculatedStatement.myEntry.misc },
                               ].map(item => (
                                 <div key={item.label} className="flex justify-between border-b pb-2">
-                                  <span className="text-slate-600">{item.label}</span>
-                                  <span className="font-mono font-bold">{item.val.toFixed(3)} OMR</span>
+                                  <span className="text-slate-600 font-medium">{item.label}</span>
+                                  <span className="font-mono font-bold text-slate-900">{item.val.toFixed(3)} OMR</span>
                                 </div>
                               ))}
                             </div>
-                            <div className="bg-slate-50 p-6 rounded-xl flex justify-between items-center border">
-                              <span className="font-black text-slate-500 uppercase tracking-tighter">Total Due</span>
+                            <div className="bg-primary/5 p-6 rounded-xl flex justify-between items-center border border-primary/10">
+                              <span className="font-black text-primary/60 uppercase tracking-tighter">Total Due</span>
                               <span className="text-4xl font-black text-primary">{calculatedStatement.myEntry.total.toFixed(3)} OMR</span>
                             </div>
                           </CardContent>
                         </Card>
-                      ) : <div className="p-8 text-center italic">No personal share found for this period.</div>}
+                      ) : (
+                        <div className="p-12 text-center bg-slate-50 rounded-lg border border-dashed">
+                          <AlertCircle className="h-10 w-10 mx-auto text-slate-400 mb-4" />
+                          <p className="text-muted-foreground">No individual statement found for your account in this period.</p>
+                        </div>
+                      )}
                     </TabsContent>
                     <TabsContent value="community" className="p-6">
-                      <div className="rounded-md border overflow-hidden">
+                      <div className="rounded-md border overflow-hidden bg-white">
                         <Table>
                           <TableHeader className="bg-slate-50"><TableRow><TableHead>Resident</TableHead><TableHead>Room</TableHead><TableHead className="text-right">Share (OMR)</TableHead></TableRow></TableHeader>
                           <TableBody>
                             {calculatedStatement?.list.map((s, idx) => (
                               <TableRow key={idx} className={s.isMe ? "bg-primary/5" : ""}>
-                                <TableCell className="font-medium">{s.name} {s.isMe && <Badge variant="outline" className="ml-1 text-[10px]">You</Badge>}</TableCell>
+                                <TableCell className="font-medium">{s.name} {s.isMe && <Badge variant="outline" className="ml-1 text-[10px] text-primary">You</Badge>}</TableCell>
                                 <TableCell>{s.room}</TableCell>
                                 <TableCell className="text-right font-bold text-primary">{s.total.toFixed(3)}</TableCell>
                               </TableRow>
