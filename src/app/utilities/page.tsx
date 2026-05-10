@@ -43,20 +43,8 @@ export default function CurrentUtilityPage() {
 
   const { data: profile, loading: profileLoading } = useDoc(userProfileRef);
 
-  const isSuperAdmin = useMemo(() => {
-    if (!user) return false;
-    const adminEmails = [
-      'rielmagpantay@gmail.com', 
-      'rielmagpantay@gmail.com@villa5604.app', 
-      'room101@villa5604.app', 
-      'admin001@villa5604.app'
-    ];
-    if (adminEmails.includes(user.email?.toLowerCase() || '')) return true;
-    return profile?.role === 'SuperAdmin';
-  }, [user, profile]);
-
   useEffect(() => {
-    if (!db || !isSuperAdmin) return;
+    if (!db || !user) return;
 
     const fetchLatest = async () => {
       setIsLoadingRecord(true);
@@ -86,7 +74,7 @@ export default function CurrentUtilityPage() {
     };
 
     fetchLatest();
-  }, [db, isSuperAdmin]);
+  }, [db, user]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -106,7 +94,7 @@ export default function CurrentUtilityPage() {
     );
   }
 
-  if (!isSuperAdmin) return null;
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-slate-50 py-8 px-4">
