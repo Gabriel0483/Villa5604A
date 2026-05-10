@@ -103,7 +103,7 @@ export default function MyBillsPage() {
 
   const { data: bills, loading: billsLoading } = useCollection(billsQuery);
 
-  // Fetch residents for pro-rata calculation (Requires 'list' permission in rules)
+  // Fetch residents for pro-rata calculation
   const residentsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(collection(db, 'users'), where('role', '==', 'Resident'));
@@ -129,6 +129,7 @@ export default function MyBillsPage() {
     const wifiTotal = selectedBill.wifi || 0;
     const miscTotal = selectedBill.miscellaneous || 0;
     
+    // Pro-rata logic based on billing days within the selected cycle
     const totalManDays = residents.reduce((acc, r) => acc + (r.billingDays ?? 30), 0);
     const miscApplicableResidents = residents.filter(r => r.isMiscApplicable !== false);
     const totalMiscManDays = miscApplicableResidents.reduce((acc, r) => acc + (r.billingDays ?? 30), 0);

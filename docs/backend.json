@@ -28,8 +28,8 @@
       "type": "object",
       "properties": {
         "monthYear": { "type": "string" },
-        "startDate": { "type": "string", "format": "date", "description": "Bill Start Date" },
-        "endDate": { "type": "string", "format": "date", "description": "Bill End Date" },
+        "startDate": { "type": "string", "format": "date", "description": "Active Billing Start Date" },
+        "endDate": { "type": "string", "format": "date", "description": "Active Billing End Date" },
         "wifi": { "type": "number" },
         "water": { "type": "number" },
         "electricity": { "type": "number" },
@@ -37,10 +37,9 @@
         "total": { "type": "number" },
         "status": { "type": "string", "enum": ["Draft", "Released"] },
         "paidResidents": { "type": "array", "items": { "type": "string" }, "description": "List of user IDs who have paid their share" },
-        "isSnapshot": { "type": "boolean", "description": "Flag to indicate if this is the active dashboard snapshot" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["monthYear", "wifi", "water", "electricity"]
+      "required": ["monthYear", "startDate", "endDate", "wifi", "water", "electricity"]
     },
     "MaintenanceRequest": {
       "title": "Maintenance Request",

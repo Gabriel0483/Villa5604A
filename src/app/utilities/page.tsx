@@ -45,6 +45,7 @@ export default function CurrentUtilityPage() {
     miscellaneous: '0'
   });
 
+  // Handle hydration
   useEffect(() => {
     setFormData(prev => ({
       ...prev,
@@ -66,6 +67,7 @@ export default function CurrentUtilityPage() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
+  // Synchronize form with Firestore when month changes
   useEffect(() => {
     if (!db || !isSuperAdmin || !formData.monthYear) return;
 
@@ -86,6 +88,7 @@ export default function CurrentUtilityPage() {
             miscellaneous: data.miscellaneous?.toString() || '0'
           }));
         } else {
+          // Reset for new month entry
           setFormData(prev => ({
             ...prev,
             startDate: '',
@@ -115,8 +118,12 @@ export default function CurrentUtilityPage() {
     e.preventDefault();
     if (!db || !isSuperAdmin) return;
 
-    if (!formData.monthYear) {
-      toast({ variant: "destructive", title: "Missing Month", description: "Please select a month first." });
+    if (!formData.monthYear || !formData.startDate || !formData.endDate) {
+      toast({ 
+        variant: "destructive", 
+        title: "Missing Dates", 
+        description: "Billing range (Start and End) is the source of truth and must be defined." 
+      });
       return;
     }
 
@@ -145,7 +152,7 @@ export default function CurrentUtilityPage() {
       .then(() => {
         toast({ 
           title: isPublished ? "Bill Released" : "Draft Saved", 
-          description: `Records for ${formData.monthYear} have been updated.` 
+          description: `Records for ${formData.monthYear} using the active range ${formData.startDate} to ${formData.endDate} have been updated.` 
         });
       })
       .catch((err) => {
@@ -188,12 +195,12 @@ export default function CurrentUtilityPage() {
           )}
           <CardHeader>
             <CardTitle className="text-xl">Active Cycle Details</CardTitle>
-            <CardDescription>Select a month to manage utility records for the household.</CardDescription>
+            <CardDescription>Select a month to manage utility records. The Start and End dates are the single source of truth for the billing period.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label>Billing Month</Label>
+                <Label>Billing Month Identifier</Label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input 
@@ -218,7 +225,7 @@ export default function CurrentUtilityPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
-                  <CalendarRange className="h-4 w-4 text-primary" /> Bill Start Date
+                  <CalendarRange className="h-4 w-4 text-primary" /> Bill Start Date (Truth)
                 </Label>
                 <Input 
                   type="date" 
@@ -230,7 +237,7 @@ export default function CurrentUtilityPage() {
               </div>
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
-                  <CalendarRange className="h-4 w-4 text-primary" /> Bill End Date
+                  <CalendarRange className="h-4 w-4 text-primary" /> Bill End Date (Truth)
                 </Label>
                 <Input 
                   type="date" 
