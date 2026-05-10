@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Zap, 
@@ -44,6 +44,9 @@ export default function CurrentUtilityPage() {
     miscellaneous: ''
   });
 
+  // Ref to prevent automatic resets to current month once initialized
+  const hasInitialized = useRef(false);
+
   const userProfileRef = useMemoFirebase(() => {
     if (!db || !user) return null;
     return doc(db, 'users', user.uid);
@@ -76,6 +79,9 @@ export default function CurrentUtilityPage() {
   const { data: activeSnapshots, loading: billsLoading } = useCollection(activeSnapshotQuery);
 
   useEffect(() => {
+    // Only initialize from database once data is loaded and we haven't locked initialization
+    if (billsLoading || hasInitialized.current) return;
+
     if (activeSnapshots && activeSnapshots.length > 0) {
       const bill = activeSnapshots[0] as any;
       setFormData({
@@ -85,12 +91,16 @@ export default function CurrentUtilityPage() {
         electricity: bill.electricity?.toString() || '',
         miscellaneous: bill.miscellaneous?.toString() || '0'
       });
+      hasInitialized.current = true;
     } else if (!billsLoading) {
+      // If no active snapshot exists yet, default to current month ONLY ONCE
       const now = new Date();
+      const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       setFormData(prev => ({
         ...prev,
-        monthYear: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+        monthYear: defaultMonth
       }));
+      hasInitialized.current = true;
     }
   }, [activeSnapshots, billsLoading]);
 
@@ -138,6 +148,9 @@ export default function CurrentUtilityPage() {
 
     const billRef = doc(db, 'utility_bills', formData.monthYear);
 
+    // If we are setting this as a snapshot, we want subsequent loads to respect this month
+    // so we don't reset the initialization lock here, but the activeSnapshots query will update.
+    
     setDoc(billRef, billData, { merge: true })
       .then(() => {
         toast({
@@ -204,7 +217,7 @@ export default function CurrentUtilityPage() {
                     required 
                   />
                 </div>
-                <p className="text-[10px] text-muted-foreground">The snapshot will follow this selected month regardless of the current date.</p>
+                <p className="text-[10px] text-muted-foreground">This selected month defines the active cycle shown to residents.</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="wifi">Wifi Total (OMR)</Label>
