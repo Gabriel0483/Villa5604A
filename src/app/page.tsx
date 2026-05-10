@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useEffect, useState } from 'react';
@@ -153,7 +154,6 @@ function DashboardContent() {
                 {[
                   { title: 'Tenant Registry', icon: <UserCheck className="h-5 w-5" />, path: '/tenants', label: 'Manage Residents' },
                   { title: 'Utility Cycle', icon: <Zap className="h-5 w-5" />, path: '/utilities', label: 'Utility Management' },
-                  { title: 'Billing Statements', icon: <FileText className="h-5 w-5" />, path: '/statements', label: 'Statements & Payments' },
                   { title: 'Birthdays', icon: <Cake className="h-5 w-5" />, path: '/birthdays', label: 'Greet Residents' },
                 ].map(item => (
                   <Card key={item.path} className="hover:shadow-md transition-all border-primary/10 cursor-pointer" onClick={() => router.push(item.path)}>
