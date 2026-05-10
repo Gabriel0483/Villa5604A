@@ -90,7 +90,7 @@ function DashboardContent() {
       await signOut(auth);
       router.push('/login');
     } catch (error) {
-      console.error("Logout error:", error);
+      // Log errors silently
     }
   };
 
@@ -150,7 +150,6 @@ function DashboardContent() {
 
       <main className="flex-1 container mx-auto p-4 md:p-8 max-w-7xl">
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
             {isSuperAdmin ? (
               <>

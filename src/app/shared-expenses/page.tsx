@@ -113,19 +113,15 @@ export default function SharedExpensesPage() {
     if (!db || !isSuperAdmin) return;
 
     if (!formData.startDate || !formData.endDate) {
-      toast({ variant: "destructive", title: "Missing Dates", description: "Start and End dates are required." });
+      toast({ variant: "destructive", title: "Missing Dates", description: "Range is required." });
       return;
     }
 
     setIsSaving(true);
-
     const wifi = parseFloat(formData.wifi) || 0;
     const water = parseFloat(formData.water) || 0;
     const electricity = parseFloat(formData.electricity) || 0;
     const misc = parseFloat(formData.miscellaneous) || 0;
-    const total = wifi + water + electricity + misc;
-
-    // Standardize ID based on startDate
     const derivedMonthYear = formData.startDate.substring(0, 7);
 
     const billData = {
@@ -136,7 +132,7 @@ export default function SharedExpensesPage() {
       water,
       electricity,
       miscellaneous: misc,
-      total,
+      total: wifi + water + electricity + misc,
       updatedAt: serverTimestamp(),
       status: 'Released'
     };
@@ -147,7 +143,7 @@ export default function SharedExpensesPage() {
       .then(() => {
         toast({
           title: "Expense Recorded",
-          description: `Data for the period starting ${formData.startDate} has been saved.`,
+          description: `History updated for period starting ${formData.startDate}.`,
         });
         setIsAddingNew(false);
         setFormData({ monthYear: '', startDate: '', endDate: '', wifi: '', water: '', electricity: '', miscellaneous: '' });
@@ -170,9 +166,9 @@ export default function SharedExpensesPage() {
       monthYear: bill.monthYear,
       startDate: bill.startDate || '',
       endDate: bill.endDate || '',
-      wifi: bill.wifi.toString(),
-      water: bill.water.toString(),
-      electricity: bill.electricity.toString(),
+      wifi: bill.wifi?.toString() || '',
+      water: bill.water?.toString() || '',
+      electricity: bill.electricity?.toString() || '',
       miscellaneous: bill.miscellaneous?.toString() || '0'
     });
     setIsAddingNew(true);
@@ -231,7 +227,6 @@ export default function SharedExpensesPage() {
             <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
               <BarChart className="h-8 w-8 text-primary" /> Shared Expenses Ledger
             </h1>
-            <p className="text-muted-foreground">Historical records managed by Billing Start and End dates.</p>
           </div>
           
           <Button onClick={() => setIsAddingNew(!isAddingNew)} className="gap-2 shadow-sm">
@@ -244,7 +239,6 @@ export default function SharedExpensesPage() {
           <Card className="shadow-lg border-t-4 border-primary">
             <CardHeader>
               <CardTitle className="text-xl">Record Period Expenses</CardTitle>
-              <CardDescription>The active billing range is the primary identifier for this record.</CardDescription>
             </CardHeader>
             <form onSubmit={handleSaveBill}>
               <CardContent className="space-y-6">
@@ -253,80 +247,44 @@ export default function SharedExpensesPage() {
                     <Label className="flex items-center gap-2">
                       <CalendarRange className="h-4 w-4 text-primary" /> Bill Start Date
                     </Label>
-                    <Input 
-                      type="date" 
-                      name="startDate" 
-                      value={formData.startDate} 
-                      onChange={handleInputChange} 
-                      required 
-                    />
+                    <Input type="date" name="startDate" value={formData.startDate} onChange={handleInputChange} required />
                   </div>
                   <div className="space-y-2">
                     <Label className="flex items-center gap-2">
                       <CalendarRange className="h-4 w-4 text-primary" /> Bill End Date
                     </Label>
-                    <Input 
-                      type="date" 
-                      name="endDate" 
-                      value={formData.endDate} 
-                      onChange={handleInputChange} 
-                      required 
-                    />
+                    <Input type="date" name="endDate" value={formData.endDate} onChange={handleInputChange} required />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    <div className="space-y-2">
                     <Label htmlFor="wifi">Wifi (OMR)</Label>
-                    <div className="relative">
-                      <Wifi className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        id="wifi" 
-                        name="wifi" 
-                        type="number" 
-                        step="0.001" 
-                        value={formData.wifi} 
-                        onChange={handleInputChange} 
-                        className="pl-10" 
-                        placeholder="0.000" 
-                        required 
-                      />
-                    </div>
+                    <Input id="wifi" name="wifi" type="number" step="0.001" value={formData.wifi} onChange={handleInputChange} placeholder="0.000" required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="miscellaneous">Misc (OMR)</Label>
-                    <div className="relative">
-                      <PlusIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input id="miscellaneous" name="miscellaneous" type="number" step="0.001" value={formData.miscellaneous} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
-                    </div>
+                    <Input id="miscellaneous" name="miscellaneous" type="number" step="0.001" value={formData.miscellaneous} onChange={handleInputChange} placeholder="0.000" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="water">Water (OMR)</Label>
-                    <div className="relative">
-                      <Droplets className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input id="water" name="water" type="number" step="0.001" value={formData.water} onChange={handleInputChange} className="pl-10" placeholder="0.000" required />
-                    </div>
+                    <Input id="water" name="water" type="number" step="0.001" value={formData.water} onChange={handleInputChange} placeholder="0.000" required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="electricity">Electricity (OMR)</Label>
-                    <div className="relative">
-                      <Lightbulb className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input id="electricity" name="electricity" type="number" step="0.001" value={formData.electricity} onChange={handleInputChange} className="pl-10" placeholder="0.000" required />
-                    </div>
+                    <Input id="electricity" name="electricity" type="number" step="0.001" value={formData.electricity} onChange={handleInputChange} placeholder="0.000" required />
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="bg-slate-50 border-t py-4">
-                <div className="flex gap-3 w-full justify-end">
-                  <Button type="button" variant="outline" onClick={() => setIsAddingNew(false)}>Cancel</Button>
-                  <Button type="submit" disabled={isSaving} className="gap-2">
-                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    Save Record
-                  </Button>
-                </div>
+              <CardFooter className="bg-slate-50 border-t py-4 justify-end gap-3">
+                <Button type="button" variant="outline" onClick={() => setIsAddingNew(false)}>Cancel</Button>
+                <Button type="submit" disabled={isSaving} className="gap-2">
+                  {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Save Record
+                </Button>
               </CardFooter>
             </form>
           </Card>
@@ -335,11 +293,8 @@ export default function SharedExpensesPage() {
             <CardHeader className="flex flex-row items-center justify-between pb-7">
               <div>
                 <CardTitle>Expense Ledger</CardTitle>
-                <CardDescription>Historical utility records identified by billing range.</CardDescription>
+                <CardDescription>Historical records derived from billing range.</CardDescription>
               </div>
-              <Badge variant="outline" className="text-primary font-semibold">
-                {bills?.length || 0} Records
-              </Badge>
             </CardHeader>
             <CardContent>
               <div className="rounded-md border bg-white overflow-hidden">
@@ -363,17 +318,14 @@ export default function SharedExpensesPage() {
                       </TableRow>
                     ) : bills && bills.length > 0 ? (
                       bills.map((bill: any) => (
-                        <TableRow key={bill.id} className="hover:bg-slate-50/50 transition-colors">
+                        <TableRow key={bill.id} className="hover:bg-slate-50/50">
                           <TableCell className="font-medium">
-                            <div className="flex flex-col">
-                              <span>{formatDateRange(bill.startDate, bill.endDate)}</span>
-                              <span className="text-[10px] text-muted-foreground uppercase font-bold">{new Date(bill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
-                            </div>
+                            {formatDateRange(bill.startDate, bill.endDate)}
                           </TableCell>
-                          <TableCell>{bill.wifi.toFixed(3)}</TableCell>
-                          <TableCell>{bill.water.toFixed(3)}</TableCell>
-                          <TableCell>{bill.electricity.toFixed(3)}</TableCell>
-                          <TableCell className="font-bold text-primary">{bill.total.toFixed(3)} OMR</TableCell>
+                          <TableCell>{bill.wifi?.toFixed(3)}</TableCell>
+                          <TableCell>{bill.water?.toFixed(3)}</TableCell>
+                          <TableCell>{bill.electricity?.toFixed(3)}</TableCell>
+                          <TableCell className="font-bold text-primary">{bill.total?.toFixed(3)} OMR</TableCell>
                           <TableCell className="text-right space-x-2">
                             <Button variant="ghost" size="icon" onClick={() => handleEditBill(bill)}>
                               <Edit2 className="h-4 w-4 text-slate-500" />
@@ -403,20 +355,11 @@ export default function SharedExpensesPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Expense Record?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will remove the data for this billing period. This action is permanent.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Permanent removal of this period's data.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={(e) => {
-                e.preventDefault();
-                confirmDeleteBill();
-              }} 
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={isDeleting}
-            >
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); confirmDeleteBill(); }} className="bg-destructive text-destructive-foreground" disabled={isDeleting}>
               {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
               Delete Permanently
             </AlertDialogAction>

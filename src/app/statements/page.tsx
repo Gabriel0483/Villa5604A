@@ -74,7 +74,8 @@ export default function StatementsPage() {
     const adminEmails = [
       'rielmagpantay@gmail.com', 
       'rielmagpantay@gmail.com@villa5604.app',
-      'room101@villa5604.app'
+      'room101@villa5604.app',
+      'admin001@villa5604.app'
     ];
     if (adminEmails.includes(user.email?.toLowerCase() || '')) return true;
     return profile?.role === 'SuperAdmin';
@@ -87,7 +88,7 @@ export default function StatementsPage() {
         toast({
           variant: "destructive",
           title: "Access Denied",
-          description: "You do not have permission to access billing statements."
+          description: "Permission required."
         });
         router.push('/');
       }
@@ -123,10 +124,8 @@ export default function StatementsPage() {
     })
     .then(() => {
       toast({
-        title: newStatus === 'Released' ? "Bill Released" : "Status Reverted",
-        description: newStatus === 'Released' 
-          ? `Utility statement is now visible to all residents.`
-          : `Utility statement has been set back to Draft.`,
+        title: newStatus === 'Released' ? "Released" : "Reverted",
+        description: `Status updated successfully.`,
       });
     })
     .catch((err) => {
@@ -149,16 +148,11 @@ export default function StatementsPage() {
     const billRef = doc(db, 'utility_bills', selectedBill.id);
 
     updateDoc(billRef, {
-      paidResidents: currentStatus 
-        ? arrayRemove(residentId) 
-        : arrayUnion(residentId),
+      paidResidents: currentStatus ? arrayRemove(residentId) : arrayUnion(residentId),
       updatedAt: serverTimestamp()
     })
     .then(() => {
-      toast({
-        title: currentStatus ? "Marked as Pending" : "Marked as Paid",
-        description: `Payment status updated for this resident.`,
-      });
+      toast({ title: "Status Changed", description: `Resident payment updated.` });
     })
     .catch((err) => {
       const permissionError = new FirestorePermissionError({
@@ -182,7 +176,7 @@ export default function StatementsPage() {
     if (!selectedBill || !residents || residents.length === 0) return null;
 
     const numResidents = residents.length;
-    const wifiTotal = selectedBill.wifi;
+    const wifiTotal = selectedBill.wifi || 0;
     const totalManDays = residents.reduce((acc, r) => acc + (r.billingDays ?? 30), 0);
     const miscTotal = selectedBill.miscellaneous || 0;
     const miscApplicableResidents = residents.filter(r => r.isMiscApplicable !== false);
@@ -198,23 +192,22 @@ export default function StatementsPage() {
     const allocations: StatementAllocation[] = residents.map(r => {
       const resDays = r.billingDays ?? 30;
       const isMisc = r.isMiscApplicable !== false;
-      
-      const resWifiShare = wifiSharePerPerson;
-      const resWaterShare = waterSharePerDay * resDays;
-      const resElecShare = electricitySharePerDay * resDays;
-      const resMiscShare = isMisc ? (miscUsagePerDay * resDays) : 0;
+      const wifiShare = wifiSharePerPerson;
+      const waterShare = waterSharePerDay * resDays;
+      const elecShare = electricitySharePerDay * resDays;
+      const miscShare = isMisc ? (miscUsagePerDay * resDays) : 0;
       const baseRent = r.monthlyRent || 0;
       
       return {
         residentId: r.id,
         residentName: `${r.firstName} ${r.lastName}`,
         roomUnit: r.roomUnit || 'N/A',
-        baseRent: baseRent,
-        wifiShare: resWifiShare,
-        waterShare: resWaterShare,
-        elecShare: resElecShare,
-        miscShare: resMiscShare,
-        totalDue: baseRent + resWifiShare + resWaterShare + resElecShare + resMiscShare,
+        baseRent,
+        wifiShare,
+        waterShare,
+        elecShare,
+        miscShare,
+        totalDue: baseRent + wifiShare + waterShare + elecShare + miscShare,
         billingDays: resDays,
         isPaid: paidList.includes(r.id)
       };
@@ -225,22 +218,13 @@ export default function StatementsPage() {
 
   const collectionStats = useMemo(() => {
     if (!statementResults) return null;
-
     const totalTarget = statementResults.reduce((acc, s) => acc + s.totalDue, 0);
     const totalCollected = statementResults.filter(s => s.isPaid).reduce((acc, s) => acc + s.totalDue, 0);
     const totalPending = totalTarget - totalCollected;
     const percentCollected = totalTarget > 0 ? (totalCollected / totalTarget) * 100 : 0;
     const paidCount = statementResults.filter(s => s.isPaid).length;
     const totalCount = statementResults.length;
-
-    return {
-      totalTarget,
-      totalCollected,
-      totalPending,
-      percentCollected,
-      paidCount,
-      totalCount
-    };
+    return { totalTarget, totalCollected, totalPending, percentCollected, paidCount, totalCount };
   }, [statementResults]);
 
   const individualStatement = useMemo(() => {
@@ -263,28 +247,26 @@ export default function StatementsPage() {
       <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 print:max-w-full">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
           <div className="space-y-1">
-            <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors group">
-              <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Dashboard
+            <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary group">
+              <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1" /> Back to Dashboard
             </Link>
-            <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
-              <FileText className="h-8 w-8 text-primary" /> Billing Statements
+            <h1 className="text-3xl font-bold text-primary flex items-center gap-3">
+              <FileText className="h-8 w-8" /> Billing Statements
             </h1>
-            <p className="text-muted-foreground">Statements identified exclusively by active billing date range.</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="gap-2" onClick={() => window.print()} disabled={!selectedBill}>
-              <Printer className="h-4 w-4" /> Print
+            <Button variant="outline" onClick={() => window.print()} disabled={!selectedBill}>
+              <Printer className="h-4 w-4 mr-2" /> Print
             </Button>
             {selectedBill && (
               selectedBill.status !== 'Released' ? (
-                <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => handleUpdateBillStatus('Released')} disabled={isUpdatingStatus}>
-                  {isUpdatingStatus ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                <Button className="bg-accent text-accent-foreground" onClick={() => handleUpdateBillStatus('Released')} disabled={isUpdatingStatus}>
+                  {isUpdatingStatus ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
                   Release Bill
                 </Button>
               ) : (
-                <Button variant="outline" className="gap-2 text-destructive border-destructive/20 hover:bg-destructive/5" onClick={() => handleUpdateBillStatus('Draft')} disabled={isUpdatingStatus}>
-                  {isUpdatingStatus ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
-                  Undo Release
+                <Button variant="outline" className="text-destructive" onClick={() => handleUpdateBillStatus('Draft')} disabled={isUpdatingStatus}>
+                  <RotateCcw className="h-4 w-4 mr-2" /> Undo Release
                 </Button>
               )
             )}
@@ -294,32 +276,19 @@ export default function StatementsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 print:block">
           <div className="space-y-6 print:hidden">
             <Card className="shadow-lg border-t-4 border-primary">
-              <CardHeader>
-                <CardTitle className="text-lg">Billing Cycle</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-lg">Billing Cycle</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Select Period Range</Label>
+                  <Label>Period Range</Label>
                   <Select value={selectedBillId} onValueChange={setSelectedBillId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a range..." />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Choose range..." /></SelectTrigger>
                     <SelectContent>
-                      {billsLoading ? (
-                        <div className="p-2 text-center text-xs"><Loader2 className="h-4 w-4 animate-spin mx-auto" /></div>
-                      ) : bills && bills.length > 0 ? (
-                        bills.map((bill: any) => (
-                          <SelectItem key={bill.id} value={bill.id}>
-                            {formatDateRange(bill.startDate, bill.endDate)}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <div className="p-2 text-center text-xs text-muted-foreground">No records found</div>
-                      )}
+                      {billsLoading ? <div className="p-2 text-center"><Loader2 className="h-4 w-4 animate-spin" /></div> : bills?.map((bill: any) => (
+                        <SelectItem key={bill.id} value={bill.id}>{formatDateRange(bill.startDate, bill.endDate)}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div className="space-y-2">
                   <Label>View Type</Label>
                   <Tabs value={viewMode} onValueChange={(v: any) => setViewMode(v)}>
@@ -329,14 +298,11 @@ export default function StatementsPage() {
                     </TabsList>
                   </Tabs>
                 </div>
-
                 {viewMode === 'individual' && (
-                  <div className="space-y-2 animate-in slide-in-from-top-2">
-                    <Label>Target Resident</Label>
+                  <div className="space-y-2">
+                    <Label>Resident</Label>
                     <Select value={selectedResidentId} onValueChange={setSelectedResidentId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose resident..." />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="Choose..." /></SelectTrigger>
                       <SelectContent>
                         {residents?.map((r: any) => (
                           <SelectItem key={r.id} value={r.id}>{r.firstName} {r.lastName}</SelectItem>
@@ -350,75 +316,26 @@ export default function StatementsPage() {
           </div>
 
           <div className="lg:col-span-3 space-y-6">
-            {selectedBill && collectionStats && (
-              <Card className="shadow-md border-none bg-white print:hidden">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-primary" /> Range Statistics
-                  </CardTitle>
-                  <CardDescription>
-                    Tracking collection for {formatDateRange(selectedBill.startDate, selectedBill.endDate)}.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="font-medium text-slate-600">Progress: {collectionStats.percentCollected.toFixed(1)}%</span>
-                      <span className="font-bold text-primary">{collectionStats.paidCount} of {collectionStats.totalCount} Paid</span>
-                    </div>
-                    <Progress value={collectionStats.percentCollected} className="h-3 bg-slate-100" />
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-4 rounded-lg bg-accent/5 border border-accent/10">
-                      <div className="flex items-center gap-2 text-xs font-bold text-accent uppercase mb-1">
-                        <Wallet className="h-3 w-3" /> Collected
-                      </div>
-                      <p className="text-2xl font-black text-slate-900">{collectionStats.totalCollected.toFixed(3)} OMR</p>
-                    </div>
-                    <div className="p-4 rounded-lg bg-orange-50 border border-orange-100">
-                      <div className="flex items-center gap-2 text-xs font-bold text-orange-600 uppercase mb-1">
-                        <Clock className="h-3 w-3" /> Outstanding
-                      </div>
-                      <p className="text-2xl font-black text-slate-900">{collectionStats.totalPending.toFixed(3)} OMR</p>
-                    </div>
-                    <div className="p-4 rounded-lg bg-slate-50 border border-slate-100">
-                      <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-1">
-                        <Receipt className="h-3 w-3" /> Total Target
-                      </div>
-                      <p className="text-2xl font-black text-slate-900">{collectionStats.totalTarget.toFixed(3)} OMR</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
             {!selectedBill ? (
-              <Card className="h-full min-h-[400px] border-dashed flex flex-col items-center justify-center text-center p-8 text-muted-foreground bg-slate-50/50">
+              <Card className="h-full min-h-[400px] border-dashed flex flex-col items-center justify-center text-muted-foreground">
                 <FileText className="h-16 w-16 mb-4 opacity-10" />
-                <h3 className="text-xl font-semibold mb-2">Select Active Date Range</h3>
+                <h3 className="text-xl font-semibold">Select Billing Range</h3>
               </Card>
             ) : viewMode === 'general' ? (
-              <Card className="shadow-xl border-none print:border">
+              <Card className="shadow-xl">
                 <CardHeader className="bg-primary text-primary-foreground rounded-t-lg print:bg-white print:text-black">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2 text-2xl font-bold">
-                        <Building2 className="h-6 w-6" /> Period Summary
-                      </div>
-                      <div className="flex flex-col mt-1">
-                        <CardDescription className="text-primary-foreground/80 flex items-center gap-1">
-                          <CalendarRange className="h-3.5 w-3.5" /> {formatDateRange(selectedBill.startDate, selectedBill.endDate)}
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="h-6 w-6" /> Period Summary
+                  </CardTitle>
+                  <CardDescription className="text-primary-foreground/80">
+                    {formatDateRange(selectedBill.startDate, selectedBill.endDate)}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6">
                   <Table>
                     <TableHeader className="bg-slate-50">
                       <TableRow>
-                        <TableHead>Resident (Unit)</TableHead>
+                        <TableHead>Resident</TableHead>
                         <TableHead className="text-right">Total OMR</TableHead>
                         <TableHead className="text-center">Status</TableHead>
                         <TableHead className="text-right print:hidden">Action</TableHead>
@@ -427,30 +344,14 @@ export default function StatementsPage() {
                     <TableBody>
                       {statementResults?.map((s, idx) => (
                         <TableRow key={idx}>
-                          <TableCell>
-                            <span className="font-medium">{s.residentName}</span>
-                            <span className="text-xs text-muted-foreground ml-1">({s.roomUnit})</span>
-                          </TableCell>
+                          <TableCell className="font-medium">{s.residentName} ({s.roomUnit})</TableCell>
                           <TableCell className="text-right font-bold">{s.totalDue.toFixed(3)}</TableCell>
                           <TableCell className="text-center">
-                            {s.isPaid ? (
-                              <Badge className="bg-accent text-accent-foreground gap-1">
-                                <CheckCircle2 className="h-3 w-3" /> Paid
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-muted-foreground gap-1">
-                                <Circle className="h-3 w-3" /> Pending
-                              </Badge>
-                            )}
+                            {s.isPaid ? <Badge className="bg-accent text-accent-foreground">Paid</Badge> : <Badge variant="outline">Pending</Badge>}
                           </TableCell>
                           <TableCell className="text-right print:hidden">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              disabled={isUpdatingPayment === s.residentId}
-                              onClick={() => togglePaymentStatus(s.residentId, s.isPaid)}
-                            >
-                              {isUpdatingPayment === s.residentId ? <Loader2 className="h-3 w-3 animate-spin" /> : (s.isPaid ? 'Reset' : 'Mark Paid')}
+                            <Button variant="ghost" size="sm" onClick={() => togglePaymentStatus(s.residentId, s.isPaid)}>
+                              {s.isPaid ? 'Reset' : 'Mark Paid'}
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -461,32 +362,17 @@ export default function StatementsPage() {
               </Card>
             ) : individualStatement && (
               <Card className="shadow-2xl overflow-hidden print:border">
-                <div className="p-8 bg-slate-50 text-slate-900 flex justify-between border-b print:bg-white">
+                <div className="p-8 bg-slate-50 flex justify-between border-b print:bg-white">
                   <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Building2 className="h-6 w-6 text-primary" />
-                      <span className="text-2xl font-black tracking-tight text-primary">VILLA 5604</span>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                        <CalendarRange className="h-3.5 w-3.5" /> {formatDateRange(selectedBill.startDate, selectedBill.endDate)}
-                      </p>
-                    </div>
+                    <div className="flex items-center gap-2 text-primary font-black text-2xl">VILLA 5604</div>
+                    <p className="text-xs font-medium text-muted-foreground">{formatDateRange(selectedBill.startDate, selectedBill.endDate)}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-1">Statement For</p>
-                    <h2 className="text-2xl font-bold text-slate-900">{individualStatement.residentName}</h2>
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Statement For</p>
+                    <h2 className="text-2xl font-bold">{individualStatement.residentName}</h2>
                     <p className="text-sm font-medium text-muted-foreground">Unit {individualStatement.roomUnit}</p>
-                    <div className="mt-4">
-                      {individualStatement.isPaid ? (
-                        <Badge className="bg-accent text-accent-foreground">PAID</Badge>
-                      ) : (
-                        <Badge variant="destructive">UNPAID</Badge>
-                      )}
-                    </div>
                   </div>
                 </div>
-
                 <CardContent className="p-8">
                   <div className="space-y-4 mb-8">
                     {[
@@ -498,11 +384,10 @@ export default function StatementsPage() {
                     ].map(item => (
                       <div key={item.label} className="flex justify-between border-b pb-2">
                         <span className="text-slate-600">{item.label}</span>
-                        <span className="font-mono font-bold text-slate-900">{item.val.toFixed(3)} OMR</span>
+                        <span className="font-mono font-bold">{item.val.toFixed(3)} OMR</span>
                       </div>
                     ))}
                   </div>
-
                   <div className="bg-slate-50 p-6 rounded-xl flex justify-between items-center border">
                     <span className="font-black text-slate-500 uppercase tracking-tighter">Amount Due</span>
                     <span className="text-4xl font-black text-primary">{individualStatement.totalDue.toFixed(3)} OMR</span>

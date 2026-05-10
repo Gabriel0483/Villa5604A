@@ -51,7 +51,12 @@ export default function CurrentUtilityPage() {
 
   const isSuperAdmin = useMemo(() => {
     if (!user) return false;
-    const adminEmails = ['rielmagpantay@gmail.com', 'rielmagpantay@gmail.com@villa5604.app', 'room101@villa5604.app', 'admin001@villa5604.app'];
+    const adminEmails = [
+      'rielmagpantay@gmail.com', 
+      'rielmagpantay@gmail.com@villa5604.app', 
+      'room101@villa5604.app', 
+      'admin001@villa5604.app'
+    ];
     if (adminEmails.includes(user.email?.toLowerCase() || '')) return true;
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
@@ -62,7 +67,6 @@ export default function CurrentUtilityPage() {
 
     const fetchRecord = async () => {
       setIsLoadingRecord(true);
-      // Derive the stable period ID (YYYY-MM) from the start date
       const periodId = formData.startDate.substring(0, 7);
       const docRef = doc(db, 'utility_bills', periodId);
       
@@ -80,7 +84,7 @@ export default function CurrentUtilityPage() {
           }));
         }
       } catch (error) {
-        console.error("Error fetching record:", error);
+        // Handled via useCollection/useDoc logic or silent listener
       } finally {
         setIsLoadingRecord(false);
       }
@@ -102,7 +106,7 @@ export default function CurrentUtilityPage() {
       toast({ 
         variant: "destructive", 
         title: "Missing Dates", 
-        description: "Billing range (Start and End) is the single source of truth and must be defined." 
+        description: "Please define the Billing Period range." 
       });
       return;
     }
@@ -112,8 +116,6 @@ export default function CurrentUtilityPage() {
     const water = parseFloat(formData.water) || 0;
     const electricity = parseFloat(formData.electricity) || 0;
     const misc = parseFloat(formData.miscellaneous) || 0;
-    
-    // Derive period identifier for sorting and ordering
     const periodId = formData.startDate.substring(0, 7);
 
     const billData = {
@@ -126,7 +128,7 @@ export default function CurrentUtilityPage() {
       miscellaneous: misc,
       total: wifi + water + electricity + misc,
       updatedAt: serverTimestamp(),
-      status: 'Released' // Ensure the status is always Released so residents can see it
+      status: 'Released' // Auto-release to ensure residents see the update
     };
 
     const billRef = doc(db, 'utility_bills', periodId);
@@ -134,8 +136,8 @@ export default function CurrentUtilityPage() {
     setDoc(billRef, billData, { merge: true })
       .then(() => {
         toast({ 
-          title: "Record Saved & Released", 
-          description: `Utility data for the period starting ${formData.startDate} is now live for all residents.` 
+          title: "Statement Saved", 
+          description: `Utility record for ${formData.startDate} is now live.` 
         });
       })
       .catch((err) => {
@@ -182,13 +184,13 @@ export default function CurrentUtilityPage() {
           )}
           <CardHeader>
             <CardTitle className="text-xl">Active Cycle Details</CardTitle>
-            <CardDescription>Define the billing period using Start and End dates. These dates are the single source of truth.</CardDescription>
+            <CardDescription>Records are automatically released to residents upon saving.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
-                  <CalendarRange className="h-4 w-4 text-primary" /> Bill Start Date (Truth)
+                  <CalendarRange className="h-4 w-4 text-primary" /> Bill Start Date
                 </Label>
                 <Input 
                   type="date" 
@@ -200,7 +202,7 @@ export default function CurrentUtilityPage() {
               </div>
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
-                  <CalendarRange className="h-4 w-4 text-primary" /> Bill End Date (Truth)
+                  <CalendarRange className="h-4 w-4 text-primary" /> Bill End Date
                 </Label>
                 <Input 
                   type="date" 
