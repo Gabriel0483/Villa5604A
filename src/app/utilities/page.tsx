@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
@@ -61,32 +61,66 @@ export default function CurrentUtilityPage() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Synchronize form with Firestore based on the selected Start Date
+  // 1. Initial Load: Fetch the most recent record on mount
+  useEffect(() => {
+    if (!db || !isSuperAdmin) return;
+
+    const fetchLatest = async () => {
+      setIsLoadingRecord(true);
+      try {
+        const q = query(
+          collection(db, 'utility_bills'), 
+          orderBy('startDate', 'desc'), 
+          limit(1)
+        );
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          const data = snapshot.docs[0].data();
+          setFormData({
+            startDate: data.startDate || '',
+            endDate: data.endDate || '',
+            wifi: data.wifi?.toString() || '',
+            water: data.water?.toString() || '',
+            electricity: data.electricity?.toString() || '',
+            miscellaneous: data.miscellaneous?.toString() || '0'
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching latest utility record:", error);
+      } finally {
+        setIsLoadingRecord(false);
+      }
+    };
+
+    fetchLatest();
+  }, [db, isSuperAdmin]);
+
+  // 2. Dynamic Switch: Synchronize form if the user changes the Start Date manually
   useEffect(() => {
     if (!db || !isSuperAdmin || !formData.startDate) return;
 
     const fetchRecord = async () => {
-      setIsLoadingRecord(true);
-      const periodId = formData.startDate.substring(0, 7);
+      const periodId = formData.startDate.substring(0, 10); // Using full date as ID for precision
       const docRef = doc(db, 'utility_bills', periodId);
       
       try {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
-          setFormData(prev => ({
-            ...prev,
-            endDate: data.endDate || '',
-            wifi: data.wifi?.toString() || '',
-            water: data.water?.toString() || '',
-            electricity: data.electricity?.toString() || '',
-            miscellaneous: data.miscellaneous?.toString() || '0'
-          }));
+          // Only update if dates match to avoid infinite loop or flickering during manual entry
+          if (data.startDate === formData.startDate) {
+            setFormData(prev => ({
+              ...prev,
+              endDate: data.endDate || prev.endDate,
+              wifi: data.wifi?.toString() || prev.wifi,
+              water: data.water?.toString() || prev.water,
+              electricity: data.electricity?.toString() || prev.electricity,
+              miscellaneous: data.miscellaneous?.toString() || prev.miscellaneous
+            }));
+          }
         }
       } catch (error) {
-        // Handled via useCollection/useDoc logic or silent listener
-      } finally {
-        setIsLoadingRecord(false);
+        // Silent error
       }
     };
 
@@ -116,7 +150,7 @@ export default function CurrentUtilityPage() {
     const water = parseFloat(formData.water) || 0;
     const electricity = parseFloat(formData.electricity) || 0;
     const misc = parseFloat(formData.miscellaneous) || 0;
-    const periodId = formData.startDate.substring(0, 7);
+    const periodId = formData.startDate.substring(0, 10);
 
     const billData = {
       monthYear: periodId,

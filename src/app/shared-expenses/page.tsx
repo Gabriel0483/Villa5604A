@@ -54,13 +54,12 @@ export default function SharedExpensesPage() {
   const [billToDelete, setBillToDelete] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    monthYear: '',
     startDate: '',
     endDate: '',
     wifi: '',
     water: '',
     electricity: '',
-    miscellaneous: ''
+    miscellaneous: '0'
   });
 
   const userProfileRef = useMemoFirebase(() => {
@@ -98,7 +97,7 @@ export default function SharedExpensesPage() {
 
   const billsQuery = useMemoFirebase(() => {
     if (!db || !isSuperAdmin) return null;
-    return query(collection(db, 'utility_bills'), orderBy('monthYear', 'desc'));
+    return query(collection(db, 'utility_bills'), orderBy('startDate', 'desc'));
   }, [db, isSuperAdmin]);
 
   const { data: bills, loading: billsLoading } = useCollection(billsQuery);
@@ -122,10 +121,10 @@ export default function SharedExpensesPage() {
     const water = parseFloat(formData.water) || 0;
     const electricity = parseFloat(formData.electricity) || 0;
     const misc = parseFloat(formData.miscellaneous) || 0;
-    const derivedMonthYear = formData.startDate.substring(0, 7);
+    const periodId = formData.startDate.substring(0, 10);
 
     const billData = {
-      monthYear: derivedMonthYear,
+      monthYear: periodId,
       startDate: formData.startDate,
       endDate: formData.endDate,
       wifi,
@@ -137,7 +136,7 @@ export default function SharedExpensesPage() {
       status: 'Released'
     };
 
-    const billRef = doc(db, 'utility_bills', derivedMonthYear);
+    const billRef = doc(db, 'utility_bills', periodId);
 
     setDoc(billRef, billData, { merge: true })
       .then(() => {
@@ -146,7 +145,7 @@ export default function SharedExpensesPage() {
           description: `History updated for period starting ${formData.startDate}.`,
         });
         setIsAddingNew(false);
-        setFormData({ monthYear: '', startDate: '', endDate: '', wifi: '', water: '', electricity: '', miscellaneous: '' });
+        setFormData({ startDate: '', endDate: '', wifi: '', water: '', electricity: '', miscellaneous: '0' });
       })
       .catch(async (err) => {
         const permissionError = new FirestorePermissionError({
@@ -163,7 +162,6 @@ export default function SharedExpensesPage() {
 
   const handleEditBill = (bill: any) => {
     setFormData({
-      monthYear: bill.monthYear,
       startDate: bill.startDate || '',
       endDate: bill.endDate || '',
       wifi: bill.wifi?.toString() || '',
@@ -260,7 +258,7 @@ export default function SharedExpensesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    <div className="space-y-2">
                     <Label htmlFor="wifi">Wifi (OMR)</Label>
-                    <Input id="wifi" name="wifi" type="number" step="0.001" value={formData.wifi} onChange={handleInputChange} placeholder="0.000" required />
+                    <Input id="wifi" name="wifi" type="number" step="0.001" value={formData.wifi} onChange={handleInputChange} placeholder="0.000" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="miscellaneous">Misc (OMR)</Label>
@@ -271,11 +269,11 @@ export default function SharedExpensesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="water">Water (OMR)</Label>
-                    <Input id="water" name="water" type="number" step="0.001" value={formData.water} onChange={handleInputChange} placeholder="0.000" required />
+                    <Input id="water" name="water" type="number" step="0.001" value={formData.water} onChange={handleInputChange} placeholder="0.000" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="electricity">Electricity (OMR)</Label>
-                    <Input id="electricity" name="electricity" type="number" step="0.001" value={formData.electricity} onChange={handleInputChange} placeholder="0.000" required />
+                    <Input id="electricity" name="electricity" type="number" step="0.001" value={formData.electricity} onChange={handleInputChange} placeholder="0.000" />
                   </div>
                 </div>
               </CardContent>
