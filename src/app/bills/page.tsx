@@ -15,7 +15,8 @@ import {
   CheckCircle2,
   Clock,
   Users,
-  Info
+  Info,
+  CalendarRange
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -113,7 +114,6 @@ export default function MyBillsPage() {
       }));
   }, [bills]);
 
-  // Calculate detailed shares for the community view and personal statement
   const calculatedStatement = useMemo(() => {
     if (!selectedBill || !residents || residents.length === 0) return null;
 
@@ -161,6 +161,12 @@ export default function MyBillsPage() {
 
     return { list, myEntry };
   }, [selectedBill, residents, user]);
+
+  const formatDateRange = (start?: string, end?: string) => {
+    if (!start || !end) return null;
+    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
+    return `${new Date(start).toLocaleDateString('en-US', options)} - ${new Date(end).toLocaleDateString('en-US', options)}`;
+  };
 
   if (userLoading || profileLoading) {
     return (
@@ -257,7 +263,10 @@ export default function MyBillsPage() {
                           <h3 className="text-lg font-bold">
                             {new Date(bill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                           </h3>
-                          <p className="text-sm text-muted-foreground">Household Total: {bill.total.toFixed(3)} OMR</p>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <CalendarRange className="h-3 w-3" /> {formatDateRange(bill.startDate, bill.endDate) || 'N/A'}
+                          </p>
+                          <p className="text-sm font-bold text-primary mt-1">Household Total: {bill.total.toFixed(3)} OMR</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
@@ -318,9 +327,14 @@ export default function MyBillsPage() {
                                   <Building2 className="h-6 w-6 text-primary" />
                                   <span className="text-2xl font-black tracking-tight text-primary">VILLA 5604</span>
                                 </div>
-                                <p className="text-sm font-medium text-muted-foreground">
-                                  {new Date(selectedBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                                </p>
+                                <div className="space-y-1">
+                                  <p className="text-sm font-bold text-slate-900">
+                                    {new Date(selectedBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                  </p>
+                                  <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                                    <CalendarRange className="h-3 w-3" /> {formatDateRange(selectedBill.startDate, selectedBill.endDate)}
+                                  </p>
+                                </div>
                               </div>
                               <div className="text-right">
                                 <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-1">Bill To</p>

@@ -24,7 +24,8 @@ import {
   Users,
   BarChart,
   Calculator,
-  UserCheck
+  UserCheck,
+  CalendarDays
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -91,7 +92,6 @@ function DashboardContent() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Query for the active household snapshot (prioritize isSnapshot: true)
   const snapshotQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
@@ -104,7 +104,6 @@ function DashboardContent() {
 
   const { data: snapshotBills, loading: snapshotLoading } = useCollection(snapshotQuery);
 
-  // Fallback query: Just get the latest released bill if no snapshot is flagged
   const latestReleasedQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
@@ -123,7 +122,6 @@ function DashboardContent() {
     return null;
   }, [snapshotBills, latestReleasedBills]);
 
-  // Query all residents for calculations
   const residentsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(collection(db, 'users'), where('role', '==', 'Resident'));
@@ -173,6 +171,12 @@ function DashboardContent() {
     } catch (error) {
       console.error("Logout error:", error);
     }
+  };
+
+  const formatDateRange = (start?: string, end?: string) => {
+    if (!start || !end) return null;
+    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
+    return `${new Date(start).toLocaleDateString('en-US', options)} - ${new Date(end).toLocaleDateString('en-US', options)}`;
   };
 
   if (profileLoading || residentsLoading || snapshotLoading || latestLoading) {
@@ -261,6 +265,14 @@ function DashboardContent() {
               <CardContent>
                 {latestBill && myIndividualShares ? (
                   <div className="space-y-6">
+                    {latestBill.startDate && latestBill.endDate && (
+                      <div className="p-3 bg-primary/5 rounded-lg border border-primary/10 flex items-center gap-2">
+                        <CalendarDays className="h-4 w-4 text-primary" />
+                        <span className="text-xs font-bold text-primary">
+                          {formatDateRange(latestBill.startDate, latestBill.endDate)}
+                        </span>
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 gap-4">
                       {[
                         { label: 'Wifi', val: myIndividualShares.wifi, icon: <Wifi className="h-3 w-3" /> },
@@ -299,6 +311,14 @@ function DashboardContent() {
               <CardContent>
                 {latestBill ? (
                   <div className="space-y-6">
+                    {latestBill.startDate && latestBill.endDate && (
+                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 flex items-center gap-2">
+                        <CalendarDays className="h-4 w-4 text-slate-500" />
+                        <span className="text-xs font-bold text-slate-600">
+                          {formatDateRange(latestBill.startDate, latestBill.endDate)}
+                        </span>
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 gap-4">
                       {[
                         { label: 'Wifi', val: latestBill.wifi, icon: <Wifi className="h-3 w-3" /> },

@@ -18,7 +18,8 @@ import {
   RotateCcw,
   TrendingUp,
   Wallet,
-  AlertCircle
+  AlertCircle,
+  CalendarRange
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -236,6 +237,12 @@ export default function StatementsPage() {
     };
   }, [statementResults]);
 
+  const formatDateRange = (start?: string, end?: string) => {
+    if (!start || !end) return null;
+    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
+    return `${new Date(start).toLocaleDateString('en-US', options)} - ${new Date(end).toLocaleDateString('en-US', options)}`;
+  };
+
   const individualStatement = useMemo(() => {
     if (!statementResults || selectedResidentId === 'all') return null;
     return statementResults.find(s => s.residentId === selectedResidentId);
@@ -362,9 +369,20 @@ export default function StatementsPage() {
                   <CardTitle className="text-lg flex items-center gap-2">
                     <TrendingUp className="h-5 w-5 text-primary" /> Collection Overview
                   </CardTitle>
-                  <CardDescription>Visual summary of funds collected for {new Date(selectedBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.</CardDescription>
+                  <CardDescription>
+                    Summary for {new Date(selectedBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  {selectedBill.startDate && selectedBill.endDate && (
+                    <div className="p-3 bg-slate-50 rounded-lg border flex items-center gap-2 mb-4">
+                      <CalendarRange className="h-4 w-4 text-primary" />
+                      <span className="text-xs font-bold text-slate-700">
+                        Active Billing Range: {formatDateRange(selectedBill.startDate, selectedBill.endDate)}
+                      </span>
+                    </div>
+                  )}
+                  
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm mb-1">
                       <span className="font-medium text-slate-600">Progress: {collectionStats.percentCollected.toFixed(1)}%</span>
@@ -410,9 +428,16 @@ export default function StatementsPage() {
                       <div className="flex items-center gap-2 text-2xl font-bold">
                         <Building2 className="h-6 w-6" /> General Statement
                       </div>
-                      <CardDescription className="text-primary-foreground/80">
-                        {new Date(selectedBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                      </CardDescription>
+                      <div className="flex flex-col mt-1">
+                        <CardDescription className="text-primary-foreground/80">
+                          {new Date(selectedBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                        </CardDescription>
+                        {selectedBill.startDate && selectedBill.endDate && (
+                          <span className="text-[10px] font-bold text-primary-foreground/60 print:text-slate-500 flex items-center gap-1">
+                            <CalendarRange className="h-3 w-3" /> {formatDateRange(selectedBill.startDate, selectedBill.endDate)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </CardHeader>
@@ -469,7 +494,12 @@ export default function StatementsPage() {
                       <Building2 className="h-6 w-6 text-primary" />
                       <span className="text-2xl font-black tracking-tight text-primary">VILLA 5604</span>
                     </div>
-                    <p className="text-sm font-medium text-muted-foreground">{new Date(selectedBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
+                    <div className="space-y-1">
+                      <p className="text-sm font-bold text-slate-900">{new Date(selectedBill.monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
+                      <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                        <CalendarRange className="h-3 w-3" /> {formatDateRange(selectedBill.startDate, selectedBill.endDate)}
+                      </p>
+                    </div>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-1">Bill To</p>

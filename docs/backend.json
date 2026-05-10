@@ -28,6 +28,8 @@
       "type": "object",
       "properties": {
         "monthYear": { "type": "string" },
+        "startDate": { "type": "string", "format": "date", "description": "Bill Start Date" },
+        "endDate": { "type": "string", "format": "date", "description": "Bill End Date" },
         "wifi": { "type": "number" },
         "water": { "type": "number" },
         "electricity": { "type": "number" },

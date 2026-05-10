@@ -13,7 +13,8 @@ import {
   Loader2, 
   Save, 
   Calendar,
-  Send
+  Send,
+  CalendarRange
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,8 +34,10 @@ export default function CurrentUtilityPage() {
   const { toast } = useToast();
 
   const [isSaving, setIsSaving] = useState(false);
-  const [displayMonth, setDisplayMonth] = useState(''); 
   const [formData, setFormData] = useState({
+    monthYear: '', // YYYY-MM
+    startDate: '',
+    endDate: '',
     wifi: '',
     water: '',
     electricity: '',
@@ -64,23 +67,6 @@ export default function CurrentUtilityPage() {
 
   const { data: latestEntries, loading: billsLoading } = useCollection(latestEntryQuery);
 
-  const toStorage = (display: string) => {
-    const clean = display.replace(/\s/g, '');
-    const parts = clean.split('/');
-    if (parts.length === 2) {
-      const mm = parts[0].padStart(2, '0');
-      const yyyy = parts[1];
-      if (mm.length === 2 && yyyy.length === 4) return `${yyyy}-${mm}`;
-    }
-    return null;
-  };
-
-  const toDisplay = (storage: string) => {
-    if (!storage) return '';
-    const parts = storage.split('-');
-    return parts.length === 2 ? `${parts[1]}/${parts[0]}` : storage;
-  };
-
   // Sync with Firestore data on load
   useEffect(() => {
     if (!isSuperAdmin || initializedRef.current || billsLoading) return;
@@ -88,12 +74,14 @@ export default function CurrentUtilityPage() {
     if (latestEntries && latestEntries.length > 0) {
       const bill = latestEntries[0] as any;
       setFormData({
+        monthYear: bill.monthYear || '',
+        startDate: bill.startDate || '',
+        endDate: bill.endDate || '',
         wifi: bill.wifi?.toString() || '',
         water: bill.water?.toString() || '',
         electricity: bill.electricity?.toString() || '',
         miscellaneous: bill.miscellaneous?.toString() || '0'
       });
-      setDisplayMonth(toDisplay(bill.monthYear || ''));
       initializedRef.current = true;
     }
   }, [latestEntries, isSuperAdmin, billsLoading]);
@@ -107,9 +95,8 @@ export default function CurrentUtilityPage() {
     e.preventDefault();
     if (!db || !isSuperAdmin) return;
 
-    const storageMonth = toStorage(displayMonth);
-    if (!storageMonth) {
-      toast({ variant: "destructive", title: "Invalid Date", description: "Use MM/YYYY format (e.g. 04/2026)" });
+    if (!formData.monthYear) {
+      toast({ variant: "destructive", title: "Missing Month", description: "Please select the billing month." });
       return;
     }
 
@@ -120,22 +107,23 @@ export default function CurrentUtilityPage() {
     const misc = parseFloat(formData.miscellaneous) || 0;
     
     const billData = {
-      monthYear: storageMonth,
+      monthYear: formData.monthYear,
+      startDate: formData.startDate,
+      endDate: formData.endDate,
       wifi, 
       water, 
       electricity, 
       miscellaneous: misc,
       total: wifi + water + electricity + misc,
       updatedAt: serverTimestamp(),
-      isSnapshot: showOnDashboard === true, // Force boolean true/false
+      isSnapshot: showOnDashboard === true,
       status: 'Released'
     };
 
-    const billRef = doc(db, 'utility_bills', storageMonth);
+    const billRef = doc(db, 'utility_bills', formData.monthYear);
     setDoc(billRef, billData, { merge: true })
       .then(() => {
-        toast({ title: showOnDashboard ? "Snapshot Published" : "Draft Saved", description: `Record for ${displayMonth} successfully persistent.` });
-        // Close initialization ref to allow refresh if needed
+        toast({ title: showOnDashboard ? "Snapshot Published" : "Draft Saved", description: `Record for ${formData.monthYear} successfully persistent.` });
         initializedRef.current = false;
       })
       .catch((err) => {
@@ -165,15 +153,22 @@ export default function CurrentUtilityPage() {
         <Card className="shadow-lg border-t-4 border-primary">
           <CardHeader>
             <CardTitle className="text-xl">Active Cycle Details</CardTitle>
-            <CardDescription>Enter values for the month and publish them to the portal.</CardDescription>
+            <CardDescription>Enter values for the month and define the active billing range.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label>Billing Month (MM/YYYY)</Label>
+                <Label>Billing Month</Label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="e.g. 04/2026" value={displayMonth} onChange={(e) => setDisplayMonth(e.target.value)} className="pl-10" required />
+                  <Input 
+                    type="month" 
+                    name="monthYear" 
+                    value={formData.monthYear} 
+                    onChange={handleInputChange} 
+                    className="pl-10" 
+                    required 
+                  />
                 </div>
               </div>
               <div className="space-y-2">
@@ -184,6 +179,39 @@ export default function CurrentUtilityPage() {
                 </div>
               </div>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <CalendarRange className="h-4 w-4 text-primary" /> Bill Start Date
+                </Label>
+                <Input 
+                  type="date" 
+                  name="startDate" 
+                  value={formData.startDate} 
+                  onChange={handleInputChange} 
+                  required 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <CalendarRange className="h-4 w-4 text-primary" /> Bill End Date
+                </Label>
+                <Input 
+                  type="date" 
+                  name="endDate" 
+                  value={formData.endDate} 
+                  onChange={handleInputChange} 
+                  required 
+                />
+              </div>
+              <div className="md:col-span-2">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                  These dates define the "Active Billing Period" visible to residents.
+                </p>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <Label>Water (OMR)</Label>
@@ -207,6 +235,7 @@ export default function CurrentUtilityPage() {
                 </div>
               </div>
             </div>
+            
             <div className="bg-primary/5 p-6 rounded-xl border border-primary/10 flex flex-col md:flex-row justify-between items-center gap-4">
               <div className="text-center md:text-left">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Snapshot Total</p>
