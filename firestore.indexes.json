@@ -2,6 +2,16 @@
 {
   "indexes": [
     {
+      "collectionGroup": "utility_bills",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "monthYear",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "maintenance_requests",
       "queryScope": "COLLECTION",
       "fields": [

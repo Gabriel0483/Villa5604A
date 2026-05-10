@@ -52,33 +52,17 @@ export default function CurrentUtilityPage() {
 
   const isSuperAdmin = useMemo(() => {
     if (!user) return false;
-    const adminEmails = [
-      'rielmagpantay@gmail.com', 
-      'rielmagpantay@gmail.com@villa5604.app',
-      'room101@villa5604.app',
-      'admin001@villa5604.app'
-    ];
-    const email = user.email?.toLowerCase() || '';
-    if (adminEmails.includes(email)) return true;
+    const adminEmails = ['rielmagpantay@gmail.com', 'rielmagpantay@gmail.com@villa5604.app', 'room101@villa5604.app', 'admin001@villa5604.app'];
+    if (adminEmails.includes(user.email?.toLowerCase() || '')) return true;
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
   const latestEntryQuery = useMemoFirebase(() => {
     if (!db || !isSuperAdmin) return null;
-    return query(
-      collection(db, 'utility_bills'), 
-      orderBy('monthYear', 'desc'), 
-      limit(1)
-    );
+    return query(collection(db, 'utility_bills'), orderBy('monthYear', 'desc'), limit(1));
   }, [db, isSuperAdmin]);
 
   const { data: latestEntries, loading: billsLoading } = useCollection(latestEntryQuery);
-
-  const toDisplay = (storage: string) => {
-    if (!storage) return '';
-    const parts = storage.split('-');
-    return parts.length === 2 ? `${parts[1]}/${parts[0]}` : storage;
-  };
 
   const toStorage = (display: string) => {
     const clean = display.replace(/\s/g, '');
@@ -86,16 +70,20 @@ export default function CurrentUtilityPage() {
     if (parts.length === 2) {
       const mm = parts[0].padStart(2, '0');
       const yyyy = parts[1];
-      if (mm.length === 2 && yyyy.length === 4) {
-        return `${yyyy}-${mm}`;
-      }
+      if (mm.length === 2 && yyyy.length === 4) return `${yyyy}-${mm}`;
     }
     return null;
   };
 
-  // Pre-populate from the most recent record found in Firestore
+  const toDisplay = (storage: string) => {
+    if (!storage) return '';
+    const parts = storage.split('-');
+    return parts.length === 2 ? `${parts[1]}/${parts[0]}` : storage;
+  };
+
+  // Sync with Firestore data on load
   useEffect(() => {
-    if (billsLoading || userLoading || profileLoading || !isSuperAdmin || initializedRef.current) return;
+    if (!isSuperAdmin || initializedRef.current || billsLoading) return;
 
     if (latestEntries && latestEntries.length > 0) {
       const bill = latestEntries[0] as any;
@@ -107,31 +95,8 @@ export default function CurrentUtilityPage() {
       });
       setDisplayMonth(toDisplay(bill.monthYear || ''));
       initializedRef.current = true;
-    } else if (latestEntries && latestEntries.length === 0) {
-      initializedRef.current = true;
     }
-  }, [latestEntries, billsLoading, userLoading, profileLoading, isSuperAdmin]);
-
-  // Fetch specific month data if the admin changes the input
-  useEffect(() => {
-    const storageMonth = toStorage(displayMonth);
-    if (!storageMonth || !db || !isSuperAdmin) return;
-
-    const fetchSpecificMonth = async () => {
-      const billRef = doc(db, 'utility_bills', storageMonth);
-      const snap = await getDoc(billRef);
-      if (snap.exists()) {
-        const bill = snap.data();
-        setFormData({
-          wifi: bill.wifi?.toString() || '',
-          water: bill.water?.toString() || '',
-          electricity: bill.electricity?.toString() || '',
-          miscellaneous: bill.miscellaneous?.toString() || '0'
-        });
-      }
-    };
-    fetchSpecificMonth();
-  }, [displayMonth, db, isSuperAdmin]);
+  }, [latestEntries, isSuperAdmin, billsLoading]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -144,61 +109,38 @@ export default function CurrentUtilityPage() {
 
     const storageMonth = toStorage(displayMonth);
     if (!storageMonth) {
-      toast({
-        variant: "destructive",
-        title: "Invalid Format",
-        description: "Please enter month in MM/YYYY format (e.g. 04/2026).",
-      });
+      toast({ variant: "destructive", title: "Invalid Date", description: "Use MM/YYYY format (e.g. 04/2026)" });
       return;
     }
 
     setIsSaving(true);
-
     const wifi = parseFloat(formData.wifi) || 0;
     const water = parseFloat(formData.water) || 0;
     const electricity = parseFloat(formData.electricity) || 0;
     const misc = parseFloat(formData.miscellaneous) || 0;
-    const total = wifi + water + electricity + misc;
-
+    
     const billData = {
       monthYear: storageMonth,
-      wifi,
-      water,
-      electricity,
-      miscellaneous: misc,
-      total,
+      wifi, water, electricity, miscellaneous: misc,
+      total: wifi + water + electricity + misc,
       updatedAt: serverTimestamp(),
-      isSnapshot: showOnDashboard
+      isSnapshot: showOnDashboard,
+      status: 'Released'
     };
 
     const billRef = doc(db, 'utility_bills', storageMonth);
-
     setDoc(billRef, billData, { merge: true })
       .then(() => {
-        toast({
-          title: showOnDashboard ? "Snapshot Published" : "Draft Saved",
-          description: `Snapshot for ${displayMonth} has been persisted.`,
-        });
+        toast({ title: showOnDashboard ? "Snapshot Published" : "Draft Saved", description: `Record for ${displayMonth} successfully persistent.` });
       })
-      .catch(async (err) => {
-        const permissionError = new FirestorePermissionError({
-          path: billRef.path,
-          operation: 'write',
-          requestResourceData: billData
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
+      .catch((err) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: billRef.path, operation: 'write', requestResourceData: billData }));
       })
-      .finally(() => {
-        setIsSaving(false);
-      });
+      .finally(() => setIsSaving(false));
   };
 
   if (userLoading || profileLoading || (isSuperAdmin && billsLoading && !initializedRef.current)) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
   if (!isSuperAdmin) return null;
@@ -211,82 +153,69 @@ export default function CurrentUtilityPage() {
             <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Dashboard
           </Link>
           <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-3">
-            <Zap className="h-8 w-8 text-primary" /> Active Cycle Management
+            <Zap className="h-8 w-8 text-primary" /> Utility Management
           </h1>
         </div>
 
         <Card className="shadow-lg border-t-4 border-primary">
           <CardHeader>
-            <CardTitle className="text-xl">Cycle Details</CardTitle>
-            <CardDescription>Enter household values and publish them to the resident dashboard.</CardDescription>
+            <CardTitle className="text-xl">Active Cycle Details</CardTitle>
+            <CardDescription>Enter values for the month and publish them to the portal.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="monthYear">Billing Month (MM/YYYY)</Label>
+                <Label>Billing Month (MM/YYYY)</Label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    id="monthYear" 
-                    placeholder="e.g. 04/2026"
-                    value={displayMonth} 
-                    onChange={(e) => setDisplayMonth(e.target.value)} 
-                    className="pl-10" 
-                    required 
-                  />
+                  <Input placeholder="e.g. 04/2026" value={displayMonth} onChange={(e) => setDisplayMonth(e.target.value)} className="pl-10" required />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="wifi">Wifi Total (OMR)</Label>
+                <Label>Wifi Total (OMR)</Label>
                 <div className="relative">
                   <Wifi className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input id="wifi" name="wifi" type="number" step="0.001" value={formData.wifi} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
+                  <Input name="wifi" type="number" step="0.001" value={formData.wifi} onChange={handleInputChange} className="pl-10" />
                 </div>
               </div>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="water">Water (OMR)</Label>
+                <Label>Water (OMR)</Label>
                 <div className="relative">
                   <Droplets className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input id="water" name="water" type="number" step="0.001" value={formData.water} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
+                  <Input name="water" type="number" step="0.001" value={formData.water} onChange={handleInputChange} className="pl-10" />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="electricity">Electricity (OMR)</Label>
+                <Label>Electricity (OMR)</Label>
                 <div className="relative">
                   <Lightbulb className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input id="electricity" name="electricity" type="number" step="0.001" value={formData.electricity} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
+                  <Input name="electricity" type="number" step="0.001" value={formData.electricity} onChange={handleInputChange} className="pl-10" />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="miscellaneous">Misc (OMR)</Label>
+                <Label>Miscellaneous (OMR)</Label>
                 <div className="relative">
                   <Plus className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input id="miscellaneous" name="miscellaneous" type="number" step="0.001" value={formData.miscellaneous} onChange={handleInputChange} className="pl-10" placeholder="0.000" />
+                  <Input name="miscellaneous" type="number" step="0.001" value={formData.miscellaneous} onChange={handleInputChange} className="pl-10" />
                 </div>
               </div>
             </div>
-
-            {displayMonth && (
-              <div className="bg-primary/5 p-6 rounded-xl border border-primary/10 flex flex-col md:flex-row justify-between items-center gap-4">
-                <div className="text-center md:text-left">
-                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Snapshot Total ({displayMonth})</p>
-                  <p className="text-3xl font-black text-primary">
-                    {(parseFloat(formData.wifi || '0') + parseFloat(formData.water || '0') + parseFloat(formData.electricity || '0') + parseFloat(formData.miscellaneous || '0')).toFixed(3)} OMR
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" className="gap-2" onClick={(e) => handleSaveBill(e, false)} disabled={isSaving}>
-                    Save Draft
-                  </Button>
-                  <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90" onClick={(e) => handleSaveBill(e, true)} disabled={isSaving}>
-                    <Send className="h-4 w-4" /> Publish to Dashboard
-                  </Button>
-                </div>
+            <div className="bg-primary/5 p-6 rounded-xl border border-primary/10 flex flex-col md:flex-row justify-between items-center gap-4">
+              <div className="text-center md:text-left">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Snapshot Total</p>
+                <p className="text-3xl font-black text-primary">
+                  {(parseFloat(formData.wifi || '0') + parseFloat(formData.water || '0') + parseFloat(formData.electricity || '0') + parseFloat(formData.miscellaneous || '0')).toFixed(3)} OMR
+                </p>
               </div>
-            )}
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={(e) => handleSaveBill(e, false)} disabled={isSaving}>Save Draft</Button>
+                <Button className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2" onClick={(e) => handleSaveBill(e, true)} disabled={isSaving}>
+                  <Send className="h-4 w-4" /> Publish to Dashboard
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
