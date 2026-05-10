@@ -33,8 +33,9 @@ export default function CurrentUtilityPage() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [isFormDirty, setIsFormDirty] = useState(false);
+  const [displayMonth, setDisplayMonth] = useState(''); // Format: MM/YYYY
   const [formData, setFormData] = useState({
-    monthYear: '',
+    monthYear: '', // Format: YYYY-MM (Storage Format)
     wifi: '',
     water: '',
     electricity: '',
@@ -75,33 +76,41 @@ export default function CurrentUtilityPage() {
 
   const { data: activeSnapshots, loading: billsLoading } = useCollection(activeSnapshotQuery);
 
+  // Helper to convert Storage (YYYY-MM) to Display (MM/YYYY)
+  const toDisplay = (storage: string) => {
+    if (!storage) return '';
+    const parts = storage.split('-');
+    return parts.length === 2 ? `${parts[1]}/${parts[0]}` : storage;
+  };
+
+  // Helper to convert Display (MM/YYYY) to Storage (YYYY-MM)
+  const toStorage = (display: string) => {
+    const parts = display.split('/');
+    if (parts.length === 2) {
+      const mm = parts[0].padStart(2, '0');
+      const yyyy = parts[1];
+      return `${yyyy}-${mm}`;
+    }
+    return display;
+  };
+
   useEffect(() => {
-    // Only initialize once when data arrives
     if (billsLoading || initialized.current) return;
 
     if (activeSnapshots && activeSnapshots.length > 0) {
       const bill = activeSnapshots[0] as any;
+      const sMonth = bill.monthYear || '';
       setFormData({
-        monthYear: bill.monthYear || '',
+        monthYear: sMonth,
         wifi: bill.wifi?.toString() || '',
         water: bill.water?.toString() || '',
         electricity: bill.electricity?.toString() || '',
         miscellaneous: bill.miscellaneous?.toString() || '0'
       });
-      initialized.current = true;
-    } else if (!billsLoading) {
-      // If no snapshot exists, only set a default IF the form is currently empty
-      if (!formData.monthYear) {
-        const now = new Date();
-        const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-        setFormData(prev => ({
-          ...prev,
-          monthYear: defaultMonth
-        }));
-      }
-      initialized.current = true;
+      setDisplayMonth(toDisplay(sMonth));
     }
-  }, [activeSnapshots, billsLoading, formData.monthYear]);
+    initialized.current = true;
+  }, [activeSnapshots, billsLoading]);
 
   useEffect(() => {
     if (!userLoading && !profileLoading) {
@@ -123,9 +132,30 @@ export default function CurrentUtilityPage() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setDisplayMonth(val);
+    setIsFormDirty(true);
+    // Sync with storage format if valid
+    const storageVal = toStorage(val);
+    setFormData(prev => ({ ...prev, monthYear: storageVal }));
+  };
+
   const handleSaveBill = async (e: React.FormEvent, showOnDashboard: boolean) => {
     e.preventDefault();
     if (!db || !isSuperAdmin) return;
+
+    const storageMonth = toStorage(displayMonth);
+    const monthRegex = /^\d{4}-\d{2}$/;
+    
+    if (!monthRegex.test(storageMonth)) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Format",
+        description: "Please enter month in MM/YYYY format (e.g. 04/2026).",
+      });
+      return;
+    }
 
     setIsSaving(true);
 
@@ -136,7 +166,7 @@ export default function CurrentUtilityPage() {
     const total = wifi + water + electricity + misc;
 
     const billData = {
-      monthYear: formData.monthYear,
+      monthYear: storageMonth,
       wifi,
       water,
       electricity,
@@ -146,15 +176,15 @@ export default function CurrentUtilityPage() {
       isSnapshot: showOnDashboard
     };
 
-    const billRef = doc(db, 'utility_bills', formData.monthYear);
+    const billRef = doc(db, 'utility_bills', storageMonth);
 
     setDoc(billRef, billData, { merge: true })
       .then(() => {
         toast({
           title: showOnDashboard ? "Current Billing Month Updated" : "Draft Saved",
           description: showOnDashboard 
-            ? `Active cycle for ${formData.monthYear} is now the primary dashboard snapshot.`
-            : `Information for ${formData.monthYear} has been saved as a hidden draft.`,
+            ? `Active cycle for ${displayMonth} is now the primary dashboard snapshot.`
+            : `Information for ${displayMonth} has been saved as a hidden draft.`,
         });
         setIsFormDirty(false);
       })
@@ -200,15 +230,14 @@ export default function CurrentUtilityPage() {
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="monthYear">Billing Month</Label>
+                <Label htmlFor="monthYear">Billing Month (MM/YYYY)</Label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input 
                     id="monthYear" 
-                    name="monthYear" 
-                    type="month" 
-                    value={formData.monthYear} 
-                    onChange={handleInputChange} 
+                    placeholder="e.g. 04/2026"
+                    value={displayMonth} 
+                    onChange={handleMonthChange} 
                     className="pl-10" 
                     required 
                   />
@@ -247,10 +276,10 @@ export default function CurrentUtilityPage() {
               </div>
             </div>
 
-            {formData.monthYear && (
+            {displayMonth && (
               <div className="bg-primary/5 p-6 rounded-xl border border-primary/10 flex flex-col md:flex-row justify-between items-center gap-4">
                 <div className="text-center md:text-left">
-                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Snapshot Total ({formData.monthYear})</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Snapshot Total ({displayMonth})</p>
                   <p className="text-3xl font-black text-primary">
                     {(parseFloat(formData.wifi || '0') + parseFloat(formData.water || '0') + parseFloat(formData.electricity || '0') + parseFloat(formData.miscellaneous || '0')).toFixed(3)} OMR
                   </p>
