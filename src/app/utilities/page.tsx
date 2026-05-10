@@ -13,7 +13,6 @@ import {
   Loader2, 
   Save, 
   Calendar,
-  Send,
   CalendarRange
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -105,7 +104,7 @@ export default function CurrentUtilityPage() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSaveBill = async (e: React.FormEvent, isPublished: boolean) => {
+  const handleSaveBill = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!db || !isSuperAdmin) return;
 
@@ -134,7 +133,7 @@ export default function CurrentUtilityPage() {
       miscellaneous: misc,
       total: wifi + water + electricity + misc,
       updatedAt: serverTimestamp(),
-      status: isPublished ? 'Released' : 'Draft'
+      status: 'Released' // Automatically released upon saving
     };
 
     const billRef = doc(db, 'utility_bills', formData.monthYear);
@@ -142,8 +141,8 @@ export default function CurrentUtilityPage() {
     setDoc(billRef, billData, { merge: true })
       .then(() => {
         toast({ 
-          title: isPublished ? "Bill Released" : "Draft Saved", 
-          description: `Records for the period starting ${formData.startDate} have been updated.` 
+          title: "Record Saved", 
+          description: `Utility data for the period starting ${formData.startDate} has been updated and released.` 
         });
       })
       .catch((err) => {
@@ -257,12 +256,10 @@ export default function CurrentUtilityPage() {
                   {(parseFloat(formData.wifi || '0') + parseFloat(formData.water || '0') + parseFloat(formData.electricity || '0') + parseFloat(formData.miscellaneous || '0')).toFixed(3)} OMR
                 </p>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={(e) => handleSaveBill(e, false)} disabled={isSaving || isLoadingRecord}>Save Draft</Button>
-                <Button className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2" onClick={(e) => handleSaveBill(e, true)} disabled={isSaving || isLoadingRecord}>
-                  <Send className="h-4 w-4" /> Release Statement
-                </Button>
-              </div>
+              <Button className="w-full md:w-auto min-w-[150px] gap-2" onClick={handleSaveBill} disabled={isSaving || isLoadingRecord}>
+                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Save Record
+              </Button>
             </div>
           </CardContent>
         </Card>
