@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -14,8 +13,6 @@ import {
   CalendarRange,
   CheckCircle2,
   Table as TableIcon,
-  BarChart3,
-  TrendingUp,
   AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -35,13 +32,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import Link from 'next/link';
 
 export default function CurrentUtilityPage() {
@@ -88,13 +78,6 @@ export default function CurrentUtilityPage() {
   }, [db, isSuperAdmin]);
 
   const { data: residents, loading: residentsLoading } = useCollection(residentsQuery);
-
-  const historyQuery = useMemoFirebase(() => {
-    if (!db) return null;
-    return query(collection(db, 'utility_bills'), where('status', '==', 'Released'), orderBy('startDate', 'asc'), limit(6));
-  }, [db]);
-
-  const { data: history } = useCollection(historyQuery);
 
   useEffect(() => {
     if (!db || !user) return;
@@ -180,21 +163,6 @@ export default function CurrentUtilityPage() {
     }).sort((a, b) => a.name.localeCompare(b.name));
   }, [residents, formData]);
 
-  const chartData = useMemo(() => {
-    if (!history) return [];
-    return history.map(h => ({
-      month: new Date(h.startDate).toLocaleDateString('en-US', { month: 'short' }),
-      total: h.total
-    }));
-  }, [history]);
-
-  const chartConfig = {
-    total: {
-      label: "Total Cost",
-      color: "hsl(var(--primary))",
-    },
-  } satisfies ChartConfig;
-
   const handleSaveAndRelease = async () => {
     if (!db || !isSuperAdmin) return;
     setIsSaving(true);
@@ -277,41 +245,6 @@ export default function CurrentUtilityPage() {
              </div>
           )}
         </div>
-
-        {chartData.length > 1 && (
-          <Card className="shadow-lg border-none overflow-hidden rounded-2xl md:rounded-[2rem] bg-white">
-            <CardHeader className="p-6 md:p-8">
-              <CardTitle className="text-lg md:text-xl font-black text-slate-900 flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-primary" /> Consumption Trends
-              </CardTitle>
-              <CardDescription className="text-xs font-bold text-slate-500">
-                Visual history of total household utility costs (last 6 months).
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-6 pt-0">
-              <div className="h-[200px] w-full">
-                <ChartContainer config={chartConfig}>
-                  <BarChart data={chartData}>
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.1} />
-                    <XAxis 
-                      dataKey="month" 
-                      tickLine={false} 
-                      axisLine={false} 
-                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10, fontWeight: 700 }}
-                    />
-                    <YAxis 
-                      tickLine={false} 
-                      axisLine={false} 
-                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10, fontWeight: 700 }}
-                    />
-                    <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                    <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ChartContainer>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         <div className="space-y-6 md:space-y-8">
           <Card className="shadow-2xl border-none overflow-hidden rounded-2xl md:rounded-[2rem] bg-white">
