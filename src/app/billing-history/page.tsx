@@ -17,14 +17,16 @@ import {
   PlusCircle,
   CheckCircle2,
   X,
-  Table as TableIcon
+  Table as TableIcon,
+  Clock,
+  UserCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, query, doc, addDoc, setDoc, deleteDoc, orderBy, where, serverTimestamp } from 'firebase/firestore';
+import { collection, query, doc, addDoc, setDoc, deleteDoc, orderBy, where, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -54,6 +56,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 
 export default function BillingHistoryPage() {
@@ -144,6 +147,8 @@ export default function BillingHistoryPage() {
     const elecPerDay = totalManDays > 0 ? elecTotal / totalManDays : 0;
     const miscPerDay = totalMiscManDays > 0 ? miscTotal / totalMiscManDays : 0;
 
+    const currentBill = bills?.find(b => (b as any).id === editingBillId);
+
     return residents.map(r => {
       const resDays = r.billingDays ?? 30;
       const resWifi = wifiSharePerPerson;
@@ -153,12 +158,14 @@ export default function BillingHistoryPage() {
       const total = (r.monthlyRent || 0) + resWifi + resWater + resElec + resMisc;
 
       return {
+        id: r.id,
         name: `${r.firstName} ${r.lastName}`,
         room: r.roomUnit || 'N/A',
-        total: total
+        total: total,
+        isPaid: (currentBill as any)?.paidResidents?.includes(r.id)
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
-  }, [residents, formData]);
+  }, [residents, formData, bills, editingBillId]);
 
   const handleOpenAdd = () => {
     setEditingBillId(null);
@@ -236,6 +243,28 @@ export default function BillingHistoryPage() {
         setBillToDelete(null);
       })
       .finally(() => setIsDeleting(false));
+  };
+
+  const togglePaymentStatus = (residentId: string) => {
+    if (!db || !editingBillId || !isSuperAdmin) return;
+    
+    const bill = bills?.find(b => (b as any).id === editingBillId);
+    if (!bill) return;
+
+    const currentPaid = (bill as any).paidResidents || [];
+    const newPaid = currentPaid.includes(residentId)
+      ? currentPaid.filter((id: string) => id !== residentId)
+      : [...currentPaid, residentId];
+
+    const docRef = doc(db, 'utility_bills', editingBillId);
+    updateDoc(docRef, { paidResidents: newPaid })
+      .catch(async (serverError) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'update',
+          requestResourceData: { paidResidents: newPaid }
+        }));
+      });
   };
 
   if (userLoading || profileLoading) {
@@ -384,15 +413,16 @@ export default function BillingHistoryPage() {
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-2">
                   <TableIcon className="h-4 w-4 text-indigo-600" />
-                  <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest">Historical Split Preview</span>
+                  <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest">Payment & Split History</span>
                 </div>
                 <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                  <div className="max-h-[300px] overflow-y-auto">
+                  <div className="max-h-[350px] overflow-y-auto">
                     <Table>
-                      <TableHeader className="bg-slate-50 sticky top-0">
+                      <TableHeader className="bg-slate-50 sticky top-0 z-10">
                         <TableRow>
                           <TableHead className="text-[9px] font-black px-4">Resident</TableHead>
-                          <TableHead className="text-right text-[9px] font-black px-4">Total Share</TableHead>
+                          <TableHead className="text-right text-[9px] font-black px-4">Share (OMR)</TableHead>
+                          <TableHead className="text-right text-[9px] font-black px-4">Status</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -400,6 +430,14 @@ export default function BillingHistoryPage() {
                           <TableRow key={idx}>
                             <TableCell className="text-xs font-bold py-3 px-4">{s.name}</TableCell>
                             <TableCell className="text-right text-xs font-black text-indigo-600 px-4">{s.total.toFixed(3)}</TableCell>
+                            <TableCell className="text-right px-4">
+                              <Badge 
+                                onClick={() => editingBillId && togglePaymentStatus(s.id)}
+                                className={`cursor-pointer font-black uppercase text-[8px] tracking-widest py-1 px-2 rounded-full transition-all active:scale-95 ${!editingBillId ? 'opacity-50 cursor-not-allowed' : s.isPaid ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-amber-100 text-amber-700 hover:bg-amber-200'}`}
+                              >
+                                {s.isPaid ? 'Paid' : 'Pending'}
+                              </Badge>
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

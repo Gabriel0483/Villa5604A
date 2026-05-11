@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -13,14 +14,15 @@ import {
   CalendarRange,
   CheckCircle2,
   Table as TableIcon,
-  AlertCircle
+  AlertCircle,
+  Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFirestore, useMemoFirebase, useUser, useDoc, useCollection } from '@/firebase';
-import { doc, collection, query, orderBy, limit, getDocs, setDoc, serverTimestamp, where } from 'firebase/firestore';
+import { doc, collection, query, orderBy, limit, setDoc, serverTimestamp, where, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
@@ -32,6 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 
 export default function CurrentUtilityPage() {
@@ -40,9 +43,16 @@ export default function CurrentUtilityPage() {
   const db = useFirestore();
   const { toast } = useToast();
 
-  const [isLoadingRecord, setIsLoadingRecord] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [latestDocId, setLatestDocId] = useState<string | null>(null);
+
+  // Use real-time collection for the latest bill to handle payment toggles instantly
+  const latestBillQuery = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return query(collection(db, 'utility_bills'), orderBy('startDate', 'desc'), limit(1));
+  }, [db, user]);
+
+  const { data: bills, loading: billsLoading } = useCollection(latestBillQuery);
+  const latestBill = bills && bills.length > 0 ? bills[0] : null;
 
   const [formData, setFormData] = useState({
     startDate: '',
@@ -52,6 +62,19 @@ export default function CurrentUtilityPage() {
     electricity: '',
     miscellaneous: '0'
   });
+
+  useEffect(() => {
+    if (latestBill) {
+      setFormData({
+        startDate: latestBill.startDate || '',
+        endDate: latestBill.endDate || '',
+        wifi: latestBill.wifi?.toString() || '',
+        water: latestBill.water?.toString() || '',
+        electricity: latestBill.electricity?.toString() || '',
+        miscellaneous: latestBill.miscellaneous?.toString() || '0'
+      });
+    }
+  }, [latestBill]);
 
   const userProfileRef = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -78,41 +101,6 @@ export default function CurrentUtilityPage() {
   }, [db, isSuperAdmin]);
 
   const { data: residents, loading: residentsLoading } = useCollection(residentsQuery);
-
-  useEffect(() => {
-    if (!db || !user) return;
-
-    const fetchLatest = async () => {
-      setIsLoadingRecord(true);
-      try {
-        const q = query(
-          collection(db, 'utility_bills'), 
-          orderBy('startDate', 'desc'), 
-          limit(1)
-        );
-        const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
-          const docSnap = snapshot.docs[0];
-          const data = docSnap.data();
-          setLatestDocId(docSnap.id);
-          setFormData({
-            startDate: data.startDate || '',
-            endDate: data.endDate || '',
-            wifi: data.wifi?.toString() || '',
-            water: data.water?.toString() || '',
-            electricity: data.electricity?.toString() || '',
-            miscellaneous: data.miscellaneous?.toString() || '0'
-          });
-        }
-      } catch (error) {
-        // Log errors silently
-      } finally {
-        setIsLoadingRecord(false);
-      }
-    };
-
-    fetchLatest();
-  }, [db, user]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -151,17 +139,14 @@ export default function CurrentUtilityPage() {
       const total = (r.monthlyRent || 0) + resWifi + resWater + resElec + resMisc;
 
       return {
+        id: r.id,
         name: `${r.firstName} ${r.lastName}`,
         room: r.roomUnit || 'N/A',
-        rent: r.monthlyRent || 0,
-        wifi: resWifi,
-        water: resWater,
-        elec: resElec,
-        misc: resMisc,
-        total: total
+        total: total,
+        isPaid: latestBill?.paidResidents?.includes(r.id)
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
-  }, [residents, formData]);
+  }, [residents, formData, latestBill]);
 
   const handleSaveAndRelease = async () => {
     if (!db || !isSuperAdmin) return;
@@ -182,7 +167,7 @@ export default function CurrentUtilityPage() {
       updatedAt: serverTimestamp()
     };
 
-    const docRef = latestDocId ? doc(db, 'utility_bills', latestDocId) : doc(collection(db, 'utility_bills'));
+    const docRef = latestBill ? doc(db, 'utility_bills', (latestBill as any).id) : doc(collection(db, 'utility_bills'));
 
     setDoc(docRef, billData, { merge: true })
       .then(() => {
@@ -190,7 +175,6 @@ export default function CurrentUtilityPage() {
           title: "Bills Released",
           description: `Utility record for ${monthYear} has been saved and released.`,
         });
-        if (!latestDocId) setLatestDocId(docRef.id);
       })
       .catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
@@ -205,7 +189,26 @@ export default function CurrentUtilityPage() {
       });
   };
 
-  if (userLoading || profileLoading) {
+  const togglePaymentStatus = (residentId: string) => {
+    if (!db || !latestBill || !isSuperAdmin) return;
+    
+    const currentPaid = (latestBill as any).paidResidents || [];
+    const newPaid = currentPaid.includes(residentId)
+      ? currentPaid.filter((id: string) => id !== residentId)
+      : [...currentPaid, residentId];
+
+    const docRef = doc(db, 'utility_bills', (latestBill as any).id);
+    updateDoc(docRef, { paidResidents: newPaid })
+      .catch(async (serverError) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'update',
+          requestResourceData: { paidResidents: newPaid }
+        }));
+      });
+  };
+
+  if (userLoading || profileLoading || (billsLoading && !latestBill)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-slate-50">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -248,11 +251,6 @@ export default function CurrentUtilityPage() {
 
         <div className="space-y-6 md:space-y-8">
           <Card className="shadow-2xl border-none overflow-hidden rounded-2xl md:rounded-[2rem] bg-white">
-            {isLoadingRecord && (
-              <div className="absolute inset-0 bg-white/50 z-20 flex items-center justify-center backdrop-blur-[2px]">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
-              </div>
-            )}
             <CardHeader className="p-6 md:p-8 bg-slate-900 text-white">
               <CardTitle className="text-xl md:text-2xl font-black text-white">Household Totals</CardTitle>
               <CardDescription className="text-slate-400 font-bold text-xs">
@@ -387,21 +385,31 @@ export default function CurrentUtilityPage() {
                         <TableHead className="font-black text-slate-900 uppercase text-[8px] md:text-[10px] tracking-widest px-4 md:px-8 py-3 md:py-4">Resident</TableHead>
                         <TableHead className="font-black text-slate-900 uppercase text-[8px] md:text-[10px] tracking-widest py-3 md:py-4">Room</TableHead>
                         <TableHead className="text-right font-black text-slate-900 uppercase text-[8px] md:text-[10px] tracking-widest px-4 md:px-8 py-3 md:py-4">Total (OMR)</TableHead>
+                        <TableHead className="text-right font-black text-slate-900 uppercase text-[8px] md:text-[10px] tracking-widest px-4 md:px-8 py-3 md:py-4">Payment</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {residentsLoading ? (
-                        <TableRow><TableCell colSpan={3} className="text-center py-10"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /></TableCell></TableRow>
+                        <TableRow><TableCell colSpan={4} className="text-center py-10"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /></TableCell></TableRow>
                       ) : statementPreview.length > 0 ? (
                         statementPreview.map((s, idx) => (
                           <TableRow key={idx} className="hover:bg-indigo-50/30 transition-colors">
                             <TableCell className="font-bold text-slate-900 px-4 md:px-8 py-4 md:py-6">{s.name}</TableCell>
                             <TableCell className="font-black text-slate-600 uppercase text-[10px] md:text-xs">{s.room}</TableCell>
                             <TableCell className="text-right font-black text-primary px-4 md:px-8 py-4 md:py-6 text-sm md:text-lg">{s.total.toFixed(3)}</TableCell>
+                            <TableCell className="text-right px-4 md:px-8 py-4 md:py-6">
+                              <Badge 
+                                onClick={() => togglePaymentStatus(s.id)}
+                                className={`cursor-pointer font-black uppercase text-[8px] md:text-[9px] tracking-widest py-1.5 px-3 rounded-full transition-all active:scale-95 ${s.isPaid ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-amber-100 text-amber-700 hover:bg-amber-200 border-amber-200'}`}
+                              >
+                                {s.isPaid ? <CheckCircle2 className="h-2.5 w-2.5 mr-1" /> : <Clock className="h-2.5 w-2.5 mr-1" />}
+                                {s.isPaid ? 'Paid' : 'Pending'}
+                              </Badge>
+                            </TableCell>
                           </TableRow>
                         ))
                       ) : (
-                        <TableRow><TableCell colSpan={3} className="text-center py-10 italic text-slate-500 font-bold text-xs">No residents found in registry.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={4} className="text-center py-10 italic text-slate-500 font-bold text-xs">No residents found in registry.</TableCell></TableRow>
                       )}
                     </TableBody>
                   </Table>
