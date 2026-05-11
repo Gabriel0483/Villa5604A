@@ -17,7 +17,8 @@ import {
   Cake,
   Wrench,
   UserCheck,
-  History
+  History,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,6 +40,7 @@ export default function Home() {
   const { user, loading: userLoading } = useUser();
   const router = useRouter();
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
 
   useEffect(() => {
     if (!userLoading && !user) {
@@ -46,6 +48,14 @@ export default function Home() {
       router.replace('/login');
     }
   }, [user, userLoading, router]);
+
+  // Handle Intro Animation Timeout
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowIntro(false);
+    }, 4000); // 4 seconds intro
+    return () => clearTimeout(timer);
+  }, []);
 
   if (userLoading || isRedirecting) {
     return (
@@ -58,7 +68,35 @@ export default function Home() {
 
   if (!user) return null;
 
-  return <DashboardContent />;
+  return (
+    <>
+      {showIntro && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900 overflow-hidden animate-out fade-out duration-1000 delay-[3000ms]">
+          <div className="flex flex-col items-center gap-6 animate-in zoom-in-95 fade-in duration-1000">
+            <div className="p-4 bg-primary/20 rounded-[2rem] border border-primary/30 shadow-2xl animate-bounce">
+              <Building2 className="h-16 w-16 text-primary" />
+            </div>
+            <div className="text-center space-y-2">
+              <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter animate-in slide-in-from-bottom-8 duration-1000 delay-300">
+                Welcome to <span className="text-primary">Villa 5604</span>
+              </h1>
+              <p className="text-slate-400 font-black uppercase tracking-[0.4em] text-[10px] md:text-xs animate-in fade-in duration-1000 delay-700">
+                Residential Management Portal
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-primary/60 mt-4 animate-pulse">
+              <Sparkles className="h-4 w-4" />
+              <div className="h-1 w-24 bg-primary/20 rounded-full overflow-hidden">
+                <div className="h-full bg-primary animate-progress-fast" />
+              </div>
+              <Sparkles className="h-4 w-4" />
+            </div>
+          </div>
+        </div>
+      )}
+      <DashboardContent />
+    </>
+  );
 }
 
 function DashboardContent() {
