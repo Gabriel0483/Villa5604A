@@ -14,7 +14,6 @@ import {
   CalendarRange,
   CheckCircle2,
   Table as TableIcon,
-  Sparkles,
   BarChart3,
   TrendingUp,
   AlertCircle
@@ -42,8 +41,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
-import { suggestPro_rata_methodology, type ProRataOutput } from '@/ai/flows/suggest-pro-rata-methodology';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import Link from 'next/link';
 
 export default function CurrentUtilityPage() {
@@ -54,8 +52,6 @@ export default function CurrentUtilityPage() {
 
   const [isLoadingRecord, setIsLoadingRecord] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isSuggesting, setIsSuggesting] = useState(false);
-  const [aiSuggestion, setAiSuggestion] = useState<ProRataOutput | null>(null);
   const [latestDocId, setLatestDocId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
@@ -144,28 +140,6 @@ export default function CurrentUtilityPage() {
     const val = (parseFloat(formData.wifi || '0') + parseFloat(formData.water || '0') + parseFloat(formData.electricity || '0') + parseFloat(formData.miscellaneous || '0'));
     return isNaN(val) ? "0.000" : val.toFixed(3);
   }, [formData]);
-
-  const handleAiSuggest = async () => {
-    if (!residents || residents.length === 0) return;
-    setIsSuggesting(true);
-    try {
-      const result = await suggestPro_rata_methodology({
-        totalAmount: parseFloat(calculatedTotal),
-        monthYear: formData.endDate?.substring(0, 7) || new Date().toISOString().substring(0, 7),
-        residents: residents.map(r => ({
-          name: `${r.firstName} ${r.lastName}`,
-          roomUnit: r.roomUnit,
-          monthlyRent: r.monthlyRent
-        }))
-      });
-      setAiSuggestion(result);
-      toast({ title: "AI Split Generated", description: "Review the suggested methodology below." });
-    } catch (err) {
-      toast({ variant: "destructive", title: "AI Suggestion Failed", description: "Could not generate split suggestion." });
-    } finally {
-      setIsSuggesting(false);
-    }
-  };
 
   const statementPreview = useMemo(() => {
     if (!residents || residents.length === 0) return [];
@@ -292,15 +266,6 @@ export default function CurrentUtilityPage() {
           </div>
           {isSuperAdmin && (
              <div className="flex flex-col sm:flex-row gap-2">
-               <Button 
-                  variant="outline"
-                  onClick={handleAiSuggest}
-                  disabled={isSuggesting || parseFloat(calculatedTotal) <= 0}
-                  className="w-full md:w-auto gap-2 font-black uppercase tracking-widest text-[10px] h-12 px-6 border-primary/20 text-primary hover:bg-primary/5 rounded-xl"
-                >
-                  {isSuggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                  AI Split Helper
-                </Button>
                 <Button 
                   onClick={handleSaveAndRelease} 
                   disabled={isSaving || !formData.startDate || !formData.endDate}
@@ -344,31 +309,6 @@ export default function CurrentUtilityPage() {
                   </BarChart>
                 </ChartContainer>
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {aiSuggestion && isSuperAdmin && (
-          <Card className="shadow-lg border-primary/20 bg-primary/5 rounded-2xl md:rounded-[2rem] overflow-hidden animate-in zoom-in-95 duration-500">
-            <CardHeader className="bg-primary text-white p-6">
-              <CardTitle className="text-lg font-black flex items-center gap-2">
-                <Sparkles className="h-5 w-5" /> AI Methodology Suggestion
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <div className="bg-white/50 p-4 rounded-xl border border-primary/10">
-                <p className="text-sm text-slate-800 font-bold leading-relaxed">{aiSuggestion.methodology}</p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {aiSuggestion.allocations.map((alloc, i) => (
-                  <div key={i} className="p-3 bg-white rounded-lg border border-primary/10 shadow-sm flex flex-col gap-1">
-                    <span className="text-[10px] font-black uppercase text-primary tracking-widest">{alloc.residentName}</span>
-                    <span className="text-lg font-black text-slate-900">{alloc.amount.toFixed(3)} OMR</span>
-                    <span className="text-[10px] font-medium text-slate-500 leading-tight italic">{alloc.explanation}</span>
-                  </div>
-                ))}
-              </div>
-              <Button variant="ghost" onClick={() => setAiSuggestion(null)} className="w-full text-xs font-black text-primary uppercase">Dismiss Suggestion</Button>
             </CardContent>
           </Card>
         )}
