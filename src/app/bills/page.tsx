@@ -175,7 +175,7 @@ export default function MyBillsPage() {
           </Link>
           <h1 className="text-3xl md:text-5xl font-black text-slate-900 flex items-center gap-3 md:gap-4 tracking-tighter">
             <div className="p-2 md:p-3 bg-indigo-100 rounded-xl md:rounded-2xl text-indigo-600 shadow-sm">
-              <Receipt Icon className="h-6 w-6 md:h-10 md:w-10" />
+              <ReceiptIcon className="h-6 w-6 md:h-10 md:w-10" />
             </div>
             My Bills
           </h1>
@@ -265,7 +265,7 @@ export default function MyBillsPage() {
                                 <p className="text-[8px] md:text-[10px] font-black text-white/70 uppercase tracking-[0.2em] md:tracking-[0.3em]">RESIDENTIAL PORTAL</p>
                               </div>
                               <div className="text-center md:text-right space-y-1 md:space-y-2">
-                                <h2 className="text-xl md:text-2xl font-black leading-none">{calculatedStatement.myEntry.name}</h2>
+                                <h2 className="text-xl md:text-2xl font-black leading-none text-indigo-50">{calculatedStatement.myEntry.name}</h2>
                                 <p className="text-xs md:text-sm font-bold text-white/80">Room Unit: {calculatedStatement.myEntry.room}</p>
                                 <div className="pt-2 md:pt-4">
                                   {calculatedStatement.myEntry.isPaid ? 
