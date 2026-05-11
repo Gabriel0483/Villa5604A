@@ -24,19 +24,36 @@
     },
     "UtilityBill": {
       "title": "Utility Bill",
-      "description": "Monthly utility expenses for the shared household",
+      "description": "Monthly utility expenses for the shared household with captured snapshots of resident shares",
       "type": "object",
       "properties": {
         "monthYear": { "type": "string" },
-        "startDate": { "type": "string", "format": "date", "description": "Active Billing Start Date" },
-        "endDate": { "type": "string", "format": "date", "description": "Active Billing End Date" },
+        "startDate": { "type": "string", "format": "date" },
+        "endDate": { "type": "string", "format": "date" },
         "wifi": { "type": "number" },
         "water": { "type": "number" },
         "electricity": { "type": "number" },
         "miscellaneous": { "type": "number" },
         "total": { "type": "number" },
         "status": { "type": "string", "enum": ["Draft", "Released"] },
-        "paidResidents": { "type": "array", "items": { "type": "string" }, "description": "List of user IDs who have paid their share" },
+        "paidResidents": { "type": "array", "items": { "type": "string" } },
+        "itemizedStatements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "residentId": { "type": "string" },
+              "residentName": { "type": "string" },
+              "roomUnit": { "type": "string" },
+              "baseRent": { "type": "number" },
+              "wifi": { "type": "number" },
+              "water": { "type": "number" },
+              "electricity": { "type": "number" },
+              "misc": { "type": "number" },
+              "total": { "type": "number" }
+            }
+          }
+        },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["monthYear", "startDate", "endDate", "wifi", "water", "electricity"]

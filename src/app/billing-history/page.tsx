@@ -10,23 +10,20 @@ import {
   Plus, 
   Trash2, 
   Edit3, 
-  Calendar,
   Wifi,
   Droplets,
   Lightbulb,
   PlusCircle,
   CheckCircle2,
-  X,
   Table as TableIcon,
-  Clock,
-  UserCheck
+  Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, query, doc, addDoc, setDoc, deleteDoc, orderBy, where, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { collection, query, doc, setDoc, deleteDoc, orderBy, where, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -129,7 +126,18 @@ export default function BillingHistoryPage() {
     return isNaN(val) ? "0.000" : val.toFixed(3);
   }, [formData]);
 
+  const currentBill = useMemo(() => bills?.find(b => (b as any).id === editingBillId), [bills, editingBillId]);
+
   const statementPreview = useMemo(() => {
+    // If the bill has captured statements, prioritize them
+    if (currentBill?.itemizedStatements) {
+      return currentBill.itemizedStatements.map((s: any) => ({
+        ...s,
+        isPaid: (currentBill as any).paidResidents?.includes(s.residentId)
+      }));
+    }
+
+    // Fallback to recalculation ONLY for new bills or legacy bills without snapshots
     if (!residents || residents.length === 0) return [];
     
     const wifiTotal = parseFloat(formData.wifi || '0');
@@ -147,25 +155,29 @@ export default function BillingHistoryPage() {
     const elecPerDay = totalManDays > 0 ? elecTotal / totalManDays : 0;
     const miscPerDay = totalMiscManDays > 0 ? miscTotal / totalMiscManDays : 0;
 
-    const currentBill = bills?.find(b => (b as any).id === editingBillId);
-
     return residents.map(r => {
       const resDays = r.billingDays ?? 30;
       const resWifi = wifiSharePerPerson;
       const resWater = waterPerDay * resDays;
       const resElec = elecPerDay * resDays;
       const resMisc = (r.isMiscApplicable !== false) ? (miscPerDay * resDays) : 0;
-      const total = (r.monthlyRent || 0) + resWifi + resWater + resElec + resMisc;
+      const baseRent = r.monthlyRent || 0;
+      const total = baseRent + resWifi + resWater + resElec + resMisc;
 
       return {
-        id: r.id,
-        name: `${r.firstName} ${r.lastName}`,
-        room: r.roomUnit || 'N/A',
+        residentId: r.id,
+        residentName: `${r.firstName} ${r.lastName}`,
+        roomUnit: r.roomUnit || 'N/A',
+        baseRent,
+        wifi: resWifi,
+        water: resWater,
+        electricity: resElec,
+        misc: resMisc,
         total: total,
         isPaid: (currentBill as any)?.paidResidents?.includes(r.id)
       };
-    }).sort((a, b) => a.name.localeCompare(b.name));
-  }, [residents, formData, bills, editingBillId]);
+    }).sort((a, b) => a.residentName.localeCompare(b.residentName));
+  }, [residents, formData, currentBill]);
 
   const handleOpenAdd = () => {
     setEditingBillId(null);
@@ -209,6 +221,17 @@ export default function BillingHistoryPage() {
       miscellaneous: parseFloat(formData.miscellaneous || '0'),
       total: parseFloat(calculatedTotal),
       status: 'Released',
+      itemizedStatements: statementPreview.map(s => ({
+        residentId: s.residentId,
+        residentName: s.residentName,
+        roomUnit: s.roomUnit,
+        baseRent: s.baseRent,
+        wifi: s.wifi,
+        water: s.water,
+        electricity: s.electricity,
+        misc: s.misc,
+        total: s.total
+      })),
       updatedAt: serverTimestamp()
     };
 
@@ -218,7 +241,7 @@ export default function BillingHistoryPage() {
       .then(() => {
         toast({
           title: editingBillId ? "Bill Updated" : "Past Bill Logged",
-          description: `Utility record for ${monthYear} has been finalized.`,
+          description: `Utility record and snapshots for ${monthYear} have been finalized.`,
         });
         setIsDialogOpen(false);
       })
@@ -428,11 +451,11 @@ export default function BillingHistoryPage() {
                       <TableBody>
                         {statementPreview.map((s, idx) => (
                           <TableRow key={idx}>
-                            <TableCell className="text-xs font-bold py-3 px-4">{s.name}</TableCell>
+                            <TableCell className="text-xs font-bold py-3 px-4">{s.residentName}</TableCell>
                             <TableCell className="text-right text-xs font-black text-indigo-600 px-4">{s.total.toFixed(3)}</TableCell>
                             <TableCell className="text-right px-4">
                               <Badge 
-                                onClick={() => editingBillId && togglePaymentStatus(s.id)}
+                                onClick={() => editingBillId && togglePaymentStatus(s.residentId)}
                                 className={`cursor-pointer font-black uppercase text-[8px] tracking-widest py-1 px-2 rounded-full transition-all active:scale-95 ${!editingBillId ? 'opacity-50 cursor-not-allowed' : s.isPaid ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-amber-100 text-amber-700 hover:bg-amber-200'}`}
                               >
                                 {s.isPaid ? 'Paid' : 'Pending'}

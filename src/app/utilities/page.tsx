@@ -45,7 +45,6 @@ export default function CurrentUtilityPage() {
 
   const [isSaving, setIsSaving] = useState(false);
 
-  // Use real-time collection for the latest bill to handle payment toggles instantly
   const latestBillQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(collection(db, 'utility_bills'), orderBy('startDate', 'desc'), limit(1));
@@ -136,16 +135,22 @@ export default function CurrentUtilityPage() {
       const resWater = waterPerDay * resDays;
       const resElec = elecPerDay * resDays;
       const resMisc = (r.isMiscApplicable !== false) ? (miscPerDay * resDays) : 0;
-      const total = (r.monthlyRent || 0) + resWifi + resWater + resElec + resMisc;
+      const baseRent = r.monthlyRent || 0;
+      const total = baseRent + resWifi + resWater + resElec + resMisc;
 
       return {
-        id: r.id,
-        name: `${r.firstName} ${r.lastName}`,
-        room: r.roomUnit || 'N/A',
+        residentId: r.id,
+        residentName: `${r.firstName} ${r.lastName}`,
+        roomUnit: r.roomUnit || 'N/A',
+        baseRent,
+        wifi: resWifi,
+        water: resWater,
+        electricity: resElec,
+        misc: resMisc,
         total: total,
         isPaid: latestBill?.paidResidents?.includes(r.id)
       };
-    }).sort((a, b) => a.name.localeCompare(b.name));
+    }).sort((a, b) => a.residentName.localeCompare(b.residentName));
   }, [residents, formData, latestBill]);
 
   const handleSaveAndRelease = async () => {
@@ -164,6 +169,17 @@ export default function CurrentUtilityPage() {
       miscellaneous: parseFloat(formData.miscellaneous || '0'),
       total: parseFloat(calculatedTotal),
       status: 'Released',
+      itemizedStatements: statementPreview.map(s => ({
+        residentId: s.residentId,
+        residentName: s.residentName,
+        roomUnit: s.roomUnit,
+        baseRent: s.baseRent,
+        wifi: s.wifi,
+        water: s.water,
+        electricity: s.electricity,
+        misc: s.misc,
+        total: s.total
+      })),
       updatedAt: serverTimestamp()
     };
 
@@ -394,12 +410,12 @@ export default function CurrentUtilityPage() {
                       ) : statementPreview.length > 0 ? (
                         statementPreview.map((s, idx) => (
                           <TableRow key={idx} className="hover:bg-indigo-50/30 transition-colors">
-                            <TableCell className="font-bold text-slate-900 px-4 md:px-8 py-4 md:py-6">{s.name}</TableCell>
-                            <TableCell className="font-black text-slate-600 uppercase text-[10px] md:text-xs">{s.room}</TableCell>
+                            <TableCell className="font-bold text-slate-900 px-4 md:px-8 py-4 md:py-6">{s.residentName}</TableCell>
+                            <TableCell className="font-black text-slate-600 uppercase text-[10px] md:text-xs">{s.roomUnit}</TableCell>
                             <TableCell className="text-right font-black text-primary px-4 md:px-8 py-4 md:py-6 text-sm md:text-lg">{s.total.toFixed(3)}</TableCell>
                             <TableCell className="text-right px-4 md:px-8 py-4 md:py-6">
                               <Badge 
-                                onClick={() => togglePaymentStatus(s.id)}
+                                onClick={() => togglePaymentStatus(s.residentId)}
                                 className={`cursor-pointer font-black uppercase text-[8px] md:text-[9px] tracking-widest py-1.5 px-3 rounded-full transition-all active:scale-95 ${s.isPaid ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-amber-100 text-amber-700 hover:bg-amber-200 border-amber-200'}`}
                               >
                                 {s.isPaid ? <CheckCircle2 className="h-2.5 w-2.5 mr-1" /> : <Clock className="h-2.5 w-2.5 mr-1" />}
