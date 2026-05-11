@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useEffect, useState } from 'react';
@@ -15,7 +16,8 @@ import {
   FileText,
   Cake,
   Wrench,
-  UserCheck
+  UserCheck,
+  History
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -105,6 +107,7 @@ function DashboardContent() {
   const adminModules = [
     { title: 'Tenant Registry', icon: <UserCheck className="h-6 w-6" />, path: '/tenants', label: 'Manage Residents', color: 'blue' },
     { title: 'Latest Bills', icon: <Zap className="h-6 w-6" />, path: '/utilities', label: 'View Latest Records', color: 'amber' },
+    { title: 'Billing Archive', icon: <History className="h-6 w-6" />, path: '/billing-history', label: 'Past Utility Logs', color: 'indigo' },
     { title: 'Birthdays', icon: <Cake className="h-6 w-6" />, path: '/birthdays', label: 'Greet Residents', color: 'rose' },
     { title: 'Manage Issues', icon: <Wrench className="h-6 w-6" />, path: '/repairs', label: 'View Maintenance', color: 'orange' },
   ];
@@ -160,7 +163,7 @@ function DashboardContent() {
                 {profile?.firstName ? `${profile.firstName} ${profile.lastName}` : (user?.email?.split('@')[0])}
               </span>
               <span className="text-[9px] md:text-[10px] text-slate-600 font-bold flex items-center gap-1 justify-end uppercase tracking-tighter">
-                {isSuperAdmin ? <><ShieldCheck className="h-3 w-3 md:h-3.5 md:w-3.5 text-primary" /> Admin</> : <><UserIcon className="h-3 w-3 md:h-3.5 md:w-3.5" /> Resident</>}
+                {isSuperAdmin ? <><ShieldCheck className="h-3.5 w-3.5 text-primary" /> Admin</> : <><UserIcon className="h-3.5 w-3.5" /> Resident</>}
               </span>
             </div>
             
@@ -192,7 +195,19 @@ function DashboardContent() {
 
       <main className="flex-1 container mx-auto p-4 md:p-8 max-w-7xl">
         <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          <div className="mb-6">
+            <Badge variant="outline" className="px-4 py-2 border-primary/20 text-primary font-black uppercase text-xs tracking-tighter bg-primary/5">
+              Current Role: {isSuperAdmin ? 'Administrator' : 'Resident'}
+            </Badge>
+            <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tighter mt-4">
+              Welcome back, <span className="text-primary">{profile?.firstName || 'Resident'}</span>
+            </h2>
+            <p className="text-sm md:text-lg text-slate-600 font-bold mt-2 max-w-2xl">
+              Track your utility bills and report maintenance issues directly through your resident portal.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6">
             {(isSuperAdmin ? adminModules : residentModules).map(item => (
               <Card 
                 key={item.path} 
