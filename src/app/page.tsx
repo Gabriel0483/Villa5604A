@@ -93,23 +93,25 @@ function DashboardContent() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
+  // Fetches residents for metrics - available to all authenticated users for transparency
   const residentsQuery = useMemoFirebase(() => {
-    if (!db || !isSuperAdmin) return null;
+    if (!db || !user) return null;
     return query(collection(db, 'users'), where('role', '==', 'Resident'));
-  }, [db, isSuperAdmin]);
+  }, [db, user]);
 
   const { data: residents } = useCollection(residentsQuery);
 
+  // Fetches latest released bill for metrics - available to all authenticated users
   const latestBillQuery = useMemoFirebase(() => {
-    if (!db || !isSuperAdmin) return null;
+    if (!db || !user) return null;
     return query(collection(db, 'utility_bills'), where('status', '==', 'Released'), orderBy('startDate', 'desc'), limit(1));
-  }, [db, isSuperAdmin]);
+  }, [db, user]);
 
   const { data: bills } = useCollection(latestBillQuery);
   const latestBill = bills && bills.length > 0 ? bills[0] : null;
 
   const metrics = useMemo(() => {
-    if (!isSuperAdmin || !residents) return null;
+    if (!residents) return null;
 
     const roomUnits = ['101', '102', '103', '201', '202', '203', '204', '301'];
     const occupiedRooms = new Set();
@@ -174,7 +176,7 @@ function DashboardContent() {
       progressPercent,
       cycleName: latestBill?.monthYear || 'No active cycle'
     };
-  }, [isSuperAdmin, residents, latestBill]);
+  }, [residents, latestBill]);
 
   const handleLogout = async () => {
     try {
@@ -300,7 +302,7 @@ function DashboardContent() {
               </p>
             </div>
 
-            {isSuperAdmin && metrics && (
+            {metrics && (
               <div className="grid grid-cols-2 gap-4 w-full md:w-auto">
                 <Card className="bg-white border-none shadow-md p-4 min-w-[140px]">
                   <div className="flex items-center gap-2 mb-1 text-slate-500">
@@ -308,7 +310,7 @@ function DashboardContent() {
                     <span className="text-[9px] font-black uppercase tracking-widest">Residents</span>
                   </div>
                   <div className="text-2xl font-black text-slate-900">{metrics.tenantCount}</div>
-                  <div className="text-[10px] font-bold text-indigo-600 mt-1 uppercase">Active Registry</div>
+                  <div className="text-[10px] font-bold text-indigo-600 mt-1 uppercase">Active Community</div>
                 </Card>
                 <Card className="bg-white border-none shadow-md p-4 min-w-[140px]">
                   <div className="flex items-center gap-2 mb-1 text-slate-500">
@@ -322,13 +324,15 @@ function DashboardContent() {
             )}
           </div>
 
-          {isSuperAdmin && metrics && (
+          {metrics && (
             <Card className="bg-slate-900 border-none overflow-hidden rounded-2xl md:rounded-[2rem] shadow-2xl relative">
               <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
               <CardContent className="p-6 md:p-10 space-y-8 relative z-10">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                   <div className="space-y-1">
-                    <p className="text-[9px] md:text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Payment Collection Status</p>
+                    <p className="text-[9px] md:text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                      {isSuperAdmin ? 'Payment Collection Status' : 'Community Payment Progress'}
+                    </p>
                     <h3 className="text-xl md:text-2xl font-black text-white">{metrics.cycleName} Cycle</h3>
                   </div>
                   
@@ -366,7 +370,7 @@ function DashboardContent() {
                       <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
                         {metrics.paidCount} / {metrics.totalTenantsInBill} Residents Paid
                       </span>
-                      <p className="text-[10px] text-slate-500 font-bold italic">Reflects combined Rent + Utilities for current cycle</p>
+                      <p className="text-[10px] text-slate-500 font-bold italic">Combined Rent + Utilities for current cycle</p>
                     </div>
                     <span className="text-2xl font-black text-primary italic">{metrics.progressPercent.toFixed(0)}%</span>
                   </div>
