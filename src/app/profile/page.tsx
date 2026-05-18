@@ -91,7 +91,7 @@ export default function ProfilePage() {
     const email = user.email?.toLowerCase() || '';
     const adminEmails = [
       'rielmagpantay@gmail.com', 
-      'rielmagpantay@gmail.com@villa5604.app',
+      'rielmagpantay@gmail.com@villa5604.app', 
       'room101@villa5604.app'
     ];
     if (adminEmails.includes(email)) return true;
