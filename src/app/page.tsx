@@ -17,13 +17,17 @@ import {
   Cake,
   Wrench,
   UserCheck,
-  History
+  History,
+  TrendingUp,
+  CreditCard,
+  Users as UsersIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useFirestore, useMemoFirebase, useUser, useAuth, useDoc } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { Progress } from '@/components/ui/progress';
+import { useFirestore, useMemoFirebase, useUser, useAuth, useDoc, useCollection } from '@/firebase';
+import { doc, collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   DropdownMenu, 
@@ -85,6 +89,70 @@ function DashboardContent() {
     if (adminEmails.includes(user.email?.toLowerCase() || '')) return true;
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
+
+  // Fetch Residents for Admin Metrics
+  const residentsQuery = useMemoFirebase(() => {
+    if (!db || !isSuperAdmin) return null;
+    return query(collection(db, 'users'), where('role', '==', 'Resident'));
+  }, [db, isSuperAdmin]);
+
+  const { data: residents } = useCollection(residentsQuery);
+
+  // Fetch Latest Bill for Admin Metrics
+  const latestBillQuery = useMemoFirebase(() => {
+    if (!db || !isSuperAdmin) return null;
+    return query(collection(db, 'utility_bills'), where('status', '==', 'Released'), orderBy('monthYear', 'desc'), limit(1));
+  }, [db, isSuperAdmin]);
+
+  const { data: bills } = useCollection(latestBillQuery);
+  const latestBill = bills && bills.length > 0 ? bills[0] : null;
+
+  const metrics = useMemo(() => {
+    if (!isSuperAdmin || !residents) return null;
+
+    // Room Occupancy
+    const roomUnits = ['101', '102', '103', '201', '202', '203', '204', '301'];
+    const occupiedRooms = new Set();
+    residents.forEach((r: any) => {
+      if (r.roomUnit) {
+        const match = roomUnits.find(unit => r.roomUnit.includes(unit));
+        if (match) occupiedRooms.add(match);
+      }
+    });
+    const occupancyRate = (occupiedRooms.size / 8) * 100;
+
+    // Payment Progress (from latest bill)
+    let paidCount = 0;
+    let totalCollected = 0;
+    let totalExpected = 0;
+    let progressPercent = 0;
+
+    if (latestBill && latestBill.itemizedStatements) {
+      const paidIds = latestBill.paidResidents || [];
+      latestBill.itemizedStatements.forEach((s: any) => {
+        totalExpected += s.total;
+        if (paidIds.includes(s.residentId)) {
+          paidCount++;
+          totalCollected += s.total;
+        }
+      });
+      progressPercent = latestBill.itemizedStatements.length > 0 
+        ? (paidCount / latestBill.itemizedStatements.length) * 100 
+        : 0;
+    }
+
+    return {
+      tenantCount: residents.length,
+      occupancyRate,
+      paidCount,
+      totalTenantsInBill: latestBill?.itemizedStatements?.length || 0,
+      totalCollected,
+      totalExpected,
+      remainingBalance: Math.max(0, totalExpected - totalCollected),
+      progressPercent,
+      cycleName: latestBill?.monthYear || 'No active cycle'
+    };
+  }, [isSuperAdmin, residents, latestBill]);
 
   const handleLogout = async () => {
     try {
@@ -195,17 +263,77 @@ function DashboardContent() {
 
       <main className="flex-1 container mx-auto p-4 md:p-8 max-w-7xl">
         <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="mb-6">
-            <Badge variant="outline" className="px-4 py-2 border-primary/20 text-primary font-black uppercase text-xs tracking-tighter bg-primary/5">
-              Current Role: {isSuperAdmin ? 'Administrator' : 'Resident'}
-            </Badge>
-            <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tighter mt-4">
-              Welcome back, <span className="text-primary">{profile?.firstName || 'Resident'}</span>
-            </h2>
-            <p className="text-sm md:text-lg text-slate-600 font-bold mt-2 max-w-2xl">
-              Track your itemized utility statements and report maintenance issues through your resident portal.
-            </p>
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="flex-1">
+              <Badge variant="outline" className="px-4 py-2 border-primary/20 text-primary font-black uppercase text-xs tracking-tighter bg-primary/5">
+                Current Role: {isSuperAdmin ? 'Administrator' : 'Resident'}
+              </Badge>
+              <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tighter mt-4">
+                Welcome back, <span className="text-primary">{profile?.firstName || 'Resident'}</span>
+              </h2>
+              <p className="text-sm md:text-lg text-slate-600 font-bold mt-2 max-w-2xl">
+                Track your itemized utility statements and report maintenance issues through your resident portal.
+              </p>
+            </div>
+
+            {/* Admin Metrics Summary */}
+            {isSuperAdmin && metrics && (
+              <div className="grid grid-cols-2 gap-4 w-full md:w-auto">
+                <Card className="bg-white border-none shadow-md p-4 min-w-[140px]">
+                  <div className="flex items-center gap-2 mb-1 text-slate-500">
+                    <UsersIcon className="h-4 w-4" />
+                    <span className="text-[9px] font-black uppercase tracking-widest">Residents</span>
+                  </div>
+                  <div className="text-2xl font-black text-slate-900">{metrics.tenantCount}</div>
+                  <div className="text-[10px] font-bold text-indigo-600 mt-1 uppercase">Active Registry</div>
+                </Card>
+                <Card className="bg-white border-none shadow-md p-4 min-w-[140px]">
+                  <div className="flex items-center gap-2 mb-1 text-slate-500">
+                    <TrendingUp className="h-4 w-4" />
+                    <span className="text-[9px] font-black uppercase tracking-widest">Occupancy</span>
+                  </div>
+                  <div className="text-2xl font-black text-slate-900">{metrics.occupancyRate.toFixed(0)}%</div>
+                  <div className="text-[10px] font-bold text-emerald-600 mt-1 uppercase">8 Room Cap</div>
+                </Card>
+              </div>
+            )}
           </div>
+
+          {/* Admin Payment Metrics & Progress */}
+          {isSuperAdmin && metrics && (
+            <Card className="bg-slate-900 border-none overflow-hidden rounded-2xl md:rounded-[2rem] shadow-2xl relative">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+              <CardContent className="p-6 md:p-10 space-y-6 relative z-10">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div className="space-y-1">
+                    <p className="text-[9px] md:text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Payment Collection Status</p>
+                    <h3 className="text-xl md:text-2xl font-black text-white">{metrics.cycleName} Cycle</h3>
+                  </div>
+                  <div className="flex items-center gap-4 text-right">
+                    <div className="hidden md:block">
+                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Collected</p>
+                      <p className="text-lg font-black text-white">{metrics.totalCollected.toFixed(3)} OMR</p>
+                    </div>
+                    <div className="h-10 w-px bg-slate-800 hidden md:block" />
+                    <div>
+                      <p className="text-[9px] font-black text-rose-500/80 uppercase tracking-widest">Remaining Balance</p>
+                      <p className="text-lg font-black text-rose-500">{metrics.remainingBalance.toFixed(3)} OMR</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex justify-between items-end">
+                    <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                      {metrics.paidCount} / {metrics.totalTenantsInBill} Tenants Paid
+                    </span>
+                    <span className="text-lg font-black text-primary italic">{metrics.progressPercent.toFixed(0)}%</span>
+                  </div>
+                  <Progress value={metrics.progressPercent} className="h-3 bg-slate-800" />
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6">
             {(isSuperAdmin ? adminModules : residentModules).map(item => (
