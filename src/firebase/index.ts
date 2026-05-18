@@ -1,7 +1,6 @@
-
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { initializeFirestore, getFirestore, Firestore } from 'firebase/firestore';
-import { getAuth, Auth } from 'firebase/auth';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeFirestore, getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { firebaseConfig, isFirebaseConfigValid } from './config';
 
 export function initializeFirebase() {
@@ -11,11 +10,19 @@ export function initializeFirebase() {
 
   const firebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
   
-  // Use initializeFirestore to configure experimental settings for connectivity.
-  // experimentalForceLongPolling is often required in proxied/containerized environments.
-  const firestore = initializeFirestore(firebaseApp, {
-    experimentalForceLongPolling: true,
-  });
+  // Use initializeFirestore with singleton-safe pattern.
+  // experimentalForceLongPolling and experimentalAutoDetectLongPolling are required 
+  // in proxied/containerized environments to prevent connection timeouts.
+  let firestore;
+  try {
+    firestore = initializeFirestore(firebaseApp, {
+      experimentalForceLongPolling: true,
+      experimentalAutoDetectLongPolling: true,
+    });
+  } catch (err) {
+    // If Firestore was already initialized (e.g. during HMR), use the existing instance
+    firestore = getFirestore(firebaseApp);
+  }
   
   const auth = getAuth(firebaseApp);
 
