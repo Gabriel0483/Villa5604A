@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useEffect, useState } from 'react';
@@ -20,7 +21,8 @@ import {
   TrendingUp,
   CreditCard,
   Users as UsersIcon,
-  Info
+  Info,
+  PawPrint
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -91,7 +93,6 @@ function DashboardContent() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Fetch Residents for Admin Metrics
   const residentsQuery = useMemoFirebase(() => {
     if (!db || !isSuperAdmin) return null;
     return query(collection(db, 'users'), where('role', '==', 'Resident'));
@@ -99,7 +100,6 @@ function DashboardContent() {
 
   const { data: residents } = useCollection(residentsQuery);
 
-  // Fetch Latest Bill for Admin Metrics
   const latestBillQuery = useMemoFirebase(() => {
     if (!db || !isSuperAdmin) return null;
     return query(collection(db, 'utility_bills'), where('status', '==', 'Released'), orderBy('startDate', 'desc'), limit(1));
@@ -111,7 +111,6 @@ function DashboardContent() {
   const metrics = useMemo(() => {
     if (!isSuperAdmin || !residents) return null;
 
-    // Room Occupancy based on specific units
     const roomUnits = ['101', '102', '103', '201', '202', '203', '204', '301'];
     const occupiedRooms = new Set();
     residents.forEach((r: any) => {
@@ -129,7 +128,6 @@ function DashboardContent() {
     });
     const occupancyRate = (occupiedRooms.size / 8) * 100;
 
-    // Payment Progress (from latest bill)
     let paidCount = 0;
     let totalCollected = 0;
     let totalExpected = 0;
@@ -182,9 +180,7 @@ function DashboardContent() {
     try {
       await signOut(auth);
       router.push('/login');
-    } catch (error) {
-      // Log errors silently
-    }
+    } catch (error) {}
   };
 
   if (profileLoading) {
@@ -200,6 +196,7 @@ function DashboardContent() {
     { title: 'Tenant Registry', icon: <UserCheck className="h-6 w-6" />, path: '/tenants', label: 'Manage Residents', color: 'blue' },
     { title: 'Latest Bills', icon: <Zap className="h-6 w-6" />, path: '/utilities', label: 'View Latest Records', color: 'amber' },
     { title: 'Billing Archive', icon: <History className="h-6 w-6" />, path: '/billing-history', label: 'Past Utility Logs', color: 'indigo' },
+    { title: 'Pet Registry', icon: <PawPrint className="h-6 w-6" />, path: '/pets', label: 'Resident Animals', color: 'emerald' },
     { title: 'Birthdays', icon: <Cake className="h-6 w-6" />, path: '/birthdays', label: 'Greet Residents', color: 'rose' },
     { title: 'Manage Issues', icon: <Wrench className="h-6 w-6" />, path: '/repairs', label: 'View Maintenance', color: 'orange' },
   ];
@@ -207,6 +204,7 @@ function DashboardContent() {
   const residentModules = [
     { title: 'My Bills', icon: <FileText className="h-6 w-6" />, path: '/my-bills', label: 'View Current Statement', color: 'indigo' },
     { title: 'Latest Bills', icon: <Zap className="h-6 w-6" />, path: '/utilities', label: 'View Household Totals', color: 'amber' },
+    { title: 'Pet Registry', icon: <PawPrint className="h-6 w-6" />, path: '/pets', label: 'View Villa Pets', color: 'emerald' },
     { title: 'Report Issue', icon: <Wrench className="h-6 w-6" />, path: '/repairs', label: 'Maintenance Request', color: 'orange' },
     { title: 'My Profile', icon: <UserIcon className="h-6 w-6" />, path: '/profile', label: 'Personal Details', color: 'blue' },
   ];
@@ -218,6 +216,7 @@ function DashboardContent() {
       case 'rose': return 'bg-rose-50 text-rose-600 border-rose-100 group-hover:bg-rose-600 group-hover:text-white';
       case 'orange': return 'bg-orange-50 text-orange-600 border-orange-100 group-hover:bg-orange-600 group-hover:text-white';
       case 'indigo': return 'bg-indigo-50 text-indigo-600 border-indigo-100 group-hover:bg-indigo-600 group-hover:text-white';
+      case 'emerald': return 'bg-emerald-50 text-emerald-600 border-emerald-100 group-hover:bg-emerald-600 group-hover:text-white';
       default: return 'bg-primary/10 text-primary border-primary/10';
     }
   };
@@ -229,6 +228,7 @@ function DashboardContent() {
       case 'rose': return 'hover:border-rose-400 border-t-rose-500';
       case 'orange': return 'hover:border-orange-400 border-t-orange-500';
       case 'indigo': return 'hover:border-indigo-400 border-t-indigo-500';
+      case 'emerald': return 'hover:border-emerald-400 border-t-emerald-500';
       default: return 'hover:border-primary border-t-primary';
     }
   };
@@ -300,7 +300,6 @@ function DashboardContent() {
               </p>
             </div>
 
-            {/* Admin Metrics Summary */}
             {isSuperAdmin && metrics && (
               <div className="grid grid-cols-2 gap-4 w-full md:w-auto">
                 <Card className="bg-white border-none shadow-md p-4 min-w-[140px]">
@@ -323,7 +322,6 @@ function DashboardContent() {
             )}
           </div>
 
-          {/* Admin Payment Metrics & Progress */}
           {isSuperAdmin && metrics && (
             <Card className="bg-slate-900 border-none overflow-hidden rounded-2xl md:rounded-[2rem] shadow-2xl relative">
               <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>

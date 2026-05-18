@@ -75,6 +75,21 @@
         "adminNotes": { "type": "string" }
       },
       "required": ["residentId", "category", "urgency", "description", "status"]
+    },
+    "Pet": {
+      "title": "Pet",
+      "description": "Record of a resident's pet",
+      "type": "object",
+      "properties": {
+        "petName": { "type": "string" },
+        "type": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "ownerName": { "type": "string" },
+        "roomUnit": { "type": "string" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["petName", "type", "ownerId", "ownerName"]
     }
   },
   "auth": {
@@ -92,6 +107,10 @@
     "/maintenance_requests/{requestId}": {
       "schema": "#/entities/MaintenanceRequest",
       "description": "Repairs and maintenance requests"
+    },
+    "/pets/{petId}": {
+      "schema": "#/entities/Pet",
+      "description": "Registry of resident pets"
     }
   }
 }
