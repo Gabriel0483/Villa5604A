@@ -8,7 +8,8 @@ import {
   CheckCircle2,
   Clock,
   Receipt as ReceiptIcon,
-  ArrowLeft
+  ArrowLeft,
+  History
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -92,6 +93,11 @@ export default function MyBillsPage() {
               My Bill
             </h1>
           </div>
+          <Button variant="outline" asChild className="gap-2 font-black uppercase tracking-widest text-[10px] h-11 px-6 rounded-xl border-slate-200 shadow-sm hover:bg-slate-50 transition-all">
+            <Link href="/my-bills/history">
+              <History className="h-4 w-4" /> View Statement Archive
+            </Link>
+          </Button>
         </div>
 
         {latestBill && myEntry ? (
