@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   Clock,
   Receipt as ReceiptIcon,
-  CreditCard,
   ArrowLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -138,17 +137,14 @@ export default function MyBillsPage() {
                   ))}
                 </div>
                 
-                <div className="bg-slate-900 p-8 md:p-12 rounded-2xl md:rounded-[2.5rem] flex flex-col md:flex-row justify-between items-center shadow-2xl relative overflow-hidden gap-4">
+                <div className="bg-slate-900 p-8 md:p-12 rounded-2xl md:rounded-[2.5rem] flex flex-col items-center justify-center text-center shadow-2xl relative overflow-hidden gap-4">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full -mr-16 -mt-16 blur-3xl"></div>
-                  <div className="flex flex-col gap-1 items-center md:items-start relative z-10">
+                  <div className="flex flex-col gap-1 items-center relative z-10">
                     <span className="font-black text-slate-400 uppercase tracking-widest text-[9px]">Total Due for Cycle</span>
-                    <span className="text-3xl md:text-6xl font-black text-white tracking-tighter">
+                    <span className="text-4xl md:text-7xl font-black text-white tracking-tighter">
                       {myEntry.total.toFixed(3)} <span className="text-sm md:text-xl text-slate-500 font-bold">OMR</span>
                     </span>
                   </div>
-                  <Button className="relative z-10 gap-2 font-black uppercase tracking-widest text-[10px] h-12 px-8 shadow-xl shadow-indigo-900/50 bg-indigo-600 hover:bg-indigo-700 text-white border-none">
-                    <CreditCard className="h-4 w-4" /> Pay via Portal
-                  </Button>
                 </div>
               </CardContent>
             </Card>
