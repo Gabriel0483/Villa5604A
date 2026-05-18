@@ -93,7 +93,6 @@ function DashboardContent() {
     return profile?.role === 'SuperAdmin';
   }, [user, profile]);
 
-  // Fetches residents for metrics - available to all authenticated users for transparency
   const residentsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(collection(db, 'users'), where('role', '==', 'Resident'));
@@ -101,7 +100,6 @@ function DashboardContent() {
 
   const { data: residents } = useCollection(residentsQuery);
 
-  // Fetches latest released bill for metrics - available to all authenticated users
   const latestBillQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(collection(db, 'utility_bills'), where('status', '==', 'Released'), orderBy('startDate', 'desc'), limit(1));
@@ -301,10 +299,66 @@ function DashboardContent() {
                 Track your itemized utility statements and report maintenance issues through your resident portal.
               </p>
             </div>
+          </div>
 
-            {metrics && (
-              <div className="grid grid-cols-2 gap-4 w-full md:w-auto">
-                <Card className="bg-white border-none shadow-md p-4 min-w-[140px]">
+          {metrics && (
+            <>
+              <Card className="bg-slate-900 border-none overflow-hidden rounded-2xl md:rounded-[2rem] shadow-2xl relative">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+                <CardContent className="p-6 md:p-10 space-y-8 relative z-10">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div className="space-y-1">
+                      <p className="text-[9px] md:text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                        {isSuperAdmin ? 'Payment Collection Status' : 'Community Payment Progress'}
+                      </p>
+                      <h3 className="text-xl md:text-2xl font-black text-white">{metrics.cycleName} Cycle</h3>
+                    </div>
+                    
+                    <div className="flex items-center gap-4 md:gap-8 text-right flex-wrap md:flex-nowrap">
+                      <div className="space-y-1">
+                        <p className="text-[9px] font-black text-emerald-500/80 uppercase tracking-widest flex items-center justify-end gap-1">
+                          Collected
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-3 w-3 cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent className="bg-white text-slate-900 font-bold border-slate-200">
+                                <p>Rent: {metrics.rentCollected.toFixed(3)} OMR</p>
+                                <p>Utilities: {metrics.utilsCollected.toFixed(3)} OMR</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </p>
+                        <p className="text-lg font-black text-emerald-500">{metrics.totalCollected.toFixed(3)} OMR</p>
+                      </div>
+
+                      <div className="h-10 w-px bg-slate-800 hidden md:block" />
+
+                      <div className="space-y-1">
+                        <p className="text-[9px] font-black text-rose-500/80 uppercase tracking-widest">Remaining Balance</p>
+                        <p className="text-lg font-black text-rose-500">{metrics.remainingBalance.toFixed(3)} OMR</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-end">
+                      <div className="space-y-1">
+                        <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                          {metrics.paidCount} / {metrics.totalTenantsInBill} Residents Paid
+                        </span>
+                        <p className="text-[10px] text-slate-500 font-bold italic">Combined Rent + Utilities for current cycle</p>
+                      </div>
+                      <span className="text-2xl font-black text-primary italic">{metrics.progressPercent.toFixed(0)}%</span>
+                    </div>
+                    <Progress value={metrics.progressPercent} className="h-3 bg-slate-800" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-2 gap-4 w-full lg:w-max">
+                <Card className="bg-white border-none shadow-md p-4 min-w-[140px] md:min-w-[180px]">
                   <div className="flex items-center gap-2 mb-1 text-slate-500">
                     <UsersIcon className="h-4 w-4" />
                     <span className="text-[9px] font-black uppercase tracking-widest">Residents</span>
@@ -312,7 +366,7 @@ function DashboardContent() {
                   <div className="text-2xl font-black text-slate-900">{metrics.tenantCount}</div>
                   <div className="text-[10px] font-bold text-indigo-600 mt-1 uppercase">Active Community</div>
                 </Card>
-                <Card className="bg-white border-none shadow-md p-4 min-w-[140px]">
+                <Card className="bg-white border-none shadow-md p-4 min-w-[140px] md:min-w-[180px]">
                   <div className="flex items-center gap-2 mb-1 text-slate-500">
                     <TrendingUp className="h-4 w-4" />
                     <span className="text-[9px] font-black uppercase tracking-widest">Occupancy</span>
@@ -321,63 +375,7 @@ function DashboardContent() {
                   <div className="text-[10px] font-bold text-emerald-600 mt-1 uppercase">8 Room Cap</div>
                 </Card>
               </div>
-            )}
-          </div>
-
-          {metrics && (
-            <Card className="bg-slate-900 border-none overflow-hidden rounded-2xl md:rounded-[2rem] shadow-2xl relative">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-              <CardContent className="p-6 md:p-10 space-y-8 relative z-10">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                  <div className="space-y-1">
-                    <p className="text-[9px] md:text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">
-                      {isSuperAdmin ? 'Payment Collection Status' : 'Community Payment Progress'}
-                    </p>
-                    <h3 className="text-xl md:text-2xl font-black text-white">{metrics.cycleName} Cycle</h3>
-                  </div>
-                  
-                  <div className="flex items-center gap-4 md:gap-8 text-right flex-wrap md:flex-nowrap">
-                    <div className="space-y-1">
-                      <p className="text-[9px] font-black text-emerald-500/80 uppercase tracking-widest flex items-center justify-end gap-1">
-                        Collected
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-3 w-3 cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent className="bg-white text-slate-900 font-bold border-slate-200">
-                              <p>Rent: {metrics.rentCollected.toFixed(3)} OMR</p>
-                              <p>Utilities: {metrics.utilsCollected.toFixed(3)} OMR</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </p>
-                      <p className="text-lg font-black text-emerald-500">{metrics.totalCollected.toFixed(3)} OMR</p>
-                    </div>
-
-                    <div className="h-10 w-px bg-slate-800 hidden md:block" />
-
-                    <div className="space-y-1">
-                      <p className="text-[9px] font-black text-rose-500/80 uppercase tracking-widest">Remaining Balance</p>
-                      <p className="text-lg font-black text-rose-500">{metrics.remainingBalance.toFixed(3)} OMR</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex justify-between items-end">
-                    <div className="space-y-1">
-                      <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
-                        {metrics.paidCount} / {metrics.totalTenantsInBill} Residents Paid
-                      </span>
-                      <p className="text-[10px] text-slate-500 font-bold italic">Combined Rent + Utilities for current cycle</p>
-                    </div>
-                    <span className="text-2xl font-black text-primary italic">{metrics.progressPercent.toFixed(0)}%</span>
-                  </div>
-                  <Progress value={metrics.progressPercent} className="h-3 bg-slate-800" />
-                </div>
-              </CardContent>
-            </Card>
+            </>
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6">
