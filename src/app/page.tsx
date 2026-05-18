@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useEffect, useState } from 'react';
@@ -336,26 +335,6 @@ function DashboardContent() {
                   </div>
                   
                   <div className="flex items-center gap-4 md:gap-8 text-right flex-wrap md:flex-nowrap">
-                    <div className="space-y-1">
-                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center justify-end gap-1">
-                        Expected Revenue
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-3 w-3 cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent className="bg-white text-slate-900 font-bold border-slate-200">
-                              <p>Rent: {metrics.rentExpected.toFixed(3)} OMR</p>
-                              <p>Utilities: {metrics.utilsExpected.toFixed(3)} OMR</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </p>
-                      <p className="text-lg font-black text-white">{metrics.totalExpected.toFixed(3)} OMR</p>
-                    </div>
-
-                    <div className="h-10 w-px bg-slate-800 hidden md:block" />
-
                     <div className="space-y-1">
                       <p className="text-[9px] font-black text-emerald-500/80 uppercase tracking-widest flex items-center justify-end gap-1">
                         Collected
