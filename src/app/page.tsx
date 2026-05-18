@@ -2,7 +2,7 @@
 "use client"
 
 import React, { useMemo, useEffect, useState } from 'react';
-import Link from 'next/link';
+import Link from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { 
   Building2, 
@@ -20,7 +20,8 @@ import {
   History,
   TrendingUp,
   CreditCard,
-  Users as UsersIcon
+  Users as UsersIcon,
+  Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,6 +39,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function Home() {
   const { user, loading: userLoading } = useUser();
@@ -101,7 +103,7 @@ function DashboardContent() {
   // Fetch Latest Bill for Admin Metrics
   const latestBillQuery = useMemoFirebase(() => {
     if (!db || !isSuperAdmin) return null;
-    return query(collection(db, 'utility_bills'), where('status', '==', 'Released'), orderBy('monthYear', 'desc'), limit(1));
+    return query(collection(db, 'utility_bills'), where('status', '==', 'Released'), orderBy('startDate', 'desc'), limit(1));
   }, [db, isSuperAdmin]);
 
   const { data: bills } = useCollection(latestBillQuery);
@@ -110,13 +112,20 @@ function DashboardContent() {
   const metrics = useMemo(() => {
     if (!isSuperAdmin || !residents) return null;
 
-    // Room Occupancy
+    // Room Occupancy based on specific units
     const roomUnits = ['101', '102', '103', '201', '202', '203', '204', '301'];
     const occupiedRooms = new Set();
     residents.forEach((r: any) => {
       if (r.roomUnit) {
-        const match = roomUnits.find(unit => r.roomUnit.includes(unit));
-        if (match) occupiedRooms.add(match);
+        const unit = r.roomUnit.toLowerCase();
+        if (unit.includes('101')) occupiedRooms.add('101');
+        else if (unit.includes('102')) occupiedRooms.add('102');
+        else if (unit.includes('103')) occupiedRooms.add('103');
+        else if (unit.includes('201')) occupiedRooms.add('201');
+        else if (unit.includes('202')) occupiedRooms.add('202');
+        else if (unit.includes('203')) occupiedRooms.add('203');
+        else if (unit.includes('204')) occupiedRooms.add('204');
+        else if (unit.includes('301')) occupiedRooms.add('301');
       }
     });
     const occupancyRate = (occupiedRooms.size / 8) * 100;
@@ -125,21 +134,33 @@ function DashboardContent() {
     let paidCount = 0;
     let totalCollected = 0;
     let totalExpected = 0;
-    let progressPercent = 0;
+    let rentExpected = 0;
+    let utilsExpected = 0;
+    let rentCollected = 0;
+    let utilsCollected = 0;
 
     if (latestBill && latestBill.itemizedStatements) {
       const paidIds = latestBill.paidResidents || [];
       latestBill.itemizedStatements.forEach((s: any) => {
+        const itemRent = s.baseRent || 0;
+        const itemUtils = (s.wifi || 0) + (s.water || 0) + (s.electricity || 0) + (s.misc || 0);
+        
         totalExpected += s.total;
+        rentExpected += itemRent;
+        utilsExpected += itemUtils;
+
         if (paidIds.includes(s.residentId)) {
           paidCount++;
           totalCollected += s.total;
+          rentCollected += itemRent;
+          utilsCollected += itemUtils;
         }
       });
-      progressPercent = latestBill.itemizedStatements.length > 0 
-        ? (paidCount / latestBill.itemizedStatements.length) * 100 
-        : 0;
     }
+
+    const progressPercent = latestBill?.itemizedStatements?.length 
+      ? (paidCount / latestBill.itemizedStatements.length) * 100 
+      : 0;
 
     return {
       tenantCount: residents.length,
@@ -148,6 +169,10 @@ function DashboardContent() {
       totalTenantsInBill: latestBill?.itemizedStatements?.length || 0,
       totalCollected,
       totalExpected,
+      rentExpected,
+      utilsExpected,
+      rentCollected,
+      utilsCollected,
       remainingBalance: Math.max(0, totalExpected - totalCollected),
       progressPercent,
       cycleName: latestBill?.monthYear || 'No active cycle'
@@ -303,31 +328,70 @@ function DashboardContent() {
           {isSuperAdmin && metrics && (
             <Card className="bg-slate-900 border-none overflow-hidden rounded-2xl md:rounded-[2rem] shadow-2xl relative">
               <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-              <CardContent className="p-6 md:p-10 space-y-6 relative z-10">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <CardContent className="p-6 md:p-10 space-y-8 relative z-10">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                   <div className="space-y-1">
                     <p className="text-[9px] md:text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Payment Collection Status</p>
                     <h3 className="text-xl md:text-2xl font-black text-white">{metrics.cycleName} Cycle</h3>
                   </div>
-                  <div className="flex items-center gap-4 text-right">
-                    <div className="hidden md:block">
-                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Collected</p>
-                      <p className="text-lg font-black text-white">{metrics.totalCollected.toFixed(3)} OMR</p>
+                  
+                  <div className="flex items-center gap-4 md:gap-8 text-right flex-wrap md:flex-nowrap">
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center justify-end gap-1">
+                        Expected Revenue
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-3 w-3 cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="bg-white text-slate-900 font-bold border-slate-200">
+                              <p>Rent: {metrics.rentExpected.toFixed(3)} OMR</p>
+                              <p>Utilities: {metrics.utilsExpected.toFixed(3)} OMR</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </p>
+                      <p className="text-lg font-black text-white">{metrics.totalExpected.toFixed(3)} OMR</p>
                     </div>
+
                     <div className="h-10 w-px bg-slate-800 hidden md:block" />
-                    <div>
+
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-black text-emerald-500/80 uppercase tracking-widest flex items-center justify-end gap-1">
+                        Collected
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-3 w-3 cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="bg-white text-slate-900 font-bold border-slate-200">
+                              <p>Rent: {metrics.rentCollected.toFixed(3)} OMR</p>
+                              <p>Utilities: {metrics.utilsCollected.toFixed(3)} OMR</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </p>
+                      <p className="text-lg font-black text-emerald-500">{metrics.totalCollected.toFixed(3)} OMR</p>
+                    </div>
+
+                    <div className="h-10 w-px bg-slate-800 hidden md:block" />
+
+                    <div className="space-y-1">
                       <p className="text-[9px] font-black text-rose-500/80 uppercase tracking-widest">Remaining Balance</p>
                       <p className="text-lg font-black text-rose-500">{metrics.remainingBalance.toFixed(3)} OMR</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div className="flex justify-between items-end">
-                    <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
-                      {metrics.paidCount} / {metrics.totalTenantsInBill} Tenants Paid
-                    </span>
-                    <span className="text-lg font-black text-primary italic">{metrics.progressPercent.toFixed(0)}%</span>
+                    <div className="space-y-1">
+                      <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                        {metrics.paidCount} / {metrics.totalTenantsInBill} Residents Paid
+                      </span>
+                      <p className="text-[10px] text-slate-500 font-bold italic">Reflects combined Rent + Utilities for current cycle</p>
+                    </div>
+                    <span className="text-2xl font-black text-primary italic">{metrics.progressPercent.toFixed(0)}%</span>
                   </div>
                   <Progress value={metrics.progressPercent} className="h-3 bg-slate-800" />
                 </div>
