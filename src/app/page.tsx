@@ -113,7 +113,7 @@ function DashboardContent() {
   ];
 
   const residentModules = [
-    { title: 'Statement History', icon: <FileText className="h-6 w-6" />, path: '/bills', label: 'Past Monthly Shares', color: 'indigo' },
+    { title: 'My Bills', icon: <FileText className="h-6 w-6" />, path: '/my-bills', label: 'View Current & Past Shares', color: 'indigo' },
     { title: 'Latest Bills', icon: <Zap className="h-6 w-6" />, path: '/utilities', label: 'View Household Totals', color: 'amber' },
     { title: 'Report Issue', icon: <Wrench className="h-6 w-6" />, path: '/repairs', label: 'Maintenance Request', color: 'orange' },
     { title: 'My Profile', icon: <UserIcon className="h-6 w-6" />, path: '/profile', label: 'Personal Details', color: 'blue' },
