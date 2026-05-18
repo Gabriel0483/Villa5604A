@@ -17,8 +17,7 @@ import {
   Cake,
   Wrench,
   UserCheck,
-  History,
-  Sparkles
+  History
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -114,8 +113,8 @@ function DashboardContent() {
   ];
 
   const residentModules = [
-    { title: 'My Bills', icon: <FileText className="h-6 w-6" />, path: '/bills', label: 'View Details', color: 'indigo' },
-    { title: 'Latest Bills', icon: <Zap className="h-6 w-6" />, path: '/utilities', label: 'View Details', color: 'amber' },
+    { title: 'Statement History', icon: <FileText className="h-6 w-6" />, path: '/bills', label: 'Past Monthly Shares', color: 'indigo' },
+    { title: 'Latest Bills', icon: <Zap className="h-6 w-6" />, path: '/utilities', label: 'View Household Totals', color: 'amber' },
     { title: 'Report Issue', icon: <Wrench className="h-6 w-6" />, path: '/repairs', label: 'Maintenance Request', color: 'orange' },
     { title: 'My Profile', icon: <UserIcon className="h-6 w-6" />, path: '/profile', label: 'Personal Details', color: 'blue' },
   ];
@@ -204,7 +203,7 @@ function DashboardContent() {
               Welcome back, <span className="text-primary">{profile?.firstName || 'Resident'}</span>
             </h2>
             <p className="text-sm md:text-lg text-slate-600 font-bold mt-2 max-w-2xl">
-              Track your utility bills and report maintenance issues directly through your resident portal.
+              Track your itemized utility statements and report maintenance issues through your resident portal.
             </p>
           </div>
 

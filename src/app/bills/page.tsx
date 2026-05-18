@@ -14,11 +14,13 @@ import {
   Users,
   AlertCircle,
   Printer,
-  Receipt as ReceiptIcon
+  Receipt as ReceiptIcon,
+  Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, query, doc, where, orderBy } from 'firebase/firestore';
 import {
@@ -44,12 +46,13 @@ import {
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
-export default function MyBillsPage() {
+export default function StatementArchivePage() {
   const router = useRouter();
   const { user, loading: userLoading } = useUser();
   const db = useFirestore();
 
   const [selectedBill, setSelectedBill] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     if (!userLoading && !user) {
@@ -75,17 +78,19 @@ export default function MyBillsPage() {
 
   const { data: bills, loading: billsLoading } = useCollection(billsQuery);
 
-  const residentsQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
-    return query(collection(db, 'users'), where('role', '==', 'Resident'));
-  }, [db, user]);
-
-  const { data: residents, loading: residentsLoading } = useCollection(residentsQuery);
+  const filteredBills = useMemo(() => {
+    if (!bills) return [];
+    return bills.filter((b: any) => 
+      b.monthYear?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      b.startDate?.includes(searchTerm) ||
+      b.endDate?.includes(searchTerm)
+    );
+  }, [bills, searchTerm]);
 
   const calculatedStatement = useMemo(() => {
     if (!selectedBill) return null;
 
-    // Use captured snapshots if available (for historical accuracy)
+    // Prioritize captured snapshots for historical accuracy
     if (selectedBill.itemizedStatements) {
       const list = selectedBill.itemizedStatements.map((s: any) => ({
         ...s,
@@ -100,52 +105,8 @@ export default function MyBillsPage() {
       return { list, myEntry };
     }
 
-    // Fallback to calculation for older bills without snapshots
-    if (!residents || residents.length === 0) return null;
-
-    const numResidents = residents.length;
-    const wifiTotal = selectedBill.wifi || 0;
-    const waterTotal = selectedBill.water || 0;
-    const elecTotal = selectedBill.electricity || 0;
-    const miscTotal = selectedBill.miscellaneous || 0;
-
-    const totalManDays = residents.reduce((acc, r) => acc + (r.billingDays ?? 30), 0);
-    const miscApplicableResidents = residents.filter(r => r.isMiscApplicable !== false);
-    const totalMiscManDays = miscApplicableResidents.reduce((acc, r) => acc + (r.billingDays ?? 30), 0);
-
-    const wifiSharePerPerson = wifiTotal / numResidents;
-    const waterSharePerDay = totalManDays > 0 ? waterTotal / totalManDays : 0;
-    const electricitySharePerDay = totalManDays > 0 ? elecTotal / totalManDays : 0;
-    const miscUsagePerDay = totalMiscManDays > 0 ? miscTotal / totalMiscManDays : 0;
-
-    const list = residents.map(r => {
-      const resDays = r.billingDays ?? 30;
-      const isMisc = r.isMiscApplicable !== false;
-      const resWifi = wifiSharePerPerson;
-      const resWater = waterSharePerDay * resDays;
-      const resElec = electricitySharePerDay * resDays;
-      const resMisc = isMisc ? (miscUsagePerDay * resDays) : 0;
-      const baseRent = r.monthlyRent || 0;
-      const totalShare = baseRent + resWifi + resWater + resElec + resMisc;
-      
-      return {
-        id: r.id,
-        name: `${r.firstName} ${r.lastName}`,
-        room: r.roomUnit || 'N/A',
-        baseRent,
-        wifi: resWifi,
-        water: resWater,
-        electricity: resElec,
-        misc: resMisc,
-        total: totalShare,
-        isMe: r.id === user?.uid,
-        isPaid: selectedBill.paidResidents?.includes(r.id)
-      };
-    }).sort((a, b) => a.name.localeCompare(b.name));
-
-    const myEntry = list.find(l => l.isMe);
-    return { list, myEntry };
-  }, [selectedBill, residents, user]);
+    return null;
+  }, [selectedBill, user]);
 
   const formatDateRange = (start?: string, end?: string) => {
     if (!start || !end) return null;
@@ -161,7 +122,7 @@ export default function MyBillsPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-slate-50">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-sm font-black text-slate-800 uppercase tracking-widest animate-pulse">Fetching Your Statements...</p>
+        <p className="text-sm font-black text-slate-800 uppercase tracking-widest animate-pulse">Opening Archive...</p>
       </div>
     );
   }
@@ -169,21 +130,32 @@ export default function MyBillsPage() {
   return (
     <div className="min-h-screen bg-slate-50 py-6 md:py-12 px-4">
       <div className="max-w-5xl mx-auto space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="space-y-2">
-          <Link href="/" className="inline-flex items-center text-[10px] md:text-xs font-black text-slate-600 hover:text-primary transition-colors group uppercase tracking-widest">
-            <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1" /> Back to Dashboard
-          </Link>
-          <h1 className="text-3xl md:text-5xl font-black text-slate-900 flex items-center gap-3 md:gap-4 tracking-tighter">
-            <div className="p-2 md:p-3 bg-indigo-100 rounded-xl md:rounded-2xl text-indigo-600 shadow-sm">
-              <ReceiptIcon className="h-6 w-6 md:h-10 md:w-10" />
-            </div>
-            My Bills
-          </h1>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <Link href="/" className="inline-flex items-center text-[10px] md:text-xs font-black text-slate-600 hover:text-primary transition-colors group uppercase tracking-widest">
+              <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1" /> Back to Dashboard
+            </Link>
+            <h1 className="text-3xl md:text-5xl font-black text-slate-900 flex items-center gap-3 md:gap-4 tracking-tighter">
+              <div className="p-2 md:p-3 bg-indigo-100 rounded-xl md:rounded-2xl text-indigo-600 shadow-sm">
+                <ReceiptIcon className="h-6 w-6 md:h-10 md:w-10" />
+              </div>
+              Statement Archive
+            </h1>
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input 
+              placeholder="Search by Month (YYYY-MM)..." 
+              className="pl-10 h-11 w-full md:w-[250px] bg-white border-slate-200 font-bold"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
 
-        {bills && bills.length > 0 ? (
+        {filteredBills.length > 0 ? (
           <div className="grid grid-cols-1 gap-4 md:gap-6">
-            {bills.map((bill: any) => {
+            {filteredBills.map((bill: any) => {
               const isPaid = bill.paidResidents?.includes(user?.uid);
               return (
                 <Card key={bill.id} className="hover:shadow-xl transition-all cursor-pointer group bg-white border-slate-200 overflow-hidden transform hover:-translate-y-1 active:scale-98 rounded-2xl md:rounded-[2rem]" onClick={() => setSelectedBill(bill)}>
@@ -195,7 +167,7 @@ export default function MyBillsPage() {
                         </div>
                         <div>
                           <h3 className="text-lg md:text-2xl font-black text-slate-900 tracking-tight">{formatDateRange(bill.startDate, bill.endDate)}</h3>
-                          <p className="text-[9px] md:text-xs font-black text-indigo-600 mt-0.5 md:mt-1 uppercase tracking-widest">Household Cycle Statement</p>
+                          <p className="text-[9px] md:text-xs font-black text-indigo-600 mt-0.5 md:mt-1 uppercase tracking-widest">{bill.monthYear} Cycle Snapshot</p>
                         </div>
                       </div>
                       <div className="flex flex-col md:flex-row items-end md:items-center gap-2 md:gap-4">
@@ -219,9 +191,9 @@ export default function MyBillsPage() {
         ) : (
           <Card className="p-12 md:p-20 text-center border-dashed bg-white shadow-sm border-slate-300 rounded-2xl md:rounded-[2rem]">
             <ReceiptIcon className="h-16 w-16 md:h-24 md:w-24 mx-auto text-slate-200 mb-6 md:mb-8" />
-            <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">No Released Bills Found</h3>
+            <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">No Statements Found</h3>
             <p className="text-xs md:text-sm text-slate-600 font-bold max-w-sm mx-auto mt-4 leading-relaxed">
-              Itemized statements will appear here automatically once released by management for the current cycle.
+              Records will appear here automatically once released by management for the corresponding cycle.
             </p>
           </Card>
         )}
@@ -240,7 +212,7 @@ export default function MyBillsPage() {
                     </p>
                   </div>
                   <Button variant="ghost" onClick={handlePrint} className="text-white hover:bg-white/10 hover:text-white font-black uppercase text-[8px] md:text-[10px] tracking-widest print:hidden px-2 md:px-4">
-                    <Printer className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Print Statement</span>
+                    <Printer className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Print Snapshot</span>
                   </Button>
                 </DialogHeader>
                 <div className="flex-1 overflow-y-auto p-0 flex flex-col bg-slate-50">
@@ -251,7 +223,7 @@ export default function MyBillsPage() {
                           <ReceiptIcon className="h-3 w-3 md:h-4 md:w-4" /> <span className="truncate">My Share</span>
                         </TabsTrigger>
                         <TabsTrigger value="community" className="gap-1 md:gap-2 font-black text-[9px] md:text-[11px] uppercase tracking-widest rounded-lg md:rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-lg">
-                          <Users className="h-3 w-3 md:h-4 md:w-4" /> <span className="truncate">General List</span>
+                          <Users className="h-3 w-3 md:h-4 md:w-4" /> <span className="truncate">Community List</span>
                         </TabsTrigger>
                       </TabsList>
                     </div>
@@ -302,8 +274,8 @@ export default function MyBillsPage() {
                       ) : (
                         <div className="p-12 md:p-24 text-center bg-white rounded-2xl md:rounded-[2.5rem] shadow-lg border border-slate-100">
                           <AlertCircle className="h-12 w-12 md:h-16 md:w-16 mx-auto text-slate-300 mb-6 md:mb-8" />
-                          <p className="text-slate-900 font-black text-xl md:text-2xl tracking-tight">Personal Statement Missing</p>
-                          <p className="text-slate-600 font-bold mt-2 text-sm">No individual breakdown found for your account in this cycle.</p>
+                          <p className="text-slate-900 font-black text-xl md:text-2xl tracking-tight">Statement Data Missing</p>
+                          <p className="text-slate-600 font-bold mt-2 text-sm">Individual snapshots are required to view historical data.</p>
                         </div>
                       )}
                     </TabsContent>
