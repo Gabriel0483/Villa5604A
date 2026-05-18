@@ -4,12 +4,12 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function RedirectToHistory() {
+export default function RedirectToMyBills() {
   const router = useRouter();
   
   useEffect(() => {
-    // Redirect residents to their new billing history subpage
-    router.replace('/my-bills/history');
+    // Redirect to the primary bills page
+    router.replace('/my-bills');
   }, [router]);
 
   return null;

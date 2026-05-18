@@ -4,15 +4,12 @@
 import React, { useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  Receipt, 
-  ArrowLeft, 
   Loader2, 
   CheckCircle2,
   Clock,
-  History,
-  AlertCircle,
   Receipt as ReceiptIcon,
-  CreditCard
+  CreditCard,
+  ArrowLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -76,7 +73,7 @@ export default function MyBillsPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-slate-50">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-sm font-black text-slate-800 uppercase tracking-widest animate-pulse">Syncing Statements...</p>
+        <p className="text-sm font-black text-slate-800 uppercase tracking-widest animate-pulse">Syncing Statement...</p>
       </div>
     );
   }
@@ -93,14 +90,9 @@ export default function MyBillsPage() {
               <div className="p-2 md:p-3 bg-indigo-100 rounded-xl text-indigo-600 shadow-sm">
                 <ReceiptIcon className="h-6 w-6 md:h-10 md:w-10" />
               </div>
-              My Bills
+              My Bill
             </h1>
           </div>
-          <Link href="/my-bills/history">
-            <Button variant="outline" className="gap-2 font-black uppercase tracking-widest text-[10px] h-11 px-6 rounded-xl bg-white border-slate-200">
-              <History className="h-4 w-4" /> Statement History
-            </Button>
-          </Link>
         </div>
 
         {latestBill && myEntry ? (
@@ -166,7 +158,7 @@ export default function MyBillsPage() {
             <ReceiptIcon className="h-16 w-16 md:h-24 md:w-24 mx-auto text-slate-200 mb-6 md:mb-8" />
             <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">No Active Bill</h3>
             <p className="text-xs md:text-sm text-slate-600 font-bold max-w-sm mx-auto mt-4 leading-relaxed">
-              Your latest statement will appear here once released by the management. Check the history for past records.
+              Your latest statement will appear here once released by the management.
             </p>
           </Card>
         )}
