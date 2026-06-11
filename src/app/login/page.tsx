@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState } from 'react';
@@ -47,7 +48,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-50 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-4">
       <Card className="w-full max-w-md shadow-xl border-t-4 border-primary">
         <CardHeader className="text-center space-y-1">
           <div className="flex justify-center mb-2">
@@ -105,6 +106,12 @@ export default function LoginPage() {
           </CardFooter>
         </form>
       </Card>
+      <div className="mt-8 text-center space-y-1">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+          Developed by G-Matrix SDS
+        </p>
+        <div className="h-0.5 w-8 bg-primary/10 mx-auto rounded-full" />
+      </div>
     </div>
   );
 }

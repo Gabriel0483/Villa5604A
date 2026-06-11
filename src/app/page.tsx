@@ -411,11 +411,14 @@ function DashboardContent() {
       </main>
 
       <footer className="mt-auto py-6 md:py-8 text-center border-t bg-white">
-        <div className="container mx-auto px-4 flex flex-col items-center gap-2">
+        <div className="container mx-auto px-4 flex flex-col items-center gap-1">
           <span className="text-[10px] md:text-[11px] text-slate-500 uppercase tracking-[0.2em] font-black">
             Villa 5604 Portal © 2026
           </span>
-          <div className="h-1 w-12 bg-primary/20 rounded-full" />
+          <span className="text-[8px] md:text-[9px] text-slate-400 font-bold uppercase tracking-[0.1em]">
+            Developed by G-Matrix SDS
+          </span>
+          <div className="h-0.5 w-12 bg-primary/10 rounded-full mt-2" />
         </div>
       </footer>
     </div>
