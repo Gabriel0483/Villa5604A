@@ -50,7 +50,7 @@ const generateBirthdayCardFlow = ai.defineFlow(
       // 2. Generate a festive image with adjusted safety settings
       const { media } = await ai.generate({
         model: 'googleai/imagen-4.0-fast-generate-001',
-        prompt: `A beautiful, festive birthday card background for a resident named ${input.residentName}. Include elegant decorations, a cake, and a warm Omani villa aesthetic. High quality, celebratory, and welcoming.`,
+        prompt: `A vibrant and elegant birthday celebration background for a resident named ${input.residentName}. High-quality professional card design, featuring warm festive lighting, balloons, and a celebratory villa atmosphere. Inclusive and joyful aesthetic.`,
         config: {
           safetySettings: [
             {
@@ -74,7 +74,7 @@ const generateBirthdayCardFlow = ai.defineFlow(
       });
 
       if (!media) {
-        throw new Error('Image generation returned no media. The request may have been blocked or the model is currently unavailable.');
+        throw new Error('Image generation was restricted or failed. Please try again.');
       }
 
       return {
@@ -82,7 +82,8 @@ const generateBirthdayCardFlow = ai.defineFlow(
         imageUrl: media.url,
       };
     } catch (error: any) {
-      throw new Error(error.message || 'An unexpected error occurred during card generation.');
+      console.error('Birthday Card Generation Error:', error);
+      throw new Error(error.message || 'Failed to generate birthday card. Please try again.');
     }
   }
 );

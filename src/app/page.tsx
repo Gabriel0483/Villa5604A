@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useEffect, useState } from 'react';
@@ -22,7 +21,9 @@ import {
   CreditCard,
   Users as UsersIcon,
   Info,
-  PawPrint
+  PawPrint,
+  Gift,
+  CalendarDays
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -176,6 +177,35 @@ function DashboardContent() {
     };
   }, [residents, latestBill]);
 
+  const upcomingBirthdays = useMemo(() => {
+    if (!residents) return [];
+    
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentDay = now.getDate();
+
+    return residents
+      .map(r => {
+        if (!r.dob) return null;
+        const dob = new Date(r.dob);
+        const birthdayThisYear = new Date(now.getFullYear(), dob.getMonth(), dob.getDate());
+        
+        if (birthdayThisYear < now && (dob.getMonth() !== currentMonth || dob.getDate() !== currentDay)) {
+          birthdayThisYear.setFullYear(now.getFullYear() + 1);
+        }
+
+        const daysUntil = Math.ceil((birthdayThisYear.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        
+        return {
+          ...r,
+          nextBirthday: birthdayThisYear,
+          daysUntil
+        };
+      })
+      .filter(r => r !== null && r.daysUntil <= 30)
+      .sort((a, b) => a!.daysUntil - b!.daysUntil);
+  }, [residents]);
+
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -296,87 +326,142 @@ function DashboardContent() {
                 Welcome back, <span className="text-primary">{profile?.firstName || 'Resident'}</span>
               </h2>
               <p className="text-sm md:text-lg text-slate-600 font-bold mt-2 max-w-2xl">
-                Track your itemized utility statements and report maintenance issues through your resident portal.
+                Track your itemized utility statements and community updates through your resident portal.
               </p>
             </div>
           </div>
 
-          {metrics && (
-            <>
-              <Card className="bg-slate-900 border-none overflow-hidden rounded-2xl md:rounded-[2rem] shadow-2xl relative">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-                <CardContent className="p-6 md:p-10 space-y-8 relative z-10">
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                    <div className="space-y-1">
-                      <p className="text-[9px] md:text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">
-                        {isSuperAdmin ? 'Payment Collection Status' : 'Community Payment Progress'}
-                      </p>
-                      <h3 className="text-xl md:text-2xl font-black text-white">{metrics.cycleName} Cycle</h3>
-                    </div>
-                    
-                    <div className="flex items-center gap-4 md:gap-8 text-right flex-wrap md:flex-nowrap">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 items-start">
+            <div className="lg:col-span-2 space-y-6">
+              {metrics && (
+                <Card className="bg-slate-900 border-none overflow-hidden rounded-2xl md:rounded-[2rem] shadow-2xl relative">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+                  <CardContent className="p-6 md:p-10 space-y-8 relative z-10">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                       <div className="space-y-1">
-                        <p className="text-[9px] font-black text-emerald-500/80 uppercase tracking-widest flex items-center justify-end gap-1">
-                          Collected
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Info className="h-3 w-3 cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent className="bg-white text-slate-900 font-bold border-slate-200">
-                                <p>Rent: {metrics.rentCollected.toFixed(3)} OMR</p>
-                                <p>Utilities: {metrics.utilsCollected.toFixed(3)} OMR</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                        <p className="text-[9px] md:text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                          {isSuperAdmin ? 'Payment Collection Status' : 'Community Payment Progress'}
                         </p>
-                        <p className="text-lg font-black text-emerald-500">{metrics.totalCollected.toFixed(3)} OMR</p>
+                        <h3 className="text-xl md:text-2xl font-black text-white">{metrics.cycleName} Cycle</h3>
                       </div>
+                      
+                      <div className="flex items-center gap-4 md:gap-8 text-right flex-wrap md:flex-nowrap">
+                        <div className="space-y-1">
+                          <p className="text-[9px] font-black text-emerald-500/80 uppercase tracking-widest flex items-center justify-end gap-1">
+                            Collected
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="h-3 w-3 cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent className="bg-white text-slate-900 font-bold border-slate-200">
+                                  <p>Rent: {metrics.rentCollected.toFixed(3)} OMR</p>
+                                  <p>Utilities: {metrics.utilsCollected.toFixed(3)} OMR</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </p>
+                          <p className="text-lg font-black text-emerald-500">{metrics.totalCollected.toFixed(3)} OMR</p>
+                        </div>
 
-                      <div className="h-10 w-px bg-slate-800 hidden md:block" />
+                        <div className="h-10 w-px bg-slate-800 hidden md:block" />
 
-                      <div className="space-y-1">
-                        <p className="text-[9px] font-black text-rose-500/80 uppercase tracking-widest">Remaining Balance</p>
-                        <p className="text-lg font-black text-rose-500">{metrics.remainingBalance.toFixed(3)} OMR</p>
+                        <div className="space-y-1">
+                          <p className="text-[9px] font-black text-rose-500/80 uppercase tracking-widest">Remaining Balance</p>
+                          <p className="text-lg font-black text-rose-500">{metrics.remainingBalance.toFixed(3)} OMR</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-end">
-                      <div className="space-y-1">
-                        <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
-                          {metrics.paidCount} / {metrics.totalTenantsInBill} Residents Paid
-                        </span>
-                        <p className="text-[10px] text-slate-500 font-bold italic">Combined Rent + Utilities for current cycle</p>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-end">
+                        <div className="space-y-1">
+                          <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                            {metrics.paidCount} / {metrics.totalTenantsInBill} Residents Paid
+                          </span>
+                          <p className="text-[10px] text-slate-500 font-bold italic">Combined Rent + Utilities for current cycle</p>
+                        </div>
+                        <span className="text-2xl font-black text-primary italic">{metrics.progressPercent.toFixed(0)}%</span>
                       </div>
-                      <span className="text-2xl font-black text-primary italic">{metrics.progressPercent.toFixed(0)}%</span>
+                      <Progress value={metrics.progressPercent} className="h-3 bg-slate-800" />
                     </div>
-                    <Progress value={metrics.progressPercent} className="h-3 bg-slate-800" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="grid grid-cols-2 gap-4 w-full lg:w-max">
-                <Card className="bg-white border-none shadow-md p-4 min-w-[140px] md:min-w-[180px]">
-                  <div className="flex items-center gap-2 mb-1 text-slate-500">
-                    <UsersIcon className="h-4 w-4" />
-                    <span className="text-[9px] font-black uppercase tracking-widest">Residents</span>
-                  </div>
-                  <div className="text-2xl font-black text-slate-900">{metrics.tenantCount}</div>
-                  <div className="text-[10px] font-bold text-indigo-600 mt-1 uppercase">Active Community</div>
+                  </CardContent>
                 </Card>
-                <Card className="bg-white border-none shadow-md p-4 min-w-[140px] md:min-w-[180px]">
-                  <div className="flex items-center gap-2 mb-1 text-slate-500">
-                    <TrendingUp className="h-4 w-4" />
-                    <span className="text-[9px] font-black uppercase tracking-widest">Occupancy</span>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <Card className="bg-white border-none shadow-md p-6">
+                  <div className="flex items-center gap-3 mb-2 text-slate-500">
+                    <div className="p-2 bg-indigo-50 rounded-lg">
+                      <UsersIcon className="h-5 w-5 text-indigo-600" />
+                    </div>
+                    <span className="text-xs font-black uppercase tracking-widest">Residents</span>
                   </div>
-                  <div className="text-2xl font-black text-slate-900">{metrics.occupancyRate.toFixed(0)}%</div>
-                  <div className="text-[10px] font-bold text-emerald-600 mt-1 uppercase">8 Room Cap</div>
+                  <div className="text-3xl font-black text-slate-900">{metrics?.tenantCount || 0}</div>
+                  <div className="text-[10px] font-bold text-indigo-600 mt-2 uppercase tracking-tighter">Active Community Members</div>
+                </Card>
+                <Card className="bg-white border-none shadow-md p-6">
+                  <div className="flex items-center gap-3 mb-2 text-slate-500">
+                    <div className="p-2 bg-emerald-50 rounded-lg">
+                      <TrendingUp className="h-5 w-5 text-emerald-600" />
+                    </div>
+                    <span className="text-xs font-black uppercase tracking-widest">Occupancy</span>
+                  </div>
+                  <div className="text-3xl font-black text-slate-900">{metrics?.occupancyRate.toFixed(0) || 0}%</div>
+                  <div className="text-[10px] font-bold text-emerald-600 mt-2 uppercase tracking-tighter">8 Core Room Units</div>
                 </Card>
               </div>
-            </>
-          )}
+            </div>
+
+            <div className="space-y-6">
+              <Card className="bg-white border-none shadow-md overflow-hidden rounded-2xl">
+                <CardHeader className="bg-rose-50 border-b border-rose-100 py-4">
+                  <CardTitle className="text-sm font-black flex items-center gap-2 text-rose-700 uppercase tracking-widest">
+                    <Cake className="h-4 w-4" /> Upcoming Birthdays
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="divide-y divide-slate-50 max-h-[300px] overflow-y-auto">
+                    {upcomingBirthdays.length > 0 ? (
+                      upcomingBirthdays.map((b: any) => (
+                        <div key={b.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-full bg-rose-100 flex items-center justify-center text-rose-600">
+                              <UserIcon className="h-4 w-4" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-black text-slate-900">{b.firstName} {b.lastName}</p>
+                              <p className="text-[10px] font-bold text-slate-500 flex items-center gap-1">
+                                <CalendarDays className="h-3 w-3" /> {new Date(b.dob).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              </p>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className={cn(
+                            "text-[8px] font-black uppercase tracking-widest px-2",
+                            b.daysUntil === 0 ? "bg-rose-600 text-white border-none animate-pulse" : "text-rose-600 border-rose-200"
+                          )}>
+                            {b.daysUntil === 0 ? 'Today!' : b.daysUntil === 1 ? 'Tomorrow' : `In ${b.daysUntil} days`}
+                          </Badge>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-8 text-center">
+                        <Gift className="h-8 w-8 text-slate-200 mx-auto mb-2" />
+                        <p className="text-xs font-bold text-slate-400">No birthdays in the next 30 days.</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+                {isSuperAdmin && (
+                  <CardFooter className="p-4 bg-slate-50 border-t">
+                    <Button variant="ghost" asChild className="w-full text-[10px] font-black uppercase tracking-widest text-rose-600 hover:text-rose-700 hover:bg-rose-100">
+                      <Link href="/birthdays">Manage Birthday Greetings <ArrowRight className="ml-2 h-3 w-3" /></Link>
+                    </Button>
+                  </CardFooter>
+                )}
+              </Card>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6">
             {(isSuperAdmin ? adminModules : residentModules).map(item => (
