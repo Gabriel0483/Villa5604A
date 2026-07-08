@@ -5,7 +5,7 @@ import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
   title: 'Villa 5604 Portal',
-  description: 'Villa 5604 is an exclusive shared residential community. This portal serves as the central management hub for residents and administrators to manage utility allocations, villa maintenance, and community updates with complete transparency.',
+  description: 'Management portal for Villa 5604.',
 };
 
 export default function RootLayout({

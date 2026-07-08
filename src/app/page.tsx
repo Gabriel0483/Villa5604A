@@ -325,9 +325,6 @@ function DashboardContent() {
               <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tighter mt-4">
                 Welcome back, <span className="text-primary">{profile?.firstName || 'Resident'}</span>
               </h2>
-              <p className="text-sm md:text-lg text-slate-600 font-bold mt-2 max-w-2xl">
-                Villa 5604 is an exclusive shared residential community designed for harmony and transparency. Use this portal to track your utility statements, manage villa maintenance, and stay engaged with your neighbors.
-              </p>
             </div>
           </div>
 
