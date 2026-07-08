@@ -232,7 +232,7 @@ function DashboardContent() {
   ];
 
   const residentModules = [
-    { title: 'My Bills', icon: <FileText className="h-6 w-6" />, path: '/my-bills', label: 'View Current Statement', color: 'indigo' },
+    { title: 'My Bill', icon: <FileText className="h-6 w-6" />, path: '/my-bills', label: 'View Current Statement', color: 'indigo' },
     { title: 'Latest Bills', icon: <Zap className="h-6 w-6" />, path: '/utilities', label: 'View Household Totals', color: 'amber' },
     { title: 'Pet Registry', icon: <PawPrint className="h-6 w-6" />, path: '/pets', label: 'View Villa Pets', color: 'emerald' },
     { title: 'Report Issue', icon: <Wrench className="h-6 w-6" />, path: '/repairs', label: 'Maintenance Request', color: 'orange' },
@@ -326,7 +326,7 @@ function DashboardContent() {
                 Welcome back, <span className="text-primary">{profile?.firstName || 'Resident'}</span>
               </h2>
               <p className="text-sm md:text-lg text-slate-600 font-bold mt-2 max-w-2xl">
-                Track your itemized utility statements and community updates through your resident portal.
+                Villa 5604 is an exclusive shared residential community designed for harmony and transparency. Use this portal to track your utility statements, manage villa maintenance, and stay engaged with your neighbors.
               </p>
             </div>
           </div>
