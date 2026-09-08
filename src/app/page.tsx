@@ -23,7 +23,9 @@ import {
   Info,
   PawPrint,
   Gift,
-  CalendarDays
+  CalendarDays,
+  Snowflake,
+  Trees
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -266,6 +268,24 @@ function DashboardContent() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <header className="bg-white border-b sticky top-0 z-20 shadow-sm">
+        {/* Seasonal Christmas Banner */}
+        <div className="bg-primary text-white py-1.5 px-4 text-center overflow-hidden relative">
+          <div className="container mx-auto flex items-center justify-center gap-4 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] relative z-10">
+            <Snowflake className="h-3 w-3 animate-spin-slow" />
+            Christmas Season at Villa 5604
+            <Trees className="h-3 w-3" />
+            Happy Holidays!
+            <Snowflake className="h-3 w-3 animate-spin-slow" />
+          </div>
+          <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none overflow-hidden">
+            <div className="flex justify-around w-full">
+              {[...Array(10)].map((_, i) => (
+                <Snowflake key={i} className={cn("h-4 w-4 animate-bounce", i % 2 === 0 ? "mt-1" : "mt-2")} style={{ animationDelay: `${i * 0.5}s` }} />
+              ))}
+            </div>
+          </div>
+        </div>
+
         <div className="container mx-auto px-4 h-16 md:h-20 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Link href="/" className="flex items-center gap-2 md:gap-3">
@@ -387,33 +407,33 @@ function DashboardContent() {
               )}
 
               <div className="grid grid-cols-2 gap-4">
-                <Card className="bg-white border-none shadow-md p-6">
+                <Card className="bg-white border-none shadow-md p-6 border-t-4 border-t-accent">
                   <div className="flex items-center gap-3 mb-2 text-slate-500">
-                    <div className="p-2 bg-indigo-50 rounded-lg">
-                      <UsersIcon className="h-5 w-5 text-indigo-600" />
+                    <div className="p-2 bg-accent/10 rounded-lg">
+                      <UsersIcon className="h-5 w-5 text-accent" />
                     </div>
                     <span className="text-xs font-black uppercase tracking-widest">Residents</span>
                   </div>
                   <div className="text-3xl font-black text-slate-900">{metrics?.tenantCount || 0}</div>
-                  <div className="text-[10px] font-bold text-indigo-600 mt-2 uppercase tracking-tighter">Active Community Members</div>
+                  <div className="text-[10px] font-bold text-accent mt-2 uppercase tracking-tighter">Active Community Members</div>
                 </Card>
-                <Card className="bg-white border-none shadow-md p-6">
+                <Card className="bg-white border-none shadow-md p-6 border-t-4 border-t-accent">
                   <div className="flex items-center gap-3 mb-2 text-slate-500">
-                    <div className="p-2 bg-emerald-50 rounded-lg">
-                      <TrendingUp className="h-5 w-5 text-emerald-600" />
+                    <div className="p-2 bg-accent/10 rounded-lg">
+                      <TrendingUp className="h-5 w-5 text-accent" />
                     </div>
                     <span className="text-xs font-black uppercase tracking-widest">Occupancy</span>
                   </div>
                   <div className="text-3xl font-black text-slate-900">{metrics?.occupancyRate.toFixed(0) || 0}%</div>
-                  <div className="text-[10px] font-bold text-emerald-600 mt-2 uppercase tracking-tighter">8 Core Room Units</div>
+                  <div className="text-[10px] font-bold text-accent mt-2 uppercase tracking-tighter">8 Core Room Units</div>
                 </Card>
               </div>
             </div>
 
             <div className="space-y-6">
-              <Card className="bg-white border-none shadow-md overflow-hidden rounded-2xl">
+              <Card className="bg-white border-none shadow-md overflow-hidden rounded-2xl border-t-4 border-t-primary">
                 <CardHeader className="bg-rose-50 border-b border-rose-100 py-4">
-                  <CardTitle className="text-sm font-black flex items-center gap-2 text-rose-700 uppercase tracking-widest">
+                  <CardTitle className="text-sm font-black flex items-center gap-2 text-primary uppercase tracking-widest">
                     <Cake className="h-4 w-4" /> Upcoming Birthdays
                   </CardTitle>
                 </CardHeader>
@@ -423,7 +443,7 @@ function DashboardContent() {
                       upcomingBirthdays.map((b: any) => (
                         <div key={b.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
                           <div className="flex items-center gap-3">
-                            <div className="h-9 w-9 rounded-full bg-rose-100 flex items-center justify-center text-rose-600">
+                            <div className="h-9 w-9 rounded-full bg-rose-100 flex items-center justify-center text-primary">
                               <UserIcon className="h-4 w-4" />
                             </div>
                             <div>
@@ -435,7 +455,7 @@ function DashboardContent() {
                           </div>
                           <Badge variant="outline" className={cn(
                             "text-[8px] font-black uppercase tracking-widest px-2",
-                            b.daysUntil === 0 ? "bg-rose-600 text-white border-none animate-pulse" : "text-rose-600 border-rose-200"
+                            b.daysUntil === 0 ? "bg-primary text-white border-none animate-pulse" : "text-primary border-rose-200"
                           )}>
                             {b.daysUntil === 0 ? 'Today!' : b.daysUntil === 1 ? 'Tomorrow' : `In ${b.daysUntil} days`}
                           </Badge>
@@ -451,7 +471,7 @@ function DashboardContent() {
                 </CardContent>
                 {isSuperAdmin && (
                   <CardFooter className="p-4 bg-slate-50 border-t">
-                    <Button variant="ghost" asChild className="w-full text-[10px] font-black uppercase tracking-widest text-rose-600 hover:text-rose-700 hover:bg-rose-100">
+                    <Button variant="ghost" asChild className="w-full text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary hover:bg-rose-100">
                       <Link href="/birthdays">Manage Birthday Greetings <ArrowRight className="ml-2 h-3 w-3" /></Link>
                     </Button>
                   </CardFooter>
